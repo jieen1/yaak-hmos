@@ -4,7 +4,7 @@ import { BaseModel } from './BaseModel';
 export class Environment extends BaseModel {
   @Trace workspace_id: string = '';
   @Trace name: string = '';
-  @Trace data: string = '{}'; // JSON string
+  @Trace variables: string = '[]';
 
   constructor() {
     super();

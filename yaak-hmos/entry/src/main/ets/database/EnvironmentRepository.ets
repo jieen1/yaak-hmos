@@ -18,7 +18,7 @@ export class EnvironmentRepository {
       env.id = resultSet.getString(resultSet.getColumnIndex('id'));
       env.workspace_id = resultSet.getString(resultSet.getColumnIndex('workspace_id'));
       env.name = resultSet.getString(resultSet.getColumnIndex('name'));
-      env.data = resultSet.getString(resultSet.getColumnIndex('data'));
+      env.variables = resultSet.getString(resultSet.getColumnIndex('variables'));
       env.created_at = resultSet.getLong(resultSet.getColumnIndex('created_at'));
       env.updated_at = resultSet.getLong(resultSet.getColumnIndex('updated_at'));
       environments.push(env);
@@ -36,7 +36,7 @@ export class EnvironmentRepository {
       model: env.model,
       workspace_id: env.workspace_id,
       name: env.name,
-      data: env.data,
+      variables: env.variables,
       created_at: env.created_at,
       updated_at: env.updated_at,
       deleted_at: env.deleted_at
@@ -51,7 +51,7 @@ export class EnvironmentRepository {
 
     const valueBucket: relationalStore.ValuesBucket = {
       name: env.name,
-      data: env.data,
+      variables: env.variables,
       updated_at: Date.now()
     };
 

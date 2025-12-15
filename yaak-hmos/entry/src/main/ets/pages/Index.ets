@@ -13,8 +13,11 @@ import { EnvironmentService } from '../services/EnvironmentService';
 import { SidebarComponent } from '../components/SidebarComponent';
 import { RequestEditorComponent } from '../components/RequestEditorComponent';
 import { ResponseViewerComponent } from '../components/ResponseViewerComponent';
+import { WorkspaceHeader } from '../components/header/WorkspaceHeader';
+import { SettingsDialog } from '../components/dialogs/SettingsDialog';
+import { EmptyState } from '../components/EmptyState'; // Import
 import { UUID } from '../common/UUID';
-import http from '@ohos.net.http';
+import { ThemeManager, ThemeColors } from '../theme/Theme';
 
 @Entry
 @ComponentV2
@@ -27,6 +30,7 @@ struct Index {
   @Local environments: Environment[] = [];
   @Local selectedWorkspace: Workspace | null = null;
   @Local selectedRequest: HttpRequest | null = null;
+  @Local selectedEnvironment: Environment | null = null;
   
   @Local responseBody: string = '';
   @Local responseStatus: number = 0;
@@ -36,33 +40,48 @@ struct Index {
   @Local isLoading: boolean = true;
   @Local isRequestLoading: boolean = false;
 
-  @Local sidebarWidth: number = 250; // default 250px (need conversion to screen density usually, but simple for now)
-  
-  // Layout weights (simulated resize)
-  @Local sidebarWeight: number = 2;
-  @Local requestWeight: number = 5;
-  @Local responseWeight: number = 3;
+  @Local sidebarWidth: number = 250; 
+  @Local sidebarHidden: boolean = false;
+  @Local workspaceLayout: string = 'horizontal';
 
+  @Local theme: ThemeColors = ThemeManager.getInstance().currentTheme;
+
+  settingsDialogController: CustomDialogController = new CustomDialogController({
+    builder: SettingsDialog(),
+    alignment: DialogAlignment.Center,
+    autoCancel: true,
+    customStyle: true 
+  });
+  
   async aboutToAppear() {
-    await DatabaseManager.getInstance().waitForInit();
-    
-    await this.loadWorkspaces();
-    if (this.workspaces.length === 0) {
-      await this.createDefaultWorkspace();
+    try {
+      await DatabaseManager.getInstance().waitForInit();
+      
+      await this.loadWorkspaces();
+      if (this.workspaces.length === 0) {
+        await this.createDefaultWorkspace();
+      }
+      if (this.workspaces.length > 0) {
+        this.selectedWorkspace = this.workspaces[0];
+        await this.loadData();
+      }
+    } catch (e) {
+      console.error("Initialization failed", e);
+    } finally {
+      this.isLoading = false; 
     }
-    if (this.workspaces.length > 0) {
-      this.selectedWorkspace = this.workspaces[0];
-      await this.loadData();
-    }
-    this.isLoading = false;
   }
 
   async loadData() {
     if (!this.selectedWorkspace) return;
-    await this.loadEnvironments();
-    await this.loadFolders();
-    await this.loadRequests();
-    this.rebuildSidebar();
+    try {
+      await this.loadEnvironments();
+      await this.loadFolders();
+      await this.loadRequests();
+      this.rebuildSidebar();
+    } catch (e) {
+      console.error("Error loading data", e);
+    }
   }
 
   async loadWorkspaces() {
@@ -77,12 +96,14 @@ struct Index {
          env.id = UUID.randomUUID();
          env.workspace_id = this.selectedWorkspace.id;
          env.name = 'Base Environment';
-         env.data = '{"host": "https://httpbin.org"}';
+         // Use JSON array for variables, empty for now
+         env.variables = '[]'; 
          env.created_at = Date.now();
          env.updated_at = Date.now();
          await EnvironmentRepository.createEnvironment(env);
          this.environments = [env];
       }
+      this.selectedEnvironment = null;
     }
   }
 
@@ -194,54 +215,120 @@ struct Index {
   }
 
   build() {
-    Row() {
-      if (this.isLoading) {
-        Column() {
-           LoadingProgress().width(50).height(50)
-           Text("Initializing...").margin({ top: 10 })
-        }.width('100%').height('100%').justifyContent(FlexAlign.Center)
-      } else {
-        // Sidebar (20%)
-        Column() {
-          SidebarComponent({
-            items: this.sidebarItems,
-            selectedRequest: this.selectedRequest,
-            onRequestCreate: () => { this.createRequest() },
-            onFolderCreate: () => { this.createFolder() }
-          })
+    Column() {
+      // Header (Always Visible)
+      WorkspaceHeader({
+        workspaces: this.workspaces,
+        activeWorkspace: this.selectedWorkspace,
+        environments: this.environments,
+        activeEnvironment: this.selectedEnvironment,
+        workspaceLayout: this.workspaceLayout,
+        sidebarHidden: this.sidebarHidden,
+        
+        // Event Handlers
+        onWorkspaceSelect: (ws: Workspace) => {
+          if (this.selectedWorkspace?.id !== ws.id) {
+            this.selectedWorkspace = ws;
+            this.loadData();
+          }
+        },
+        onWorkspaceAdd: () => {
+           // Reload logic if needed, but the Dialog in Header does the creation
+           // We just need to refresh list
+           this.loadWorkspaces();
+        },
+        onEnvironmentSelect: (env: Environment | null) => {
+          this.selectedEnvironment = env;
+        },
+        onLayoutChange: (layout: string) => {
+          this.workspaceLayout = layout;
+        },
+        onSidebarToggle: () => {
+          this.sidebarHidden = !this.sidebarHidden;
+        },
+        onOpenSettings: () => {
+          this.settingsDialogController.open();
         }
-        .width('20%')
-        .height('100%')
+      })
 
-        Divider().vertical(true).height('100%').color('#e0e0e0')
+      Row() {
+        if (this.isLoading) {
+          Column() {
+             LoadingProgress().width(50).height(50).color(this.theme.primary)
+             Text("Initializing...").margin({ top: 10 }).fontColor(this.theme.text)
+          }.width('100%').height('100%').justifyContent(FlexAlign.Center).backgroundColor(this.theme.background)
+        } else {
+          // Sidebar (20%)
+          if (!this.sidebarHidden) {
+            Column() {
+              SidebarComponent({
+                items: this.sidebarItems,
+                selectedRequest: this.selectedRequest,
+                onRequestCreate: () => { this.createRequest() },
+                onFolderCreate: () => { this.createFolder() },
+                $selectedRequest: (req: HttpRequest | null) => {
+                   this.selectedRequest = req;
+                }
+              })
+            }
+            .width('20%')
+            .height('100%')
+            .backgroundColor(this.theme.sidebarBackground)
 
-        // Main Content (Request 50%)
-        Column() {
-          RequestEditorComponent({
-            request: this.selectedRequest,
-            onExecute: () => { this.executeRequest() },
-            isLoading: this.isRequestLoading
-          })
+            Divider().vertical(true).height('100%').color(this.theme.border)
+          }
+
+          // Main Content (Request)
+          Column() {
+            if (this.selectedRequest) {
+              RequestEditorComponent({
+                request: this.selectedRequest,
+                onExecute: () => { this.executeRequest() },
+                isLoading: this.isRequestLoading,
+                $request: (val: HttpRequest | null) => {
+                  // Handle request updates if needed, though ObservedV2 handles props
+                  if (val) this.selectedRequest = val;
+                }
+              })
+            } else {
+              EmptyState({
+                onNewRequest: () => { this.createRequest() },
+                onImport: () => { 
+                   // TODO: Implement Import Dialog
+                }
+              })
+            }
+          }
+          .layoutWeight(this.workspaceLayout === 'horizontal' ? 5 : 1)
+          .height('100%')
+          .backgroundColor(this.theme.background)
+
+          if (this.workspaceLayout === 'horizontal') {
+            Divider().vertical(true).height('100%').color(this.theme.border)
+          } else {
+            Divider().vertical(false).width('100%').color(this.theme.border)
+          }
+
+          // Response Viewer
+          Column() {
+            ResponseViewerComponent({
+              response: this.responseBody,
+              status: this.responseStatus,
+              time: this.responseTime,
+              bodySize: this.responseSize
+            })
+          }
+          .layoutWeight(3)
+          .height('100%')
+          .backgroundColor(this.theme.background)
         }
-        .layoutWeight(5)
-        .height('100%')
-
-        Divider().vertical(true).height('100%').color('#e0e0e0')
-
-        // Response Viewer (30%)
-        Column() {
-          ResponseViewerComponent({
-            response: this.responseBody,
-            status: this.responseStatus,
-            time: this.responseTime,
-            bodySize: this.responseSize
-          })
-        }
-        .layoutWeight(3)
-        .height('100%')
       }
+      .layoutWeight(1) // Take remaining space
+      .width('100%')
+      .backgroundColor(this.theme.background)
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(this.theme.background)
   }
 }

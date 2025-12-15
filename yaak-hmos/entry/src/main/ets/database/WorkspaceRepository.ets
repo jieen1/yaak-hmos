@@ -41,5 +41,34 @@ export class WorkspaceRepository {
 
     await store.insert('workspaces', valueBucket);
   }
+
+  public static async deleteWorkspace(id: string): Promise<void> {
+    const store = DatabaseManager.getInstance().getStore();
+    if (!store) return;
+
+    const predicates = new relationalStore.RdbPredicates('workspaces');
+    predicates.equalTo('id', id);
+    await store.delete(predicates);
+  }
+
+  public static async updateWorkspace(workspace: Workspace): Promise<void> {
+    const store = DatabaseManager.getInstance().getStore();
+    if (!store) return;
+
+    const valueBucket: relationalStore.ValuesBucket = {
+      id: workspace.id,
+      model: workspace.model,
+      name: workspace.name,
+      description: workspace.description,
+      created_at: workspace.created_at,
+      updated_at: workspace.updated_at,
+      deleted_at: workspace.deleted_at
+    };
+
+    const predicates = new relationalStore.RdbPredicates('workspaces');
+    predicates.equalTo('id', workspace.id);
+
+    await store.update(valueBucket, predicates);
+  }
 }
 

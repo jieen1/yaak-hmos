@@ -1,14 +1,22 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, ConfigurationConstant, UIAbility, Want, Configuration } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { DatabaseManager } from '../database/DatabaseManager';
+import { ThemeManager } from '../theme/Theme';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      // Let system decide or set default
+      // this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      
+      // Init ThemeManager with current context if needed
+      const config = this.context.config;
+      if (config && config.colorMode) {
+        ThemeManager.getInstance().setSystemColorMode(config.colorMode);
+      }
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
@@ -16,6 +24,13 @@ export default class EntryAbility extends UIAbility {
     
     // Initialize Database
     DatabaseManager.getInstance().init(this.context);
+  }
+
+  onConfigurationUpdate(newConfig: Configuration): void {
+    // Listen to system theme changes
+    if (newConfig.colorMode !== undefined) {
+      ThemeManager.getInstance().setSystemColorMode(newConfig.colorMode);
+    }
   }
 
   onDestroy(): void {
