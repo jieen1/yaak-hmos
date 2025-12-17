@@ -6,6 +6,7 @@
 import { Workspace } from '../model/Workspace';
 import { Environment } from '../model/Environment';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
+import { ThemedButton } from '.';
 
 @ComponentV2
 export struct WorkspaceHeader {
@@ -16,57 +17,83 @@ export struct WorkspaceHeader {
   @Param onWorkspaceSelect: (workspace: Workspace) => void = () => {};
   @Param onEnvironmentSelect: (environment: Environment | null) => void = () => {};
   @Param onOpenSettings: () => void = () => {};
+  @Param onManageWorkspaces: () => void = () => {};
+  @Param onManageEnvironments: () => void = () => {};
 
   build() {
     Row() {
-      // Workspace Selector
-      ThemedSelect({
-        options: this.buildWorkspaceOptions(),
-        selectedValue: this.activeWorkspace?.id || '',
-        placeholder: 'Select Workspace',
-        onSelectChange: (value: string) => {
-          const workspace: Workspace | undefined = this.workspaces.find((ws: Workspace) => ws.id === value);
-          if (workspace) {
-            this.onWorkspaceSelect(workspace);
-          }
-        },
-        selectSize: 'md'
-      })
-        .width(200)
-        .margin({ right: $r('app.float.spacing_md') })
-
-      // Environment Selector
-      ThemedSelect({
-        options: this.buildEnvironmentOptions(),
-        selectedValue: this.activeEnvironment?.id || 'none',
-        placeholder: 'No Environment',
-        onSelectChange: (value: string) => {
-          if (value === 'none') {
-            this.onEnvironmentSelect(null);
-          } else {
-            const env: Environment | undefined = this.environments.find((e: Environment) => e.id === value);
-            if (env) {
-              this.onEnvironmentSelect(env);
+      // Workspace Selector with Manage Button
+      Row() {
+        ThemedSelect({
+          options: this.buildWorkspaceOptions(),
+          selectedValue: this.activeWorkspace?.id || '',
+          placeholder: 'Select Workspace',
+          onSelectChange: (value: string) => {
+            const workspace: Workspace | undefined = this.workspaces.find((ws: Workspace) => ws.id === value);
+            if (workspace) {
+              this.onWorkspaceSelect(workspace);
             }
-          }
-        },
-        selectSize: 'md'
-      })
-        .width(200)
+          },
+          selectSize: 'md'
+        })
+          .width(180)
+
+        ThemedButton({
+          symbolIcon: $r('sys.symbol.house'),
+          onButtonClick: () => {
+            this.onManageWorkspaces();
+          },
+          buttonType: 'ghost',
+          buttonSize: 'sm',
+          isCircle: false
+        })
+          .margin({ left: $r('app.float.spacing_xs') })
+      }
+      .margin({ right: $r('app.float.spacing_md') })
+
+      // Environment Selector with Manage Button
+      Row() {
+        ThemedSelect({
+          options: this.buildEnvironmentOptions(),
+          selectedValue: this.activeEnvironment?.id || 'none',
+          placeholder: 'No Environment',
+          onSelectChange: (value: string) => {
+            if (value === 'none') {
+              this.onEnvironmentSelect(null);
+            } else {
+              const env: Environment | undefined = this.environments.find((e: Environment) => e.id === value);
+              if (env) {
+                this.onEnvironmentSelect(env);
+              }
+            }
+          },
+          selectSize: 'md'
+        })
+          .width(180)
+
+        ThemedButton({
+          symbolIcon: $r('sys.symbol.glass'),
+          onButtonClick: () => {
+            this.onManageEnvironments();
+          },
+          buttonType: 'ghost',
+          buttonSize: 'sm',
+          isCircle: false
+        })
+          .margin({ left: $r('app.float.spacing_xs') })
+      }
 
       Blank()
 
       // Settings Button
-      Button({ type: ButtonType.Circle }) {
-        Text('⚙')
-          .fontSize($r('app.float.font_size_xl'))
-          .fontColor($r('app.color.text_primary'))
-      }
-      .backgroundColor($r('app.color.surface'))
-      .width(40)
-      .height(40)
-      .onClick(() => {
-        this.onOpenSettings();
+      ThemedButton({
+        symbolIcon: $r('sys.symbol.gearshape'),
+        onButtonClick: () => {
+          this.onOpenSettings();
+        },
+        buttonType: 'ghost',
+        buttonSize: 'md',
+        isCircle: true
       })
     }
     .width('100%')

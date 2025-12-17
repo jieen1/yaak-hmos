@@ -76,7 +76,88 @@ interface User {
 const user: User = JSON.parse(jsonStr) as User;
 ```
 
-### 3. Property Name Conflicts
+### 3. Callback Context Loss with @BuilderParam
+**NEVER pass callbacks through @BuilderParam - they lose their context.**
+
+This is a critical issue that causes runtime crashes with "undefined is not callable" errors.
+
+❌ **WRONG:**
+```typescript
+// Parent Component
+@ComponentV2
+struct Parent {
+  @Builder
+  buildContent() {
+    ChildComponent({
+      onAction: this.handleAction  // Context lost!
+    })
+  }
+
+  handleAction = (): void => {
+    this.doSomething();
+  }
+
+  build() {
+    WrapperComponent({
+      content: this.buildContent  // Callbacks in builder lose context
+    })
+  }
+}
+
+// Wrapper Component
+@ComponentV2
+struct WrapperComponent {
+  @BuilderParam content: () => void;
+  
+  build() {
+    Column() {
+      this.content();  // Callbacks passed through here lose context
+    }
+  }
+}
+```
+
+✅ **CORRECT - Inline the logic instead:**
+```typescript
+@ComponentV2
+struct Parent {
+  @Local width: number = 250;
+
+  handleAction = (): void => {
+    this.doSomething();
+  }
+
+  build() {
+    Row() {
+      // Inline the wrapper logic directly
+      Column() {
+        ChildComponent({
+          onAction: this.handleAction  // Context preserved!
+        })
+      }
+      .width(this.width)
+      
+      // Add resize handle or other wrapper features inline
+      Column() {
+        // Resize handle
+      }
+      .gesture(/* ... */)
+    }
+  }
+}
+```
+
+**Why this happens:**
+- When you pass a `@Builder` method to a component via `@BuilderParam`, the builder is executed in a different context
+- Any callbacks passed to child components within that builder lose their `this` binding
+- This causes runtime errors when the callback tries to access `this.method()` or `this.property`
+
+**Solution:**
+- Avoid using `@BuilderParam` for content that contains callbacks
+- Inline the wrapper logic directly in the parent component
+- Use arrow function properties (`handleAction = () => {}`) for callbacks to preserve context
+
+### 4. Property Name Conflicts
 **NEVER use property names that conflict with built-in component attributes.**
 
 ❌ **WRONG:**
@@ -99,7 +180,7 @@ export struct MyComponent {
 }
 ```
 
-### 4. Component Attribute Limitations
+### 5. Component Attribute Limitations
 **Check component documentation for supported attributes. Not all attributes work on all components.**
 
 ❌ **WRONG:**
@@ -238,6 +319,7 @@ private mapArray(array: string[]): MappedItem[] {
 - [ ] All component attributes verified against documentation
 - [ ] All array operations use explicit types
 - [ ] All callback parameters have descriptive names
+- [ ] No callbacks passed through @BuilderParam (inline wrapper logic instead)
 
 ## 🛠️ Quick Fixes
 
@@ -274,6 +356,62 @@ private convertData(data: DataType[]): Item[] {
 // After
 @Param onButtonClick: () => void;
 @Param buttonSize: string;
+```
+
+### Fixing Callback Context Loss
+```typescript
+// Before (CRASHES at runtime)
+@ComponentV2
+struct Parent {
+  @Builder
+  buildSidebar() {
+    SidebarComponent({
+      onCreate: this.handleCreate  // Context lost through @BuilderParam!
+    })
+  }
+
+  handleCreate = (): void => {
+    this.createItem();
+  }
+
+  build() {
+    ResizablePane({
+      content: this.buildSidebar  // @BuilderParam loses callback context
+    })
+  }
+}
+
+// After (WORKS correctly)
+@ComponentV2
+struct Parent {
+  @Local paneWidth: number = 250;
+
+  handleCreate = (): void => {
+    this.createItem();
+  }
+
+  build() {
+    Row() {
+      // Inline the resizable pane logic
+      Column() {
+        SidebarComponent({
+          onCreate: this.handleCreate  // Context preserved!
+        })
+      }
+      .width(this.paneWidth)
+      
+      // Resize handle
+      Column()
+        .width(8)
+        .gesture(
+          PanGesture()
+            .onActionUpdate((event: GestureEvent) => {
+              this.paneWidth = /* calculate new width */;
+            })
+        )
+    }
+  }
+}
 ```
 
 ## 📚 References

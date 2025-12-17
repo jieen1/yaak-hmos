@@ -48,10 +48,10 @@ export class RequestExecutor {
       const resolvedHeaders = RequestExecutor.resolveHeadersWithTemplates(inheritedHeaders, variables);
 
       // 4. Apply authentication (only if not null)
-      const authHeaders = resolvedAuth !== null 
+      const authHeaders: Record<string, string> = resolvedAuth !== null 
         ? AuthService.getAuthHeaders(resolvedAuth, variables)
         : {};
-      const finalHeaders: Record<string, string> = Object.assign({}, resolvedHeaders, authHeaders);
+      const finalHeaders: Record<string, string> = RequestExecutor.mergeHeaders(resolvedHeaders, authHeaders);
 
       // 5. Get cookies
       const cookieHeader = await CookieService.getCookieHeader(workspaceId, resolvedUrl);
@@ -161,13 +161,8 @@ export class RequestExecutor {
     });
 
     // Add API key as query parameter if needed
-    const apiKeyParams = AuthService.getApiKeyQueryParams(request.auth, variables);
-    const apiKeyEntries = Object.entries(apiKeyParams);
-    apiKeyEntries.forEach((entry: [string, string]) => {
-      const name: string = entry[0];
-      const value: string = entry[1];
-      queryParams.push(`${encodeURIComponent(name)}=${encodeURIComponent(value)}`);
-    });
+    const apiKeyParams: Record<string, string> = AuthService.getApiKeyQueryParams(request.auth, variables);
+    RequestExecutor.addApiKeyParams(apiKeyParams, queryParams);
 
     if (queryParams.length > 0) {
       const separator = url.includes('?') ? '&' : '?';
@@ -213,7 +208,7 @@ export class RequestExecutor {
       case 'graphql':
         return TemplateEngine.resolve(request.body, variables);
       case 'form-urlencoded':
-        return this.buildFormUrlEncoded(request.body, variables);
+        return RequestExecutor.buildFormUrlEncoded(request.body, variables);
       case 'form-data':
         // Form-data requires special handling, will be implemented in task 13
         return request.body;
@@ -233,20 +228,58 @@ export class RequestExecutor {
       const data: ESObject = JSON.parse(body) as ESObject;
       const params: string[] = [];
 
-      const entries = Object.entries(data);
-      entries.forEach((entry: [string, Object]) => {
-        const key: string = entry[0];
-        const value: Object = entry[1];
-        const resolvedKey = TemplateEngine.resolve(key, variables);
-        const resolvedValue = TemplateEngine.resolve(String(value), variables);
-        params.push(`${encodeURIComponent(resolvedKey)}=${encodeURIComponent(resolvedValue)}`);
-      });
+      RequestExecutor.processFormData(data, variables, params);
 
       return params.join('&');
     } catch (error) {
       console.error(`Failed to build form-urlencoded body: ${error}`);
       return body;
     }
+  }
+
+  /**
+   * Process form data entries
+   */
+  private static processFormData(data: ESObject, variables: Map<string, string>, params: string[]): void {
+    const entries: [string, Object][] = Object.entries<Object>(data);
+    entries.forEach((entry: [string, Object]) => {
+      const key: string = entry[0];
+      const value: Object = entry[1];
+      const resolvedKey: string = TemplateEngine.resolve(key, variables);
+      const resolvedValue: string = TemplateEngine.resolve(String(value), variables);
+      params.push(`${encodeURIComponent(resolvedKey)}=${encodeURIComponent(resolvedValue)}`);
+    });
+  }
+
+  /**
+   * Add API key parameters to query params
+   */
+  private static addApiKeyParams(apiKeyParams: Record<string, string>, queryParams: string[]): void {
+    const apiKeyEntries = Object.entries(apiKeyParams);
+    apiKeyEntries.forEach((entry: [string, string]) => {
+      const name: string = entry[0];
+      const value: string = entry[1];
+      queryParams.push(`${encodeURIComponent(name)}=${encodeURIComponent(value)}`);
+    });
+  }
+
+  /**
+   * Merge two header records
+   */
+  private static mergeHeaders(headers1: Record<string, string>, headers2: Record<string, string>): Record<string, string> {
+    const result: Record<string, string> = {};
+    
+    const entries1 = Object.entries(headers1);
+    entries1.forEach((entry: [string, string]) => {
+      result[entry[0]] = entry[1];
+    });
+    
+    const entries2 = Object.entries(headers2);
+    entries2.forEach((entry: [string, string]) => {
+      result[entry[0]] = entry[1];
+    });
+    
+    return result;
   }
 
   /**
@@ -280,7 +313,8 @@ export class RequestExecutor {
   private static parseResponseHeaders(headers: Object): ResponseHeader[] {
     const responseHeaders: ResponseHeader[] = [];
 
-    const entries = Object.entries(headers);
+    const headersRecord: Record<string, Object> = headers as Record<string, Object>;
+    const entries: [string, Object][] = Object.entries<Object>(headersRecord);
     entries.forEach((entry: [string, Object]) => {
       const name: string = entry[0];
       const value: Object = entry[1];

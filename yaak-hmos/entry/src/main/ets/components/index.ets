@@ -20,6 +20,4 @@ export { ResponseHeadersTab } from './ResponseHeadersTab';
 export { ResponseInfoTab } from './ResponseInfoTab';
 export { WorkspaceHeader } from './WorkspaceHeader';
 export { SettingsDialog } from './SettingsDialog';
-export { WorkspaceDialog } from './WorkspaceDialog';
-export { EnvironmentDialog } from './EnvironmentDialog';
 export { EmptyState } from './EmptyState';

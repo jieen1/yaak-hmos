@@ -1,5 +1,10 @@
 import { HttpResponse } from '../model';
 
+interface InfoItem {
+  label: string;
+  value: string;
+}
+
 @ComponentV2
 export struct ResponseInfoTab {
   @Param response: HttpResponse | null = null;
@@ -35,30 +40,16 @@ export struct ResponseInfoTab {
     Scroll() {
       Column() {
         // Status Information
-        this.buildSection('Status Information', [
-          { label: 'Status Code', value: `${this.response?.status_code || 0}` },
-          { label: 'Status Text', value: this.response?.status_text || 'N/A' },
-          { label: 'State', value: this.formatState(this.response?.state || 'pending') }
-        ]);
+        this.buildSection('Status Information', this.buildStatusItems());
 
         // Timing Information
-        this.buildSection('Timing Information', [
-          { label: 'Total Time', value: `${this.response?.elapsed_time || 0} ms` },
-          { label: 'Request Sent', value: this.formatTimestamp(this.response?.created_at || 0) }
-        ]);
+        this.buildSection('Timing Information', this.buildTimingItems());
 
         // Size Information
-        this.buildSection('Size Information', [
-          { label: 'Response Size', value: this.formatSize(this.response?.size || 0) },
-          { label: 'Headers Count', value: `${this.response?.headers.length || 0}` }
-        ]);
+        this.buildSection('Size Information', this.buildSizeItems());
 
         // Response Metadata
-        this.buildSection('Response Metadata', [
-          { label: 'Response ID', value: this.response?.id || 'N/A' },
-          { label: 'Request ID', value: this.response?.request_id || 'N/A' },
-          { label: 'Body Path', value: this.response?.body_path || 'N/A' }
-        ]);
+        this.buildSection('Response Metadata', this.buildMetadataItems());
       }
       .width('100%')
       .padding($r('app.float.spacing_md'))
@@ -68,8 +59,92 @@ export struct ResponseInfoTab {
     .scrollBar(BarState.Auto)
   }
 
+  private buildStatusItems(): InfoItem[] {
+    const items: InfoItem[] = [];
+    
+    const statusCodeItem: InfoItem = {
+      label: 'Status Code',
+      value: `${this.response?.status_code || 0}`
+    };
+    items.push(statusCodeItem);
+    
+    const statusTextItem: InfoItem = {
+      label: 'Status Text',
+      value: this.response?.status_text || 'N/A'
+    };
+    items.push(statusTextItem);
+    
+    const stateItem: InfoItem = {
+      label: 'State',
+      value: this.formatState(this.response?.state || 'pending')
+    };
+    items.push(stateItem);
+    
+    return items;
+  }
+
+  private buildTimingItems(): InfoItem[] {
+    const items: InfoItem[] = [];
+    
+    const totalTimeItem: InfoItem = {
+      label: 'Total Time',
+      value: `${this.response?.elapsed_time || 0} ms`
+    };
+    items.push(totalTimeItem);
+    
+    const requestSentItem: InfoItem = {
+      label: 'Request Sent',
+      value: this.formatTimestamp(this.response?.created_at || 0)
+    };
+    items.push(requestSentItem);
+    
+    return items;
+  }
+
+  private buildSizeItems(): InfoItem[] {
+    const items: InfoItem[] = [];
+    
+    const responseSizeItem: InfoItem = {
+      label: 'Response Size',
+      value: this.formatSize(this.response?.size || 0)
+    };
+    items.push(responseSizeItem);
+    
+    const headersCountItem: InfoItem = {
+      label: 'Headers Count',
+      value: `${this.response?.headers.length || 0}`
+    };
+    items.push(headersCountItem);
+    
+    return items;
+  }
+
+  private buildMetadataItems(): InfoItem[] {
+    const items: InfoItem[] = [];
+    
+    const responseIdItem: InfoItem = {
+      label: 'Response ID',
+      value: this.response?.id || 'N/A'
+    };
+    items.push(responseIdItem);
+    
+    const requestIdItem: InfoItem = {
+      label: 'Request ID',
+      value: this.response?.request_id || 'N/A'
+    };
+    items.push(requestIdItem);
+    
+    const bodyPathItem: InfoItem = {
+      label: 'Body Path',
+      value: this.response?.body_path || 'N/A'
+    };
+    items.push(bodyPathItem);
+    
+    return items;
+  }
+
   @Builder
-  buildSection(title: string, items: Array<{ label: string; value: string }>) {
+  buildSection(title: string, items: InfoItem[]) {
     Column() {
       // Section Title
       Text(title)
@@ -80,9 +155,9 @@ export struct ResponseInfoTab {
 
       // Section Items
       Column() {
-        ForEach(items, (item: { label: string; value: string }, index: number) => {
+        ForEach(items, (item: InfoItem, index: number) => {
           this.buildInfoItem(item.label, item.value, index);
-        }, (item: { label: string; value: string }, index: number) => `${title}-${index}`)
+        }, (item: InfoItem, index: number) => `${title}-${index}`)
       }
       .width('100%')
       .backgroundColor($r('app.color.surface'))

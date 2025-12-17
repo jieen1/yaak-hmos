@@ -49,18 +49,26 @@ export struct AuthEditor {
       .width('100%')
       .padding($r('app.float.spacing_md'))
 
-      // Auth fields based on type
-      if (this.auth.type === 'none') {
-        this.buildNoAuthEditor()
-      } else if (this.auth.type === 'basic') {
-        this.buildBasicAuthEditor()
-      } else if (this.auth.type === 'bearer') {
-        this.buildBearerAuthEditor()
-      } else if (this.auth.type === 'api-key') {
-        this.buildApiKeyAuthEditor()
-      } else if (this.auth.type === 'oauth2') {
-        this.buildOAuth2Editor()
+      // Auth fields based on type (wrapped in Scroll)
+      Scroll() {
+        Column() {
+          if (this.auth.type === 'none') {
+            this.buildNoAuthEditor()
+          } else if (this.auth.type === 'basic') {
+            this.buildBasicAuthEditor()
+          } else if (this.auth.type === 'bearer') {
+            this.buildBearerAuthEditor()
+          } else if (this.auth.type === 'api-key') {
+            this.buildApiKeyAuthEditor()
+          } else if (this.auth.type === 'oauth2') {
+            this.buildOAuth2Editor()
+          }
+        }
+        .width('100%')
       }
+      .layoutWeight(1)
+      .width('100%')
+      .scrollBar(BarState.Auto)
     }
     .width('100%')
     .height('100%')
@@ -98,7 +106,8 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
-        .margin({ bottom: $r('app.float.spacing_md') })
+        .height(40)
+        .margin({ bottom: $r('app.float.spacing_lg') })
 
       Text('Password')
         .fontSize($r('app.float.font_size_sm'))
@@ -115,10 +124,10 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
+        .height(40)
     }
     .width('100%')
     .padding($r('app.float.spacing_md'))
-    .layoutWeight(1)
   }
 
   @Builder
@@ -138,10 +147,10 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
+        .height(40)
     }
     .width('100%')
     .padding($r('app.float.spacing_md'))
-    .layoutWeight(1)
   }
 
   @Builder
@@ -161,7 +170,8 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
-        .margin({ bottom: $r('app.float.spacing_md') })
+        .height(40)
+        .margin({ bottom: $r('app.float.spacing_lg') })
 
       Text('Key Value')
         .fontSize($r('app.float.font_size_sm'))
@@ -177,7 +187,8 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
-        .margin({ bottom: $r('app.float.spacing_md') })
+        .height(40)
+        .margin({ bottom: $r('app.float.spacing_lg') })
 
       Text('Add To')
         .fontSize($r('app.float.font_size_sm'))
@@ -193,10 +204,10 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
+        .height(40)
     }
     .width('100%')
     .padding($r('app.float.spacing_md'))
-    .layoutWeight(1)
   }
 
   @Builder
@@ -216,7 +227,8 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
-        .margin({ bottom: $r('app.float.spacing_md') })
+        .height(40)
+        .margin({ bottom: $r('app.float.spacing_lg') })
 
       Text('Refresh Token (Optional)')
         .fontSize($r('app.float.font_size_sm'))
@@ -232,9 +244,9 @@ export struct AuthEditor {
           this.onChange(this.auth);
         }
       })
+        .height(40)
     }
     .width('100%')
     .padding($r('app.float.spacing_md'))
-    .layoutWeight(1)
   }
 }

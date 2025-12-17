@@ -3,6 +3,7 @@
  * Application settings dialog
  */
 
+import { ThemedButton } from '.';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 
 interface AppSettings {
@@ -13,12 +14,10 @@ interface AppSettings {
   softWrap: boolean;
 }
 
-@CustomDialog
 @ComponentV2
 export struct SettingsDialog {
-  controller: CustomDialogController = new CustomDialogController({
-    builder: SettingsDialog()
-  });
+  @Param isVisible: boolean = false;
+  @Param onClose: () => void = () => {};
 
   @Local settings: AppSettings = {
     theme: 'system',
@@ -28,7 +27,7 @@ export struct SettingsDialog {
     softWrap: false
   };
 
-  @Param onSave: (settings: AppSettings) => void = () => {};
+  @Local selectedTab: string = 'appearance';
 
   private themeOptions: SelectOption[] = [
     { label: 'Light', value: 'light' },
@@ -44,91 +43,122 @@ export struct SettingsDialog {
   ];
 
   build() {
-    Column() {
-      // Dialog Title
-      Text('Settings')
-        .fontSize($r('app.float.font_size_xl'))
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Bold)
-        .width('100%')
-        .margin({ bottom: $r('app.float.spacing_lg') })
+    if (this.isVisible) {
+      Stack() {
+        // Backdrop
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('rgba(0, 0, 0, 0.5)')
+          .onClick(() => {
+            this.onClose();
+          })
 
-      // Settings Content
-      Scroll() {
+        // Dialog Content
         Column() {
-          // Appearance Section
-          this.buildSection('Appearance', () => {
-            this.buildAppearanceSettings();
-          });
+          // Dialog Header
+          Row() {
+            Text('Settings')
+              .fontSize($r('app.float.font_size_xl'))
+              .fontColor($r('app.color.text_primary'))
+              .fontWeight(FontWeight.Bold)
+              .flexGrow(1)
 
-          // Editor Section
-          this.buildSection('Editor', () => {
-            this.buildEditorSettings();
-          });
+            ThemedButton({
+              symbolIcon: $r("sys.symbol.xmark"),
+              onButtonClick: () => this.onClose(),
+              buttonType: 'ghost'
+            })
+          }
+          .width('100%')
+          .padding($r('app.float.spacing_md'))
+          .border({
+            width: { bottom: 1 },
+            color: $r('app.color.divider')
+          })
 
-          // Interface Section
-          this.buildSection('Interface', () => {
-            this.buildInterfaceSettings();
-          });
+          // Main Content Area with Sidebar
+          Row() {
+            // Left Sidebar with Tabs
+            Column() {
+              this.buildSidebarTab('Appearance', 'appearance');
+              this.buildSidebarTab('Editor', 'editor');
+              this.buildSidebarTab('About', 'about');
+            }
+            .width(180)
+            .height('100%')
+            .padding($r('app.float.spacing_md'))
+            .backgroundColor($r('app.color.surface'))
+            .border({
+              width: { right: 1 },
+              color: $r('app.color.divider')
+            })
+
+            // Right Content Area
+            Scroll() {
+              Column() {
+                if (this.selectedTab === 'appearance') {
+                  this.buildAppearanceSettings();
+                } else if (this.selectedTab === 'editor') {
+                  this.buildEditorSettings();
+                } else if (this.selectedTab === 'about') {
+                  this.buildAboutSettings();
+                }
+              }
+              .width('100%')
+              .padding($r('app.float.spacing_xl'))
+            }
+            .layoutWeight(1)
+            .height('100%')
+            .scrollBar(BarState.Auto)
+            .align(Alignment.Top)
+          }
+          .layoutWeight(1)
+          .width('100%')
         }
-        .width('100%')
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .scrollBar(BarState.Auto)
-
-      // Action Buttons
-      Row() {
-        Button('Cancel')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_primary'))
-          .backgroundColor($r('app.color.surface'))
-          .flexGrow(1)
-          .margin({ right: $r('app.float.spacing_sm') })
-          .onClick(() => {
-            this.controller.close();
-          })
-
-        Button('Save')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.button_text'))
-          .backgroundColor($r('app.color.primary'))
-          .flexGrow(1)
-          .margin({ left: $r('app.float.spacing_sm') })
-          .onClick(() => {
-            this.onSave(this.settings);
-            this.controller.close();
-          })
+        .width('80%')
+        .height('80%')
+        .backgroundColor($r('app.color.background'))
+        .borderRadius($r('app.float.border_radius_lg'))
+        .shadow({
+          radius: 20,
+          color: 'rgba(0, 0, 0, 0.3)',
+          offsetX: 0,
+          offsetY: 4
+        })
       }
       .width('100%')
-      .margin({ top: $r('app.float.spacing_lg') })
+      .height('100%')
+      .position({ x: 0, y: 0 })
+      .zIndex(1000)
     }
-    .width('100%')
-    .padding($r('app.float.spacing_lg'))
-    .backgroundColor($r('app.color.background'))
   }
 
   @Builder
-  buildSection(title: string, content: () => void) {
-    Column() {
-      Text(title)
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Medium)
-        .width('100%')
-        .margin({ bottom: $r('app.float.spacing_md') })
+  buildSidebarTab(label: string, value: string) {
+    Button(label)
+      .fontSize($r('app.float.font_size_md'))
+      .fontColor(this.selectedTab === value ? $r('app.color.primary') : $r('app.color.text_primary'))
+      .backgroundColor(this.selectedTab === value ? $r('app.color.surface_highlight') : Color.Transparent)
+      .width('100%')
+      .height(40)
+      .borderRadius($r('app.float.border_radius_md'))
+      .margin({ bottom: $r('app.float.spacing_xs') })
+      .onClick(() => {
+        this.selectedTab = value;
+      })
+  }
 
-      content();
-    }
-    .width('100%')
-    .margin({ bottom: $r('app.float.spacing_xl') })
+  private saveSettings(): void {
+    // TODO: Implement settings persistence
+    console.info('Saving settings:', JSON.stringify(this.settings));
   }
 
   @Builder
   buildAppearanceSettings() {
     Column() {
       Text('Theme')
-        .fontSize($r('app.float.font_size_sm'))
+        .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
         .margin({ bottom: $r('app.float.spacing_xs') })
@@ -150,7 +180,7 @@ export struct SettingsDialog {
     Column() {
       // Editor Font Size
       Text(`Editor Font Size: ${this.settings.editorFontSize}px`)
-        .fontSize($r('app.float.font_size_sm'))
+        .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
         .margin({ bottom: $r('app.float.spacing_xs') })
@@ -173,7 +203,7 @@ export struct SettingsDialog {
 
       // Editor Keymap
       Text('Editor Keymap')
-        .fontSize($r('app.float.font_size_sm'))
+        .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
         .margin({ bottom: $r('app.float.spacing_xs') })
@@ -191,7 +221,7 @@ export struct SettingsDialog {
       // Soft Wrap Toggle
       Row() {
         Text('Soft Wrap')
-          .fontSize($r('app.float.font_size_sm'))
+          .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_primary'))
           .flexGrow(1)
 
@@ -231,5 +261,40 @@ export struct SettingsDialog {
         })
     }
     .width('100%')
+  }
+
+  @Builder
+  buildAboutSettings() {
+    Column() {
+      Text('Yaak for HarmonyOS')
+        .fontSize($r('app.float.font_size_xl'))
+        .fontColor($r('app.color.text_primary'))
+        .fontWeight(FontWeight.Bold)
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .margin({ bottom: $r('app.float.spacing_md') })
+
+      Text('Version 1.0.0')
+        .fontSize($r('app.float.font_size_md'))
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .margin({ bottom: $r('app.float.spacing_xl') })
+
+      Text('A powerful API client for HarmonyOS')
+        .fontSize($r('app.float.font_size_sm'))
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .margin({ bottom: $r('app.float.spacing_lg') })
+
+      Text('© 2024 Yaak. All rights reserved.')
+        .fontSize($r('app.float.font_size_xs'))
+        .fontColor($r('app.color.text_tertiary'))
+        .width('100%')
+        .textAlign(TextAlign.Center)
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Center)
   }
 }

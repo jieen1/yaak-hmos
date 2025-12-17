@@ -50,6 +50,7 @@ export struct HeadersEditor {
           }, (header: HttpHeader) => header.id)
         }
         .width('100%')
+        .height("100%")
         .layoutWeight(1)
         .divider({
           strokeWidth: 1,
@@ -72,9 +73,12 @@ export struct HeadersEditor {
           header.enabled = value;
           this.onChange(this.headers);
         })
+        .width(24)
+        .height(24)
+        .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Name input
+      // Name input - fixed width
       ThemedTextInput({
         value: header.name,
         placeholder: 'Header Name',
@@ -82,12 +86,13 @@ export struct HeadersEditor {
           header.name = value;
           this.onChange(this.headers);
         },
-        inputSize: 'sm'
+        inputSize: 'md'
       })
-        .flexGrow(1)
+        .width(200)
+        .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Value input
+      // Value input - takes remaining space
       ThemedTextInput({
         value: header.value,
         placeholder: 'Header Value',
@@ -95,24 +100,24 @@ export struct HeadersEditor {
           header.value = value;
           this.onChange(this.headers);
         },
-        inputSize: 'sm'
+        inputSize: 'md'
       })
-        .flexGrow(1)
+        .layoutWeight(1)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Delete button
-      Button('×')
-        .fontSize($r('app.float.font_size_2xl'))
-        .fontColor($r('app.color.danger'))
-        .backgroundColor(Color.Transparent)
-        .width(32)
-        .height(32)
-        .onClick(() => {
-          this.deleteHeader(index);
-        })
+      ThemedButton({
+        symbolIcon: $r("sys.symbol.xmark"),
+        onButtonClick: () => this.deleteHeader(index),
+        buttonType: 'ghost'
+      })
     }
     .width('100%')
-    .padding($r('app.float.spacing_md'))
+    .padding({
+      left: $r('app.float.spacing_md'),
+      right: $r('app.float.spacing_md'),
+      top: $r('app.float.spacing_sm'),
+      bottom: $r('app.float.spacing_sm')
+    })
     .alignItems(VerticalAlign.Center)
   }
 

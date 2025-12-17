@@ -24,6 +24,8 @@ import { RequestEditorComponent } from '../components/RequestEditorComponent';
 import { ResponseViewerComponent } from '../components/ResponseViewerComponent';
 import { EmptyState } from '../components/EmptyState';
 import { SettingsDialog } from '../components/SettingsDialog';
+import { WorkspaceManagementDialog } from '../components/WorkspaceManagementDialog';
+import { EnvironmentManagementDialog } from '../components/EnvironmentManagementDialog';
 import common from '@ohos.app.ability.common';
 
 @Entry
@@ -50,6 +52,9 @@ struct Index {
   @Local isRequestLoading: boolean = false;
   @Local sidebarHidden: boolean = false;
   @Local workspaceLayout: string = 'horizontal';
+  @Local showSettingsDialog: boolean = false;
+  @Local showWorkspaceManagementDialog: boolean = false;
+  @Local showEnvironmentManagementDialog: boolean = false;
 
   // Context
   private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
@@ -557,7 +562,13 @@ struct Index {
           this.handleEnvironmentSelect(env);
         },
         onOpenSettings: () => {
-          // TODO: Open settings dialog
+          this.showSettingsDialog = true;
+        },
+        onManageWorkspaces: () => {
+          this.showWorkspaceManagementDialog = true;
+        },
+        onManageEnvironments: () => {
+          this.showEnvironmentManagementDialog = true;
         }
       })
 
@@ -566,6 +577,63 @@ struct Index {
         this.buildLoadingState();
       } else {
         this.buildMainContent();
+      }
+
+      // Settings Dialog
+      if (this.showSettingsDialog) {
+        SettingsDialog({
+          isVisible: this.showSettingsDialog,
+          onClose: () => {
+            this.showSettingsDialog = false;
+          }
+        })
+      }
+
+      // Workspace Management Dialog
+      if (this.showWorkspaceManagementDialog) {
+        WorkspaceManagementDialog({
+          isVisible: this.showWorkspaceManagementDialog,
+          workspaces: this.workspaces,
+          onClose: () => {
+            this.showWorkspaceManagementDialog = false;
+          },
+          onCreate: async (workspace: Workspace) => {
+            await this.workspaceRepo.createWorkspace(workspace);
+            await this.loadWorkspaces();
+          },
+          onUpdate: async (workspace: Workspace) => {
+            await this.workspaceRepo.updateWorkspace(workspace);
+            await this.loadWorkspaces();
+          },
+          onDelete: async (workspaceId: string) => {
+            await this.workspaceRepo.deleteWorkspace(workspaceId);
+            await this.loadWorkspaces();
+          }
+        })
+      }
+
+      // Environment Management Dialog
+      if (this.showEnvironmentManagementDialog) {
+        EnvironmentManagementDialog({
+          isVisible: this.showEnvironmentManagementDialog,
+          workspaceId: this.selectedWorkspace?.id || '',
+          environments: this.environments,
+          onClose: () => {
+            this.showEnvironmentManagementDialog = false;
+          },
+          onCreate: async (environment: Environment) => {
+            await this.environmentRepo.createEnvironment(environment);
+            await this.loadEnvironments();
+          },
+          onUpdate: async (environment: Environment) => {
+            await this.environmentRepo.updateEnvironment(environment);
+            await this.loadEnvironments();
+          },
+          onDelete: async (environmentId: string) => {
+            await this.environmentRepo.deleteEnvironment(environmentId);
+            await this.loadEnvironments();
+          }
+        })
       }
     }
     .width('100%')
@@ -592,74 +660,137 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
   }
 
+  @Local sidebarWidth: number = 250;
+  @Local isSidebarDragging: boolean = false;
+  @Local sidebarDragStartX: number = 0;
+  @Local sidebarDragStartWidth: number = 0;
+
+  @Local responseWidth: number = 350;
+  @Local isResponseDragging: boolean = false;
+  @Local responseDragStartX: number = 0;
+  @Local responseDragStartWidth: number = 0;
+
   @Builder
   buildMainContent() {
     Row() {
-      // Sidebar
+      // Sidebar with inline resize logic
       if (!this.sidebarHidden) {
         Column() {
           SidebarComponent({
             items: this.sidebarItems,
             selectedRequestId: this.selectedRequest?.id || '',
-            onRequestCreate: () => {
-              this.createRequest();
-            },
-            onFolderCreate: () => {
-              this.createFolder();
-            },
-            onRequestSelect: (requestId: string) => {
-              const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
-              this.handleRequestSelect(request || null);
-            },
-            onFolderToggle: (folderId: string) => {
-              // Handle folder toggle
-            }
+            onRequestCreate: this.handleRequestCreate,
+            onFolderCreate: this.handleFolderCreate,
+            onRequestSelect: this.handleRequestSelectById,
+            onFolderToggle: this.handleFolderToggle
           })
         }
-        .width('20%')
+        .width(this.sidebarWidth)
         .height('100%')
         .backgroundColor($r('app.color.sidebar_background'))
 
-        // Divider
-        Row()
-          .width($r('app.float.border_width_thin'))
-          .height('100%')
-          .backgroundColor($r('app.color.divider'))
+        // Resize Handle
+        Column() {
+          Column()
+            .width(2)
+            .height('100%')
+            .backgroundColor(this.isSidebarDragging ? $r('app.color.primary') : $r('app.color.divider'))
+        }
+        .width(8)
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(Color.Transparent)
+        .gesture(
+          PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
+            .onActionStart((event: GestureEvent) => {
+              this.isSidebarDragging = true;
+              this.sidebarDragStartX = event.fingerList[0].globalX;
+              this.sidebarDragStartWidth = this.sidebarWidth;
+            })
+            .onActionUpdate((event: GestureEvent) => {
+              if (this.isSidebarDragging) {
+                const currentX: number = event.fingerList[0].globalX;
+                const deltaX: number = currentX - this.sidebarDragStartX;
+                let newWidth: number = this.sidebarDragStartWidth + deltaX;
+
+                // Apply constraints
+                if (newWidth < 200) {
+                  newWidth = 200;
+                } else if (newWidth > 500) {
+                  newWidth = 500;
+                }
+
+                this.sidebarWidth = newWidth;
+              }
+            })
+            .onActionEnd(() => {
+              this.isSidebarDragging = false;
+              const storageKey: string = `sidebar_width_${this.selectedWorkspace?.id || 'default'}`;
+              AppStorage.setOrCreate(storageKey, this.sidebarWidth);
+            })
+        )
       }
 
-      // Request Editor
+      // Request Editor - takes remaining space
       Column() {
         if (this.selectedRequest) {
           RequestEditorComponent({
             request: this.selectedRequest,
             isLoading: this.isRequestLoading,
-            onExecute: () => {
-              this.executeRequest();
-            },
-            onChange: (req: HttpRequest) => {
-              this.handleRequestChange(req);
-            }
+            onExecute: this.handleExecuteRequest,
+            onChange: this.handleRequestChangeCallback
           })
         } else {
           EmptyState({
-            onNewRequest: () => {
-              this.createRequest();
-            },
-            onImport: () => {
-              // TODO: Implement import
-            }
+            onNewRequest: this.handleRequestCreate,
+            onImport: this.handleImport
           })
         }
       }
-      .layoutWeight(5)
+      .layoutWeight(1)
       .height('100%')
       .backgroundColor($r('app.color.background'))
 
-      // Divider
-      Row()
-        .width($r('app.float.border_width_thin'))
-        .height('100%')
-        .backgroundColor($r('app.color.divider'))
+      // Resize Handle for Response
+      Column() {
+        Column()
+          .width(2)
+          .height('100%')
+          .backgroundColor(this.isResponseDragging ? $r('app.color.primary') : $r('app.color.divider'))
+      }
+      .width(8)
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor(Color.Transparent)
+      .gesture(
+        PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
+          .onActionStart((event: GestureEvent) => {
+            this.isResponseDragging = true;
+            this.responseDragStartX = event.fingerList[0].globalX;
+            this.responseDragStartWidth = this.responseWidth;
+          })
+          .onActionUpdate((event: GestureEvent) => {
+            if (this.isResponseDragging) {
+              const currentX: number = event.fingerList[0].globalX;
+              const deltaX: number = this.responseDragStartX - currentX;
+              let newWidth: number = this.responseDragStartWidth + deltaX;
+
+              // Apply constraints
+              if (newWidth < 300) {
+                newWidth = 300;
+              } else if (newWidth > 800) {
+                newWidth = 800;
+              }
+
+              this.responseWidth = newWidth;
+            }
+          })
+          .onActionEnd(() => {
+            this.isResponseDragging = false;
+            const storageKey: string = `response_width_${this.selectedWorkspace?.id || 'default'}`;
+            AppStorage.setOrCreate(storageKey, this.responseWidth);
+          })
+      )
 
       // Response Viewer
       Column() {
@@ -669,11 +800,42 @@ struct Index {
           isLoading: this.isRequestLoading
         })
       }
-      .layoutWeight(3)
+      .width(this.responseWidth)
       .height('100%')
       .backgroundColor($r('app.color.background'))
     }
     .width('100%')
     .layoutWeight(1)
+  }
+
+  // Callback handlers for sidebar
+  handleRequestCreate = (): void => {
+    this.createRequest();
+  }
+
+  handleFolderCreate = (): void => {
+    this.createFolder();
+  }
+
+  handleRequestSelectById = (requestId: string): void => {
+    const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+    this.handleRequestSelect(request || null);
+  }
+
+  handleFolderToggle = (folderId: string): void => {
+    // Handle folder toggle if needed
+  }
+
+  handleImport = (): void => {
+    // TODO: Implement import functionality
+  }
+
+  // Callback handler for request execution
+  handleExecuteRequest = (): void => {
+    this.executeRequest();
+  }
+
+  handleRequestChangeCallback = (req: HttpRequest): void => {
+    this.handleRequestChange(req);
   }
 }

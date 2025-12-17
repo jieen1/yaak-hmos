@@ -1,6 +1,6 @@
 /**
- * Query Params Editor Component
- * Edits query parameters for HTTP requests
+ * Query Parameters Editor Component
+ * Edits URL query parameters for requests
  */
 
 import { QueryParam } from '../model/HttpRequest';
@@ -9,8 +9,9 @@ import { ThemedButton } from './ThemedButton';
 
 @ComponentV2
 export struct QueryParamsEditor {
-  @Param params: QueryParam[] = [];
-  @Param onChange: (params: QueryParam[]) => void = () => {};
+  @Param queryParams: QueryParam[] = [];
+  @Param onChange: (queryParams: QueryParam[]) => void = () => {
+  };
 
   build() {
     Column() {
@@ -25,7 +26,7 @@ export struct QueryParamsEditor {
         ThemedButton({
           text: 'Add',
           onButtonClick: () => {
-            this.addParam();
+            this.addQueryParam();
           },
           buttonSize: 'sm'
         })
@@ -33,8 +34,8 @@ export struct QueryParamsEditor {
       .width('100%')
       .padding($r('app.float.spacing_md'))
 
-      // Parameters list
-      if (this.params.length === 0) {
+      // Query Parameters list
+      if (this.queryParams.length === 0) {
         Text('No query parameters')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
@@ -43,13 +44,12 @@ export struct QueryParamsEditor {
           .padding($r('app.float.spacing_2xl'))
       } else {
         List() {
-          ForEach(this.params, (param: QueryParam, index: number) => {
-            ListItem() {
-              this.buildParamRow(param, index)
-            }
+          ForEach(this.queryParams, (param: QueryParam, index: number) => {
+            this.buildQueryParamRow(param, index);
           }, (param: QueryParam) => param.id)
         }
         .width('100%')
+        .height("100%")
         .layoutWeight(1)
         .divider({
           strokeWidth: 1,
@@ -63,79 +63,87 @@ export struct QueryParamsEditor {
   }
 
   @Builder
-  buildParamRow(param: QueryParam, index: number) {
+  buildQueryParamRow(param: QueryParam, index: number) {
     Row() {
       // Enabled checkbox
       Checkbox()
         .select(param.enabled)
         .onChange((value: boolean) => {
           param.enabled = value;
-          this.onChange(this.params);
+          this.onChange(this.queryParams);
         })
+        .width(24)
+        .height(24)
+        .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Name input
+      // Name input - fixed width
       ThemedTextInput({
         value: param.name,
-        placeholder: 'Name',
+        placeholder: 'Parameter Name',
         onValueChange: (value: string) => {
           param.name = value;
-          this.onChange(this.params);
+          this.onChange(this.queryParams);
         },
-        inputSize: 'sm'
+        inputSize: 'md'
       })
-        .flexGrow(1)
+        .width(200)
+        .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Value input
+      // Value input - takes remaining space
       ThemedTextInput({
         value: param.value,
-        placeholder: 'Value',
+        placeholder: 'Parameter Value',
         onValueChange: (value: string) => {
           param.value = value;
-          this.onChange(this.params);
+          this.onChange(this.queryParams);
         },
-        inputSize: 'sm'
+        inputSize: 'md'
       })
-        .flexGrow(1)
+        .layoutWeight(1)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Delete button
-      Button('×')
-        .fontSize($r('app.float.font_size_2xl'))
-        .fontColor($r('app.color.danger'))
-        .backgroundColor(Color.Transparent)
-        .width(32)
-        .height(32)
-        .onClick(() => {
-          this.deleteParam(index);
-        })
+      ThemedButton({
+        symbolIcon: $r("sys.symbol.xmark"),
+        onButtonClick: () => this.deleteQueryParam(index),
+        buttonType: 'ghost'
+      })
     }
     .width('100%')
-    .padding($r('app.float.spacing_md'))
+    .padding({
+      left: $r('app.float.spacing_md'),
+      right: $r('app.float.spacing_md'),
+      top: $r('app.float.spacing_sm'),
+      bottom: $r('app.float.spacing_sm')
+    })
     .alignItems(VerticalAlign.Center)
+    .border({
+      width: { bottom: 1 },
+      color: $r('app.color.divider')
+    })
   }
 
   /**
-   * Add new parameter
+   * Add new query parameter
    */
-  private addParam(): void {
+  private addQueryParam(): void {
     const newParam = new QueryParam();
     newParam.id = this.generateId();
     newParam.name = '';
     newParam.value = '';
     newParam.enabled = true;
 
-    this.params.push(newParam);
-    this.onChange(this.params);
+    this.queryParams.push(newParam);
+    this.onChange(this.queryParams);
   }
 
   /**
-   * Delete parameter
+   * Delete query parameter
    */
-  private deleteParam(index: number): void {
-    this.params.splice(index, 1);
-    this.onChange(this.params);
+  private deleteQueryParam(index: number): void {
+    this.queryParams.splice(index, 1);
+    this.onChange(this.queryParams);
   }
 
   /**

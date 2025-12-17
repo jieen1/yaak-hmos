@@ -46,7 +46,8 @@ export struct RequestEditorComponent {
           },
           selectSize: 'md'
         })
-          .width(120)
+          .width(100)
+          .flexShrink(0)
           .margin({ right: $r('app.float.spacing_sm') })
 
         // URL input
@@ -59,7 +60,7 @@ export struct RequestEditorComponent {
           },
           inputSize: 'md'
         })
-          .flexGrow(1)
+          .layoutWeight(1)
           .margin({ right: $r('app.float.spacing_sm') })
 
         // Send/Cancel button
@@ -72,7 +73,8 @@ export struct RequestEditorComponent {
             buttonType: 'danger',
             buttonSize: 'md'
           })
-            .width(100)
+            .width(80)
+            .flexShrink(0)
         } else {
           ThemedButton({
             text: 'Send',
@@ -81,7 +83,8 @@ export struct RequestEditorComponent {
             },
             buttonSize: 'md'
           })
-            .width(100)
+            .width(80)
+            .flexShrink(0)
         }
       }
       .width('100%')
@@ -92,7 +95,7 @@ export struct RequestEditorComponent {
       Tabs({ index: this.activeTab }) {
         TabContent() {
           QueryParamsEditor({
-            params: this.request.query_params,
+            queryParams: this.request.query_params,
             onChange: (params) => {
               this.request.query_params = params;
               this.onChange(this.request);
