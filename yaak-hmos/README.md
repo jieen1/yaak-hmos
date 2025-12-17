@@ -28,3 +28,4 @@ The project follows a Clean Architecture (MVVM) pattern:
 2.  Sync Gradle/Hvigor projects.
 3.  Run on a HarmonyOS Emulator or Device (API 12+ recommended).
 
+

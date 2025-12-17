@@ -12,3 +12,4 @@ export class Settings extends BaseModel {
   }
 }
 
+
