@@ -1,59 +1,119 @@
-import { Environment } from '../model/Environment';
-import { EnvironmentRepository } from '../database/EnvironmentRepository';
-import { UUID } from '../common/UUID';
-import { HeaderItem } from '../model/Types';
+/**
+ * Environment Service
+ * Manages environment variables and variable resolution
+ */
+
+import { Environment, EnvironmentVariable } from '../model/Environment';
 
 export class EnvironmentService {
   /**
-   * Parses the environment variables from the JSON string stored in the Environment model.
-   * Returns a key-value map.
+   * Merge variables from multiple environments
+   * Later environments override earlier ones
    */
-  public static parseVariables(env: Environment): Record<string, string> {
-    try {
-      // Use 'variables' field which stores HeaderItem[]
-      let varsString = env.variables;
-      if (!varsString || varsString === 'null') {
-         // Fallback to legacy 'data' if 'variables' is empty (migration support)
-         // But since we just changed the model, 'data' property might not exist on the class definition if I removed it?
-         // In runtime JS/TS it might exist if DB has it, but Typescript will complain.
-         // Let's assume 'variables' is the source of truth now.
-         return {};
-      }
+  static mergeVariables(environments: Environment[]): Map<string, string> {
+    const variables = new Map<string, string>();
 
-      let parsed = JSON.parse(varsString) as Array<HeaderItem>;
-      if (!Array.isArray(parsed)) {
-         return {};
-      }
-      
-      let result: Record<string, string> = {};
-      parsed.forEach(item => {
-        if (item.enabled && item.name && item.name.trim() !== '') {
-          result[item.name] = item.value;
-        }
-      });
-      return result;
-    } catch (e) {
-      console.warn('Failed to parse environment variables', JSON.stringify(e));
-      return {};
-    }
+    // Merge all enabled environments
+    environments.forEach(env => {
+      env.variables
+        .filter(v => v.enabled)
+        .forEach(v => {
+          variables.set(v.name, v.value);
+        });
+    });
+
+    return variables;
   }
 
   /**
-   * Merges variables from multiple environments.
-   * Typically: Global Env < Workspace Env < Folder Env < Selected Env
-   * For now, we'll just handle Workspace/Selected Env.
+   * Merge variables from a single environment
    */
-  public static mergeVariables(environments: Environment[]): Record<string, string> {
-    let merged: Record<string, string> = {};
-    for (const env of environments) {
-      const vars = EnvironmentService.parseVariables(env);
-      // Object.assign or loop to merge without spread
-      let keys = Object.keys(vars);
-      for (let i = 0; i < keys.length; i++) {
-        let key = keys[i];
-        merged[key] = vars[key];
-      }
-    }
-    return merged;
+  static getVariablesFromEnvironment(environment: Environment): Map<string, string> {
+    const variables = new Map<string, string>();
+
+    environment.variables
+      .filter(v => v.enabled)
+      .forEach(v => {
+        variables.set(v.name, v.value);
+      });
+
+    return variables;
+  }
+
+  /**
+   * Resolve a single variable by name
+   * Returns the value if found, otherwise returns the placeholder
+   */
+  static resolveVariable(
+    name: string,
+    variables: Map<string, string>
+  ): string {
+    const value = variables.get(name);
+    return value !== undefined ? value : `{{${name}}}`;
+  }
+
+  /**
+   * Get all variable names from environments
+   */
+  static getAllVariableNames(environments: Environment[]): string[] {
+    const names = new Set<string>();
+
+    environments.forEach(env => {
+      env.variables.forEach(v => {
+        names.add(v.name);
+      });
+    });
+
+    return Array.from(names);
+  }
+
+  /**
+   * Check if a variable exists in any environment
+   */
+  static hasVariable(name: string, environments: Environment[]): boolean {
+    return environments.some(env =>
+      env.variables.some(v => v.name === name)
+    );
+  }
+
+  /**
+   * Get variable value from specific environment
+   */
+  static getVariableValue(
+    name: string,
+    environment: Environment
+  ): string | undefined {
+    const variable = environment.variables.find(v => v.name === name && v.enabled);
+    return variable?.value;
+  }
+
+  /**
+   * Filter secret variables
+   */
+  static getSecretVariables(environment: Environment): EnvironmentVariable[] {
+    return environment.variables.filter(v => v.is_secret);
+  }
+
+  /**
+   * Filter public variables
+   */
+  static getPublicVariables(environment: Environment): EnvironmentVariable[] {
+    return environment.variables.filter(v => !v.is_secret);
+  }
+
+  /**
+   * Create a variable map with masked secret values
+   */
+  static getMaskedVariables(environment: Environment): Map<string, string> {
+    const variables = new Map<string, string>();
+
+    environment.variables
+      .filter(v => v.enabled)
+      .forEach(v => {
+        const value = v.is_secret ? '********' : v.value;
+        variables.set(v.name, value);
+      });
+
+    return variables;
   }
 }

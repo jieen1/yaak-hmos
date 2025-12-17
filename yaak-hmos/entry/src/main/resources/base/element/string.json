@@ -1,16 +1,268 @@
 {
   "string": [
     {
-      "name": "module_desc",
-      "value": "module description"
+      "name": "app_name",
+      "value": "Yaak"
     },
     {
-      "name": "EntryAbility_desc",
-      "value": "description"
+      "name": "workspace",
+      "value": "Workspace"
     },
     {
-      "name": "EntryAbility_label",
-      "value": "label"
+      "name": "environment",
+      "value": "Environment"
+    },
+    {
+      "name": "new_request",
+      "value": "New Request"
+    },
+    {
+      "name": "new_folder",
+      "value": "New Folder"
+    },
+    {
+      "name": "new_workspace",
+      "value": "New Workspace"
+    },
+    {
+      "name": "new_environment",
+      "value": "New Environment"
+    },
+    {
+      "name": "send",
+      "value": "Send"
+    },
+    {
+      "name": "cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "save",
+      "value": "Save"
+    },
+    {
+      "name": "delete",
+      "value": "Delete"
+    },
+    {
+      "name": "rename",
+      "value": "Rename"
+    },
+    {
+      "name": "duplicate",
+      "value": "Duplicate"
+    },
+    {
+      "name": "settings",
+      "value": "Settings"
+    },
+    {
+      "name": "search",
+      "value": "Search"
+    },
+    {
+      "name": "filter",
+      "value": "Filter"
+    },
+    {
+      "name": "params",
+      "value": "Params"
+    },
+    {
+      "name": "headers",
+      "value": "Headers"
+    },
+    {
+      "name": "body",
+      "value": "Body"
+    },
+    {
+      "name": "auth",
+      "value": "Auth"
+    },
+    {
+      "name": "response",
+      "value": "Response"
+    },
+    {
+      "name": "request",
+      "value": "Request"
+    },
+    {
+      "name": "status",
+      "value": "Status"
+    },
+    {
+      "name": "time",
+      "value": "Time"
+    },
+    {
+      "name": "size",
+      "value": "Size"
+    },
+    {
+      "name": "pretty",
+      "value": "Pretty"
+    },
+    {
+      "name": "raw",
+      "value": "Raw"
+    },
+    {
+      "name": "info",
+      "value": "Info"
+    },
+    {
+      "name": "history",
+      "value": "History"
+    },
+    {
+      "name": "cookies",
+      "value": "Cookies"
+    },
+    {
+      "name": "no_auth",
+      "value": "No Auth"
+    },
+    {
+      "name": "basic_auth",
+      "value": "Basic Auth"
+    },
+    {
+      "name": "bearer_token",
+      "value": "Bearer Token"
+    },
+    {
+      "name": "api_key",
+      "value": "API Key"
+    },
+    {
+      "name": "oauth2",
+      "value": "OAuth 2.0"
+    },
+    {
+      "name": "username",
+      "value": "Username"
+    },
+    {
+      "name": "password",
+      "value": "Password"
+    },
+    {
+      "name": "token",
+      "value": "Token"
+    },
+    {
+      "name": "key",
+      "value": "Key"
+    },
+    {
+      "name": "value",
+      "value": "Value"
+    },
+    {
+      "name": "name",
+      "value": "Name"
+    },
+    {
+      "name": "description",
+      "value": "Description"
+    },
+    {
+      "name": "url",
+      "value": "URL"
+    },
+    {
+      "name": "method",
+      "value": "Method"
+    },
+    {
+      "name": "enabled",
+      "value": "Enabled"
+    },
+    {
+      "name": "disabled",
+      "value": "Disabled"
+    },
+    {
+      "name": "add",
+      "value": "Add"
+    },
+    {
+      "name": "remove",
+      "value": "Remove"
+    },
+    {
+      "name": "clear",
+      "value": "Clear"
+    },
+    {
+      "name": "import",
+      "value": "Import"
+    },
+    {
+      "name": "export",
+      "value": "Export"
+    },
+    {
+      "name": "theme",
+      "value": "Theme"
+    },
+    {
+      "name": "light",
+      "value": "Light"
+    },
+    {
+      "name": "dark",
+      "value": "Dark"
+    },
+    {
+      "name": "auto",
+      "value": "Auto"
+    },
+    {
+      "name": "appearance",
+      "value": "Appearance"
+    },
+    {
+      "name": "general",
+      "value": "General"
+    },
+    {
+      "name": "advanced",
+      "value": "Advanced"
+    },
+    {
+      "name": "no_results",
+      "value": "No results found"
+    },
+    {
+      "name": "loading",
+      "value": "Loading..."
+    },
+    {
+      "name": "error",
+      "value": "Error"
+    },
+    {
+      "name": "success",
+      "value": "Success"
+    },
+    {
+      "name": "warning",
+      "value": "Warning"
+    },
+    {
+      "name": "confirm_delete",
+      "value": "Are you sure you want to delete this?"
+    },
+    {
+      "name": "confirm",
+      "value": "Confirm"
+    },
+    {
+      "name": "close",
+      "value": "Close"
     }
   ]
 }

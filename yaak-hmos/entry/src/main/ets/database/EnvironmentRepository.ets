@@ -1,75 +1,147 @@
-import { DatabaseManager } from './DatabaseManager';
-import { Environment } from '../model/Environment';
+/**
+ * Environment Repository
+ * Handles CRUD operations for environments
+ */
+
 import relationalStore from '@ohos.data.relationalStore';
+import { BaseRepository } from './BaseRepository';
+import { Environment, EnvironmentVariable } from '../model/Environment';
 
-export class EnvironmentRepository {
-  public static async getEnvironmentsByWorkspaceId(workspaceId: string): Promise<Environment[]> {
-    const store = DatabaseManager.getInstance().getStore();
-    if (!store) return [];
+export class EnvironmentRepository extends BaseRepository {
+  constructor() {
+    super('environments');
+  }
 
-    const predicates = new relationalStore.RdbPredicates('environments');
+  /**
+   * Get all environments by workspace ID
+   */
+  async getEnvironmentsByWorkspaceId(workspaceId: string): Promise<Environment[]> {
+    const predicates = this.createPredicates();
     predicates.equalTo('workspace_id', workspaceId);
-    predicates.orderByDesc('created_at');
+    predicates.isNull('deleted_at');
+    predicates.orderByAsc('created_at');
 
-    const resultSet = await store.query(predicates);
+    const resultSet = await this.query(predicates);
     const environments: Environment[] = [];
-    while (resultSet.goToNextRow()) {
-      const env = new Environment();
-      env.id = resultSet.getString(resultSet.getColumnIndex('id'));
-      env.workspace_id = resultSet.getString(resultSet.getColumnIndex('workspace_id'));
-      env.name = resultSet.getString(resultSet.getColumnIndex('name'));
-      env.variables = resultSet.getString(resultSet.getColumnIndex('variables'));
-      env.created_at = resultSet.getLong(resultSet.getColumnIndex('created_at'));
-      env.updated_at = resultSet.getLong(resultSet.getColumnIndex('updated_at'));
-      environments.push(env);
+
+    try {
+      while (resultSet.goToNextRow()) {
+        const environment = this.mapResultSetToEnvironment(resultSet);
+        environments.push(environment);
+      }
+    } finally {
+      resultSet.close();
     }
-    resultSet.close();
+
     return environments;
   }
 
-  public static async createEnvironment(env: Environment): Promise<void> {
-    const store = DatabaseManager.getInstance().getStore();
-    if (!store) return;
+  /**
+   * Get environment by ID
+   */
+  async getEnvironmentById(id: string): Promise<Environment | null> {
+    const predicates = this.createPredicates();
+    predicates.equalTo('id', id);
+    predicates.isNull('deleted_at');
 
-    const valueBucket: relationalStore.ValuesBucket = {
-      id: env.id,
-      model: env.model,
-      workspace_id: env.workspace_id,
-      name: env.name,
-      variables: env.variables,
-      created_at: env.created_at,
-      updated_at: env.updated_at,
-      deleted_at: env.deleted_at
-    };
+    const resultSet = await this.query(predicates);
 
-    await store.insert('environments', valueBucket);
+    try {
+      if (resultSet.goToFirstRow()) {
+        return this.mapResultSetToEnvironment(resultSet);
+      }
+      return null;
+    } finally {
+      resultSet.close();
+    }
   }
 
-  public static async updateEnvironment(env: Environment): Promise<void> {
-    const store = DatabaseManager.getInstance().getStore();
-    if (!store) return;
+  /**
+   * Create a new environment
+   */
+  async createEnvironment(environment: Environment): Promise<string> {
+    const now = this.getCurrentTimestamp();
+    environment.id = environment.id || this.generateId('env');
+    environment.created_at = now;
+    environment.updated_at = now;
 
     const valueBucket: relationalStore.ValuesBucket = {
-      name: env.name,
-      variables: env.variables,
-      updated_at: Date.now()
+      id: environment.id,
+      model: environment.model,
+      workspace_id: environment.workspace_id,
+      created_at: environment.created_at,
+      updated_at: environment.updated_at,
+      deleted_at: environment.deleted_at,
+      name: environment.name,
+      variables: this.stringifyJson(environment.variables)
     };
 
-    const predicates = new relationalStore.RdbPredicates('environments');
-    predicates.equalTo('id', env.id);
-
-    await store.update(valueBucket, predicates);
+    await this.insert(valueBucket);
+    return environment.id;
   }
 
-  public static async deleteEnvironment(id: string): Promise<void> {
-    const store = DatabaseManager.getInstance().getStore();
-    if (!store) return;
+  /**
+   * Update an existing environment
+   */
+  async updateEnvironment(environment: Environment): Promise<void> {
+    environment.updated_at = this.getCurrentTimestamp();
 
-    const predicates = new relationalStore.RdbPredicates('environments');
+    const valueBucket: relationalStore.ValuesBucket = {
+      updated_at: environment.updated_at,
+      name: environment.name,
+      variables: this.stringifyJson(environment.variables)
+    };
+
+    const predicates = this.createPredicates();
+    predicates.equalTo('id', environment.id);
+
+    await this.update(valueBucket, predicates);
+  }
+
+  /**
+   * Delete an environment (soft delete)
+   */
+  async deleteEnvironment(id: string): Promise<void> {
+    const valueBucket: relationalStore.ValuesBucket = {
+      deleted_at: this.getCurrentTimestamp()
+    };
+
+    const predicates = this.createPredicates();
     predicates.equalTo('id', id);
 
-    await store.delete(predicates);
+    await this.update(valueBucket, predicates);
+  }
+
+  /**
+   * Permanently delete an environment
+   */
+  async permanentlyDeleteEnvironment(id: string): Promise<void> {
+    const predicates = this.createPredicates();
+    predicates.equalTo('id', id);
+
+    await this.delete(predicates);
+  }
+
+  /**
+   * Map ResultSet to Environment object
+   */
+  private mapResultSetToEnvironment(resultSet: relationalStore.ResultSet): Environment {
+    const environment = new Environment();
+    
+    environment.id = resultSet.getString(resultSet.getColumnIndex('id'));
+    environment.model = resultSet.getString(resultSet.getColumnIndex('model'));
+    environment.workspace_id = resultSet.getString(resultSet.getColumnIndex('workspace_id'));
+    environment.created_at = resultSet.getLong(resultSet.getColumnIndex('created_at'));
+    environment.updated_at = resultSet.getLong(resultSet.getColumnIndex('updated_at'));
+    
+    const deletedAtIndex = resultSet.getColumnIndex('deleted_at');
+    environment.deleted_at = resultSet.isColumnNull(deletedAtIndex) ? null : resultSet.getLong(deletedAtIndex);
+    
+    environment.name = resultSet.getString(resultSet.getColumnIndex('name'));
+    
+    const variablesStr = resultSet.getString(resultSet.getColumnIndex('variables'));
+    environment.variables = this.parseJson(variablesStr, []);
+
+    return environment;
   }
 }
-
-
