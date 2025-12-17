@@ -10,3 +10,4 @@ export { CookieService } from './CookieService';
 export { ResponseStorageService } from './ResponseStorageService';
 export { RequestExecutor, RequestExecutionResult } from './RequestExecutor';
 export { BodyTypeHandlers, FormDataField } from './BodyTypeHandlers';
+export { InheritanceService } from './InheritanceService';

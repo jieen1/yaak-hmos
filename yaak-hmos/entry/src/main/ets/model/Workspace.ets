@@ -3,6 +3,8 @@
  * Represents a workspace container for organizing API requests, folders, and environments
  */
 
+import { AuthConfig, HttpHeader } from './HttpRequest';
+
 @ObservedV2
 export class Workspace {
   @Trace id: string = '';
@@ -13,6 +15,8 @@ export class Workspace {
   @Trace name: string = '';
   @Trace description: string = '';
   @Trace settings: WorkspaceSettings = new WorkspaceSettings();
+  @Trace auth: AuthConfig | null = null;
+  @Trace headers: HttpHeader[] = [];
 }
 
 @ObservedV2

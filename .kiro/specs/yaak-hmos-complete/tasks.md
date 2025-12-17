@@ -450,7 +450,8 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
 
 ## Phase 8: UI Components - Header and Dialogs
 
-- [ ] 27. Implement WorkspaceHeader component
+- [x] 27. Implement WorkspaceHeader component
+
   - Create WorkspaceHeader with @ComponentV2
   - Add @Param for workspaces, activeWorkspace, environments, activeEnvironment
   - Add @Param for onWorkspaceSelect, onEnvironmentSelect, onOpenSettings
@@ -461,7 +462,9 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
   - Add bottom border using divider color
   - _Requirements: 1.3, 1.5, 5.4, 33.1_
 
-- [ ] 28. Implement SettingsDialog component
+
+- [x] 28. Implement SettingsDialog component
+
   - Create SettingsDialog with @ComponentV2
   - Add @Local for settings state
   - Implement appearance selector (Light, Dark, Auto)
@@ -473,36 +476,45 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
   - Use CustomDialog or openCustomDialog API
   - _Requirements: 33.1, 33.2, 33.3, 33.4, 33.5, 33.6, 33.7_
 
-- [ ] 29. Implement WorkspaceDialog component
+
+- [x] 29. Implement WorkspaceDialog component
+
   - Create WorkspaceDialog for creating/editing workspaces
   - Add fields for name, description
   - Add workspace settings fields (follow redirects, validate certificates, timeout, proxy)
   - Implement save and cancel buttons
   - Validate workspace name is not empty
+
   - _Requirements: 1.4, 23.1, 23.2, 23.3, 23.4_
 
-- [ ] 30. Implement EnvironmentDialog component
+- [x] 30. Implement EnvironmentDialog component
+
   - Create EnvironmentDialog for creating/editing environments
   - Add field for environment name
   - Implement variable list editor with name, value, enabled, is_secret
   - Implement add variable button
   - Implement delete variable button
   - Support secret variables with password input
+
+
   - Implement save and cancel buttons
   - _Requirements: 5.1, 5.2_
 
-- [ ] 31. Implement EmptyState component
+- [x] 31. Implement EmptyState component
+
   - Create EmptyState component for when no request is selected
   - Display welcome message and instructions
   - Show "New Request" button
   - Show "Import" button
   - Use resource colors and spacing
+
   - _Requirements: 10.1_
 
 
 ## Phase 9: Main Page Integration
 
-- [ ] 32. Implement main page with Navigation
+- [x] 32. Implement main page with Navigation
+
   - Create Index.ets as entry point with @Entry and @ComponentV2
   - Add @Local for workspaces, requests, folders, environments, sidebarItems
   - Add @Local for selectedWorkspace, selectedRequest, selectedEnvironment
@@ -516,17 +528,20 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
   - Implement executeRequest() method using RequestExecutor
   - _Requirements: 1.1, 1.2, 1.3, 4.1, 9.2_
 
+
 - [ ]* 32.1 Write property test for workspace loading
   - **Property 1: Workspace Loading Completeness**
   - **Validates: Requirements 1.1**
   - Test that loading workspaces returns all records without loss
   - Generate random database states with workspaces
 
-- [ ] 33. Implement main page layout
+- [x] 33. Implement main page layout
+
   - Create three-pane layout: Sidebar, RequestEditor, ResponseViewer
   - Integrate WorkspaceHeader at the top
   - Integrate SidebarComponent (20% width, collapsible)
   - Integrate RequestEditorComponent (50% width)
+
   - Integrate ResponseViewerComponent (30% width)
   - Show EmptyState when no request is selected
   - Support horizontal and vertical layout modes
@@ -534,27 +549,36 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
   - Apply background colors from resources
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 34. Implement workspace switching
+
+- [x] 34. Implement workspace switching
+
   - Handle workspace selection from WorkspaceHeader
   - Load associated requests, folders, environments when workspace changes
   - Clear selected request when switching workspaces
+
   - Update UI to reflect new workspace
   - _Requirements: 1.3, 1.5_
 
-- [ ] 35. Implement environment switching
+- [x] 35. Implement environment switching
+
   - Handle environment selection from WorkspaceHeader
   - Update selectedEnvironment state
+
+
   - Merge variables from selected environment for request execution
   - _Requirements: 5.4_
 
-- [ ] 36. Implement request selection
+- [x] 36. Implement request selection
+
   - Handle request selection from SidebarComponent
   - Load request details into RequestEditorComponent
   - Load recent responses for the request
   - Update selectedRequest state
   - _Requirements: 8.2_
 
-- [ ] 37. Implement request execution flow
+- [x] 37. Implement request execution flow
+
+
   - Handle Send button click from RequestEditorComponent
   - Show loading indicator during execution
   - Merge environment variables
@@ -562,6 +586,7 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
   - Store response body to file
   - Create response record in database
   - Update ResponseViewerComponent with results
+
   - Handle execution errors with user-friendly messages
   - _Requirements: 4.1, 4.2, 4.3, 4.7_
 
@@ -574,7 +599,7 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
 
 ## Phase 10: Advanced Features
 
-- [ ] 38. Implement folder hierarchy and inheritance
+- [x] 38. Implement folder hierarchy and inheritance
   - Add support for nested folders in rebuildSidebar()
   - Implement folder expand/collapse in SidebarComponent
   - Implement auth inheritance from parent folders
@@ -588,6 +613,7 @@ This implementation plan breaks down the Yaak HarmonyOS application development 
   - **Validates: Requirements 3.2**
   - Test that moving request to folder updates folder_id correctly
   - Generate random requests and folders
+
 
 - [ ]* 38.2 Write property test for auth inheritance
   - **Property 18: Folder Auth Inheritance**

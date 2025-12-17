@@ -1,334 +1,679 @@
-import { HttpRequest } from '../model/HttpRequest';
+/**
+ * Main Page - Yaak HarmonyOS Application
+ * Entry point with three-pane layout
+ */
+
+import { HttpRequest, HttpHeader, QueryParam, AuthConfig } from '../model/HttpRequest';
+import { HttpResponse } from '../model/HttpResponse';
 import { Workspace } from '../model/Workspace';
 import { Environment } from '../model/Environment';
 import { Folder } from '../model/Folder';
 import { SidebarItem } from '../viewmodel/SidebarItem';
-import { RequestRepository } from '../database/RequestRepository';
-import { WorkspaceRepository } from '../database/WorkspaceRepository';
-import { EnvironmentRepository } from '../database/EnvironmentRepository';
-import { FolderRepository } from '../database/FolderRepository';
 import { DatabaseManager } from '../database/DatabaseManager';
-import { RequestExecutor } from '../services/RequestExecutor';
+import { WorkspaceRepository } from '../database/WorkspaceRepository';
+import { RequestRepository } from '../database/RequestRepository';
+import { FolderRepository } from '../database/FolderRepository';
+import { EnvironmentRepository } from '../database/EnvironmentRepository';
+import { ResponseRepository } from '../database/ResponseRepository';
+import { RequestExecutor, RequestExecutionResult } from '../services/RequestExecutor';
 import { EnvironmentService } from '../services/EnvironmentService';
+import { ResponseStorageService } from '../services/ResponseStorageService';
+import { WorkspaceHeader } from '../components/WorkspaceHeader';
 import { SidebarComponent } from '../components/SidebarComponent';
 import { RequestEditorComponent } from '../components/RequestEditorComponent';
 import { ResponseViewerComponent } from '../components/ResponseViewerComponent';
-import { WorkspaceHeader } from '../components/header/WorkspaceHeader';
-import { SettingsDialog } from '../components/dialogs/SettingsDialog';
-import { EmptyState } from '../components/EmptyState'; // Import
-import { UUID } from '../common/UUID';
-import { ThemeManager, ThemeColors } from '../theme/Theme';
+import { EmptyState } from '../components/EmptyState';
+import { SettingsDialog } from '../components/SettingsDialog';
+import common from '@ohos.app.ability.common';
 
 @Entry
 @ComponentV2
 struct Index {
+  // Data Collections
   @Local workspaces: Workspace[] = [];
   @Local requests: HttpRequest[] = [];
   @Local folders: Folder[] = [];
-  @Local sidebarItems: SidebarItem[] = [];
-  
   @Local environments: Environment[] = [];
+  @Local sidebarItems: SidebarItem[] = [];
+
+  // Selected Items
   @Local selectedWorkspace: Workspace | null = null;
   @Local selectedRequest: HttpRequest | null = null;
   @Local selectedEnvironment: Environment | null = null;
-  
+  @Local selectedResponse: HttpResponse | null = null;
+
+  // Response Data
   @Local responseBody: string = '';
-  @Local responseStatus: number = 0;
-  @Local responseTime: number = 0;
-  @Local responseSize: number = 0;
-  
+
+  // UI State
   @Local isLoading: boolean = true;
   @Local isRequestLoading: boolean = false;
-
-  @Local sidebarWidth: number = 250; 
   @Local sidebarHidden: boolean = false;
   @Local workspaceLayout: string = 'horizontal';
 
-  @Local theme: ThemeColors = ThemeManager.getInstance().currentTheme;
+  // Context
+  private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
 
-  settingsDialogController: CustomDialogController = new CustomDialogController({
-    builder: SettingsDialog(),
-    alignment: DialogAlignment.Center,
-    autoCancel: true,
-    customStyle: true 
-  });
-  
-  async aboutToAppear() {
+  // Repository Instances
+  private workspaceRepo: WorkspaceRepository = new WorkspaceRepository();
+  private requestRepo: RequestRepository = new RequestRepository();
+  private folderRepo: FolderRepository = new FolderRepository();
+  private environmentRepo: EnvironmentRepository = new EnvironmentRepository();
+  private responseRepo: ResponseRepository = new ResponseRepository();
+
+  async aboutToAppear(): Promise<void> {
     try {
+      // Initialize database
+      await DatabaseManager.getInstance().init(this.context);
       await DatabaseManager.getInstance().waitForInit();
-      
+
+      // Initialize ResponseStorageService
+      ResponseStorageService.init(this.context);
+
+      // Load workspaces
       await this.loadWorkspaces();
+
+      // Create default workspace if none exist
       if (this.workspaces.length === 0) {
         await this.createDefaultWorkspace();
       }
+
+      // Select first workspace and load its data
       if (this.workspaces.length > 0) {
-        this.selectedWorkspace = this.workspaces[0];
-        await this.loadData();
+        const firstWorkspace: Workspace | undefined = this.workspaces[0];
+        this.selectedWorkspace = firstWorkspace || null;
+        await this.loadWorkspaceData();
       }
-    } catch (e) {
-      console.error("Initialization failed", e);
+    } catch (error) {
+      console.error('Initialization failed:', JSON.stringify(error));
     } finally {
-      this.isLoading = false; 
+      this.isLoading = false;
     }
   }
 
-  async loadData() {
+  // Data Loading Methods
+  async loadWorkspaces(): Promise<void> {
+    try {
+      this.workspaces = await this.workspaceRepo.getAllWorkspaces();
+    } catch (error) {
+      console.error('Failed to load workspaces:', JSON.stringify(error));
+    }
+  }
+
+  async loadWorkspaceData(): Promise<void> {
     if (!this.selectedWorkspace) return;
+
     try {
       await this.loadEnvironments();
       await this.loadFolders();
       await this.loadRequests();
       this.rebuildSidebar();
-    } catch (e) {
-      console.error("Error loading data", e);
+    } catch (error) {
+      console.error('Failed to load workspace data:', JSON.stringify(error));
     }
   }
 
-  async loadWorkspaces() {
-    this.workspaces = await WorkspaceRepository.getAllWorkspaces();
-  }
-  
-  async loadEnvironments() {
-    if (this.selectedWorkspace) {
-      this.environments = await EnvironmentRepository.getEnvironmentsByWorkspaceId(this.selectedWorkspace.id);
-      if (this.environments.length === 0) {
-         const env = new Environment();
-         env.id = UUID.randomUUID();
-         env.workspace_id = this.selectedWorkspace.id;
-         env.name = 'Base Environment';
-         // Use JSON array for variables, empty for now
-         env.variables = '[]'; 
-         env.created_at = Date.now();
-         env.updated_at = Date.now();
-         await EnvironmentRepository.createEnvironment(env);
-         this.environments = [env];
-      }
-      this.selectedEnvironment = null;
+  async loadEnvironments(): Promise<void> {
+    if (!this.selectedWorkspace) return;
+
+    try {
+      this.environments = await this.environmentRepo.getEnvironmentsByWorkspaceId(
+        this.selectedWorkspace.id
+      );
+    } catch (error) {
+      console.error('Failed to load environments:', JSON.stringify(error));
     }
   }
 
-  async loadFolders() {
-    if (this.selectedWorkspace) {
-      this.folders = await FolderRepository.getFoldersByWorkspaceId(this.selectedWorkspace.id);
+  async loadFolders(): Promise<void> {
+    if (!this.selectedWorkspace) return;
+
+    try {
+      this.folders = await this.folderRepo.getFoldersByWorkspaceId(
+        this.selectedWorkspace.id
+      );
+    } catch (error) {
+      console.error('Failed to load folders:', JSON.stringify(error));
     }
   }
 
-  async loadRequests() {
-    if (this.selectedWorkspace) {
-      this.requests = await RequestRepository.getRequestsByWorkspaceId(this.selectedWorkspace.id);
+  async loadRequests(): Promise<void> {
+    if (!this.selectedWorkspace) return;
+
+    try {
+      this.requests = await this.requestRepo.getRequestsByWorkspaceId(
+        this.selectedWorkspace.id
+      );
+    } catch (error) {
+      console.error('Failed to load requests:', JSON.stringify(error));
     }
   }
 
-  rebuildSidebar() {
-    let items: SidebarItem[] = [];
-    this.processLevel(null, 0, items);
+  // Sidebar Building
+  rebuildSidebar(): void {
+    const items: SidebarItem[] = [];
+    this.buildSidebarLevel(null, 0, items);
     this.sidebarItems = items;
   }
-  
-  processLevel(parentId: string | null, level: number, result: SidebarItem[]) {
-    const currentFolders = this.folders.filter(f => f.folder_id === parentId);
-    currentFolders.forEach(f => {
-      const item = new SidebarItem('folder', f, level);
+
+  buildSidebarLevel(parentId: string | null, level: number, result: SidebarItem[]): void {
+    // Add folders at this level
+    const levelFolders: Folder[] = this.folders.filter((f: Folder) => f.folder_id === parentId);
+    levelFolders.forEach((folder: Folder) => {
+      const item: SidebarItem = new SidebarItem('folder', folder, level);
       result.push(item);
-      this.processLevel(f.id, level + 1, result);
+      // Recursively add children
+      this.buildSidebarLevel(folder.id, level + 1, result);
     });
-    
-    const currentRequests = this.requests.filter(r => r.folder_id === parentId);
-    currentRequests.forEach(r => {
-      const item = new SidebarItem('request', r, level);
+
+    // Add requests at this level
+    const levelRequests: HttpRequest[] = this.requests.filter((r: HttpRequest) => r.folder_id === parentId);
+    levelRequests.forEach((request: HttpRequest) => {
+      const item: SidebarItem = new SidebarItem('request', request, level);
       result.push(item);
     });
   }
 
-  async createDefaultWorkspace() {
-    const ws = new Workspace();
-    ws.id = UUID.randomUUID();
-    ws.name = 'Default Workspace';
-    ws.created_at = Date.now();
-    ws.updated_at = Date.now();
-    await WorkspaceRepository.createWorkspace(ws);
-    await this.loadWorkspaces();
+  // Creation Methods
+  async createDefaultWorkspace(): Promise<void> {
+    const workspace: Workspace = new Workspace();
+    workspace.id = `ws_${Date.now()}`;
+    workspace.name = 'Default Workspace';
+    workspace.description = 'Your first workspace';
+    workspace.created_at = Date.now();
+    workspace.updated_at = Date.now();
+
+    try {
+      await this.workspaceRepo.createWorkspace(workspace);
+      await this.loadWorkspaces();
+    } catch (error) {
+      console.error('Failed to create default workspace:', JSON.stringify(error));
+    }
   }
 
   async createRequest(): Promise<void> {
     if (!this.selectedWorkspace) return;
-    const req = new HttpRequest();
-    req.id = UUID.randomUUID();
-    req.workspace_id = this.selectedWorkspace.id;
-    req.name = 'New Request';
-    req.url = '{{ host }}/get';
-    req.method = 'GET';
-    req.created_at = Date.now();
-    req.updated_at = Date.now();
-    
-    await RequestRepository.createRequest(req);
-    await this.loadRequests();
-    this.rebuildSidebar();
-    this.selectedRequest = this.requests.find((r: HttpRequest) => r.id === req.id) || null;
+
+    const request: HttpRequest = new HttpRequest();
+    request.id = `req_${Date.now()}`;
+    request.workspace_id = this.selectedWorkspace.id;
+    request.name = 'New Request';
+    request.url = 'https://api.example.com';
+    request.method = 'GET';
+    request.created_at = Date.now();
+    request.updated_at = Date.now();
+
+    try {
+      await this.requestRepo.createRequest(request);
+      await this.loadRequests();
+      this.rebuildSidebar();
+      
+      // Select the newly created request
+      const newRequest: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === request.id);
+      if (newRequest) {
+        this.selectedRequest = newRequest;
+      }
+    } catch (error) {
+      console.error('Failed to create request:', JSON.stringify(error));
+    }
   }
-  
+
   async createFolder(): Promise<void> {
     if (!this.selectedWorkspace) return;
-    const folder = new Folder();
-    folder.id = UUID.randomUUID();
+
+    const folder: Folder = new Folder();
+    folder.id = `folder_${Date.now()}`;
     folder.workspace_id = this.selectedWorkspace.id;
     folder.name = 'New Folder';
     folder.created_at = Date.now();
     folder.updated_at = Date.now();
-    
-    await FolderRepository.createFolder(folder);
-    await this.loadFolders();
-    this.rebuildSidebar();
+
+    try {
+      await this.folderRepo.createFolder(folder);
+      await this.loadFolders();
+      this.rebuildSidebar();
+    } catch (error) {
+      console.error('Failed to create folder:', JSON.stringify(error));
+    }
   }
 
+  // Duplication Methods
+  async duplicateRequest(request: HttpRequest): Promise<void> {
+    if (!this.selectedWorkspace) return;
+
+    // Create a copy of the request
+    const duplicatedRequest: HttpRequest = new HttpRequest();
+    
+    // Generate new unique ID
+    duplicatedRequest.id = `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    
+    // Copy all configuration
+    duplicatedRequest.workspace_id = request.workspace_id;
+    duplicatedRequest.folder_id = request.folder_id;
+    duplicatedRequest.name = `${request.name} Copy`;
+    duplicatedRequest.url = request.url;
+    duplicatedRequest.method = request.method;
+    duplicatedRequest.body = request.body;
+    duplicatedRequest.body_type = request.body_type;
+    duplicatedRequest.sort_priority = request.sort_priority + 1;
+    
+    // Copy headers
+    duplicatedRequest.headers = [];
+    request.headers.forEach((header: HttpHeader) => {
+      const newHeader: HttpHeader = new HttpHeader();
+      newHeader.id = `header_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      newHeader.name = header.name;
+      newHeader.value = header.value;
+      newHeader.enabled = header.enabled;
+      duplicatedRequest.headers.push(newHeader);
+    });
+    
+    // Copy query parameters
+    duplicatedRequest.query_params = [];
+    request.query_params.forEach((param: QueryParam) => {
+      const newParam: QueryParam = new QueryParam();
+      newParam.id = `param_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      newParam.name = param.name;
+      newParam.value = param.value;
+      newParam.enabled = param.enabled;
+      duplicatedRequest.query_params.push(newParam);
+    });
+    
+    // Copy authentication
+    if (request.auth !== null) {
+      duplicatedRequest.auth = new AuthConfig();
+      duplicatedRequest.auth.type = request.auth.type;
+      duplicatedRequest.auth.basic_username = request.auth.basic_username;
+      duplicatedRequest.auth.basic_password = request.auth.basic_password;
+      duplicatedRequest.auth.bearer_token = request.auth.bearer_token;
+      duplicatedRequest.auth.api_key_name = request.auth.api_key_name;
+      duplicatedRequest.auth.api_key_value = request.auth.api_key_value;
+      duplicatedRequest.auth.api_key_location = request.auth.api_key_location;
+      duplicatedRequest.auth.oauth2_access_token = request.auth.oauth2_access_token;
+      duplicatedRequest.auth.oauth2_refresh_token = request.auth.oauth2_refresh_token;
+      duplicatedRequest.auth.oauth2_expires_at = request.auth.oauth2_expires_at;
+    }
+    
+    // Set timestamps
+    duplicatedRequest.created_at = Date.now();
+    duplicatedRequest.updated_at = Date.now();
+
+    try {
+      await this.requestRepo.createRequest(duplicatedRequest);
+      await this.loadRequests();
+      this.rebuildSidebar();
+      
+      // Select the duplicated request
+      const newRequest: HttpRequest | undefined = this.requests.find(
+        (r: HttpRequest) => r.id === duplicatedRequest.id
+      );
+      if (newRequest) {
+        this.selectedRequest = newRequest;
+      }
+    } catch (error) {
+      console.error('Failed to duplicate request:', JSON.stringify(error));
+    }
+  }
+
+  async duplicateFolder(folder: Folder): Promise<void> {
+    if (!this.selectedWorkspace) return;
+
+    try {
+      // Duplicate the folder and all its children recursively
+      const newFolderId: string = await this.duplicateFolderRecursive(
+        folder,
+        folder.folder_id
+      );
+      
+      // Reload data and rebuild sidebar
+      await this.loadFolders();
+      await this.loadRequests();
+      this.rebuildSidebar();
+      
+      console.info(`Folder duplicated successfully: ${newFolderId}`);
+    } catch (error) {
+      console.error('Failed to duplicate folder:', JSON.stringify(error));
+    }
+  }
+
+  private async duplicateFolderRecursive(
+    folder: Folder,
+    parentFolderId: string | null
+  ): Promise<string> {
+    // Create a copy of the folder
+    const duplicatedFolder: Folder = new Folder();
+    
+    // Generate new unique ID
+    const newFolderId: string = `folder_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    duplicatedFolder.id = newFolderId;
+    
+    // Copy configuration
+    duplicatedFolder.workspace_id = folder.workspace_id;
+    duplicatedFolder.folder_id = parentFolderId;
+    duplicatedFolder.name = `${folder.name} Copy`;
+    duplicatedFolder.sort_priority = folder.sort_priority + 1;
+    
+    // Copy headers
+    duplicatedFolder.headers = [];
+    folder.headers.forEach((header: HttpHeader) => {
+      const newHeader: HttpHeader = new HttpHeader();
+      newHeader.id = `header_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      newHeader.name = header.name;
+      newHeader.value = header.value;
+      newHeader.enabled = header.enabled;
+      duplicatedFolder.headers.push(newHeader);
+    });
+    
+    // Copy authentication
+    if (folder.auth !== null) {
+      duplicatedFolder.auth = new AuthConfig();
+      duplicatedFolder.auth.type = folder.auth.type;
+      duplicatedFolder.auth.basic_username = folder.auth.basic_username;
+      duplicatedFolder.auth.basic_password = folder.auth.basic_password;
+      duplicatedFolder.auth.bearer_token = folder.auth.bearer_token;
+      duplicatedFolder.auth.api_key_name = folder.auth.api_key_name;
+      duplicatedFolder.auth.api_key_value = folder.auth.api_key_value;
+      duplicatedFolder.auth.api_key_location = folder.auth.api_key_location;
+      duplicatedFolder.auth.oauth2_access_token = folder.auth.oauth2_access_token;
+      duplicatedFolder.auth.oauth2_refresh_token = folder.auth.oauth2_refresh_token;
+      duplicatedFolder.auth.oauth2_expires_at = folder.auth.oauth2_expires_at;
+    }
+    
+    // Set timestamps
+    duplicatedFolder.created_at = Date.now();
+    duplicatedFolder.updated_at = Date.now();
+    
+    // Save the duplicated folder
+    await this.folderRepo.createFolder(duplicatedFolder);
+    
+    // Find and duplicate child folders
+    const childFolders: Folder[] = this.folders.filter(
+      (f: Folder) => f.folder_id === folder.id
+    );
+    for (let i = 0; i < childFolders.length; i++) {
+      const childFolder: Folder | undefined = childFolders[i];
+      if (childFolder) {
+        await this.duplicateFolderRecursive(childFolder, newFolderId);
+      }
+    }
+    
+    // Find and duplicate child requests
+    const childRequests: HttpRequest[] = this.requests.filter(
+      (r: HttpRequest) => r.folder_id === folder.id
+    );
+    for (let i = 0; i < childRequests.length; i++) {
+      const childRequest: HttpRequest | undefined = childRequests[i];
+      if (childRequest) {
+        await this.duplicateRequestToFolder(childRequest, newFolderId);
+      }
+    }
+    
+    return newFolderId;
+  }
+
+  private async duplicateRequestToFolder(
+    request: HttpRequest,
+    newFolderId: string
+  ): Promise<void> {
+    // Create a copy of the request
+    const duplicatedRequest: HttpRequest = new HttpRequest();
+    
+    // Generate new unique ID
+    duplicatedRequest.id = `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    
+    // Copy all configuration
+    duplicatedRequest.workspace_id = request.workspace_id;
+    duplicatedRequest.folder_id = newFolderId;
+    duplicatedRequest.name = request.name;
+    duplicatedRequest.url = request.url;
+    duplicatedRequest.method = request.method;
+    duplicatedRequest.body = request.body;
+    duplicatedRequest.body_type = request.body_type;
+    duplicatedRequest.sort_priority = request.sort_priority;
+    
+    // Copy headers
+    duplicatedRequest.headers = [];
+    request.headers.forEach((header: HttpHeader) => {
+      const newHeader: HttpHeader = new HttpHeader();
+      newHeader.id = `header_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      newHeader.name = header.name;
+      newHeader.value = header.value;
+      newHeader.enabled = header.enabled;
+      duplicatedRequest.headers.push(newHeader);
+    });
+    
+    // Copy query parameters
+    duplicatedRequest.query_params = [];
+    request.query_params.forEach((param: QueryParam) => {
+      const newParam: QueryParam = new QueryParam();
+      newParam.id = `param_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      newParam.name = param.name;
+      newParam.value = param.value;
+      newParam.enabled = param.enabled;
+      duplicatedRequest.query_params.push(newParam);
+    });
+    
+    // Copy authentication
+    if (request.auth !== null) {
+      duplicatedRequest.auth = new AuthConfig();
+      duplicatedRequest.auth.type = request.auth.type;
+      duplicatedRequest.auth.basic_username = request.auth.basic_username;
+      duplicatedRequest.auth.basic_password = request.auth.basic_password;
+      duplicatedRequest.auth.bearer_token = request.auth.bearer_token;
+      duplicatedRequest.auth.api_key_name = request.auth.api_key_name;
+      duplicatedRequest.auth.api_key_value = request.auth.api_key_value;
+      duplicatedRequest.auth.api_key_location = request.auth.api_key_location;
+      duplicatedRequest.auth.oauth2_access_token = request.auth.oauth2_access_token;
+      duplicatedRequest.auth.oauth2_refresh_token = request.auth.oauth2_refresh_token;
+      duplicatedRequest.auth.oauth2_expires_at = request.auth.oauth2_expires_at;
+    }
+    
+    // Set timestamps
+    duplicatedRequest.created_at = Date.now();
+    duplicatedRequest.updated_at = Date.now();
+    
+    // Save the duplicated request
+    await this.requestRepo.createRequest(duplicatedRequest);
+  }
+
+  // Request Execution
   async executeRequest(): Promise<void> {
     if (!this.selectedRequest) return;
-    
+
     this.isRequestLoading = true;
     this.responseBody = '';
-    this.responseStatus = 0;
-    
-    const startTime = Date.now();
-    
+    this.selectedResponse = null;
+
+    const startTime: number = Date.now();
+
     try {
-      const variables = EnvironmentService.mergeVariables(this.environments);
-      const resp = await RequestExecutor.execute(this.selectedRequest, variables);
-      
-      this.responseStatus = resp.responseCode;
-      this.responseTime = Date.now() - startTime;
-      
-      let bodyStr = '';
-      if (typeof resp.result === 'string') {
-        bodyStr = resp.result as string;
-      } else {
-        bodyStr = JSON.stringify(resp.result, null, 2);
-      }
-      this.responseBody = bodyStr;
-      this.responseSize = bodyStr.length; // Approximate bytes
-      
-    } catch (e) {
-      this.responseBody = 'Error: ' + JSON.stringify(e);
-      this.responseStatus = 0;
+      // Merge environment variables
+      const envs: Environment[] = this.selectedEnvironment ? [this.selectedEnvironment] : [];
+      const variables: Map<string, string> = EnvironmentService.mergeVariables(envs);
+
+      // Execute request with inheritance support
+      const result: RequestExecutionResult = await RequestExecutor.execute(
+        this.selectedRequest,
+        this.selectedWorkspace?.id || '',
+        variables,
+        this.folders,
+        this.selectedWorkspace
+      );
+
+      // Update UI with response
+      this.selectedResponse = result.response;
+      this.responseBody = result.bodyContent;
+
+    } catch (error) {
+      console.error('Request execution failed:', JSON.stringify(error));
+      // RequestExecutor already creates error response, but we need to handle UI
+      this.responseBody = `Error: ${JSON.stringify(error)}`;
     } finally {
-       this.isRequestLoading = false;
+      this.isRequestLoading = false;
+    }
+  }
+
+  // Event Handlers
+  handleWorkspaceSelect(workspace: Workspace): void {
+    if (this.selectedWorkspace?.id !== workspace.id) {
+      this.selectedWorkspace = workspace;
+      this.selectedRequest = null;
+      this.selectedResponse = null;
+      this.responseBody = '';
+      this.loadWorkspaceData();
+    }
+  }
+
+  handleEnvironmentSelect(environment: Environment | null): void {
+    this.selectedEnvironment = environment;
+  }
+
+  handleRequestSelect(request: HttpRequest | null): void {
+    this.selectedRequest = request;
+    this.selectedResponse = null;
+    this.responseBody = '';
+  }
+
+  handleRequestChange(request: HttpRequest): void {
+    if (this.selectedRequest && request.id === this.selectedRequest.id) {
+      this.selectedRequest = request;
+      // Save changes to database
+      this.requestRepo.updateRequest(request);
     }
   }
 
   build() {
     Column() {
-      // Header (Always Visible)
+      // Workspace Header
       WorkspaceHeader({
         workspaces: this.workspaces,
         activeWorkspace: this.selectedWorkspace,
         environments: this.environments,
         activeEnvironment: this.selectedEnvironment,
-        workspaceLayout: this.workspaceLayout,
-        sidebarHidden: this.sidebarHidden,
-        
-        // Event Handlers
         onWorkspaceSelect: (ws: Workspace) => {
-          if (this.selectedWorkspace?.id !== ws.id) {
-            this.selectedWorkspace = ws;
-            this.loadData();
-          }
-        },
-        onWorkspaceAdd: () => {
-           // Reload logic if needed, but the Dialog in Header does the creation
-           // We just need to refresh list
-           this.loadWorkspaces();
+          this.handleWorkspaceSelect(ws);
         },
         onEnvironmentSelect: (env: Environment | null) => {
-          this.selectedEnvironment = env;
-        },
-        onLayoutChange: (layout: string) => {
-          this.workspaceLayout = layout;
-        },
-        onSidebarToggle: () => {
-          this.sidebarHidden = !this.sidebarHidden;
+          this.handleEnvironmentSelect(env);
         },
         onOpenSettings: () => {
-          this.settingsDialogController.open();
+          // TODO: Open settings dialog
         }
       })
 
-      Row() {
-        if (this.isLoading) {
-          Column() {
-             LoadingProgress().width(50).height(50).color(this.theme.primary)
-             Text("Initializing...").margin({ top: 10 }).fontColor(this.theme.text)
-          }.width('100%').height('100%').justifyContent(FlexAlign.Center).backgroundColor(this.theme.background)
-        } else {
-          // Sidebar (20%)
-          if (!this.sidebarHidden) {
-            Column() {
-              SidebarComponent({
-                items: this.sidebarItems,
-                selectedRequest: this.selectedRequest,
-                onRequestCreate: () => { this.createRequest() },
-                onFolderCreate: () => { this.createFolder() },
-                $selectedRequest: (req: HttpRequest | null) => {
-                   this.selectedRequest = req;
-                }
-              })
-            }
-            .width('20%')
-            .height('100%')
-            .backgroundColor(this.theme.sidebarBackground)
-
-            Divider().vertical(true).height('100%').color(this.theme.border)
-          }
-
-          // Main Content (Request)
-          Column() {
-            if (this.selectedRequest) {
-              RequestEditorComponent({
-                request: this.selectedRequest,
-                onExecute: () => { this.executeRequest() },
-                isLoading: this.isRequestLoading,
-                $request: (val: HttpRequest | null) => {
-                  // Handle request updates if needed, though ObservedV2 handles props
-                  if (val) this.selectedRequest = val;
-                }
-              })
-            } else {
-              EmptyState({
-                onNewRequest: () => { this.createRequest() },
-                onImport: () => { 
-                   // TODO: Implement Import Dialog
-                }
-              })
-            }
-          }
-          .layoutWeight(this.workspaceLayout === 'horizontal' ? 5 : 1)
-          .height('100%')
-          .backgroundColor(this.theme.background)
-
-          if (this.workspaceLayout === 'horizontal') {
-            Divider().vertical(true).height('100%').color(this.theme.border)
-          } else {
-            Divider().vertical(false).width('100%').color(this.theme.border)
-          }
-
-          // Response Viewer
-          Column() {
-            ResponseViewerComponent({
-              response: this.responseBody,
-              status: this.responseStatus,
-              time: this.responseTime,
-              bodySize: this.responseSize
-            })
-          }
-          .layoutWeight(3)
-          .height('100%')
-          .backgroundColor(this.theme.background)
-        }
+      // Main Content
+      if (this.isLoading) {
+        this.buildLoadingState();
+      } else {
+        this.buildMainContent();
       }
-      .layoutWeight(1) // Take remaining space
-      .width('100%')
-      .backgroundColor(this.theme.background)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.theme.background)
+    .backgroundColor($r('app.color.background'))
+  }
+
+  @Builder
+  buildLoadingState() {
+    Column() {
+      LoadingProgress()
+        .width(48)
+        .height(48)
+        .color($r('app.color.primary'))
+
+      Text('Initializing...')
+        .fontSize($r('app.float.font_size_md'))
+        .fontColor($r('app.color.text_secondary'))
+        .margin({ top: $r('app.float.spacing_md') })
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  buildMainContent() {
+    Row() {
+      // Sidebar
+      if (!this.sidebarHidden) {
+        Column() {
+          SidebarComponent({
+            items: this.sidebarItems,
+            selectedRequestId: this.selectedRequest?.id || '',
+            onRequestCreate: () => {
+              this.createRequest();
+            },
+            onFolderCreate: () => {
+              this.createFolder();
+            },
+            onRequestSelect: (requestId: string) => {
+              const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+              this.handleRequestSelect(request || null);
+            },
+            onFolderToggle: (folderId: string) => {
+              // Handle folder toggle
+            }
+          })
+        }
+        .width('20%')
+        .height('100%')
+        .backgroundColor($r('app.color.sidebar_background'))
+
+        // Divider
+        Row()
+          .width($r('app.float.border_width_thin'))
+          .height('100%')
+          .backgroundColor($r('app.color.divider'))
+      }
+
+      // Request Editor
+      Column() {
+        if (this.selectedRequest) {
+          RequestEditorComponent({
+            request: this.selectedRequest,
+            isLoading: this.isRequestLoading,
+            onExecute: () => {
+              this.executeRequest();
+            },
+            onChange: (req: HttpRequest) => {
+              this.handleRequestChange(req);
+            }
+          })
+        } else {
+          EmptyState({
+            onNewRequest: () => {
+              this.createRequest();
+            },
+            onImport: () => {
+              // TODO: Implement import
+            }
+          })
+        }
+      }
+      .layoutWeight(5)
+      .height('100%')
+      .backgroundColor($r('app.color.background'))
+
+      // Divider
+      Row()
+        .width($r('app.float.border_width_thin'))
+        .height('100%')
+        .backgroundColor($r('app.color.divider'))
+
+      // Response Viewer
+      Column() {
+        ResponseViewerComponent({
+          response: this.selectedResponse,
+          responseBody: this.responseBody,
+          isLoading: this.isRequestLoading
+        })
+      }
+      .layoutWeight(3)
+      .height('100%')
+      .backgroundColor($r('app.color.background'))
+    }
+    .width('100%')
+    .layoutWeight(1)
   }
 }

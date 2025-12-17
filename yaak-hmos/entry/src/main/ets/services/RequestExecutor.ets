@@ -4,12 +4,15 @@
  */
 
 import http from '@ohos.net.http';
-import { HttpRequest } from '../model/HttpRequest';
+import { HttpRequest, HttpHeader } from '../model/HttpRequest';
 import { HttpResponse, ResponseHeader } from '../model/HttpResponse';
+import { Folder } from '../model/Folder';
+import { Workspace } from '../model/Workspace';
 import { TemplateEngine } from './TemplateEngine';
 import { AuthService } from './AuthService';
 import { CookieService } from './CookieService';
 import { ResponseStorageService } from './ResponseStorageService';
+import { InheritanceService } from './InheritanceService';
 import { ResponseRepository } from '../database/ResponseRepository';
 
 export interface RequestExecutionResult {
@@ -21,12 +24,14 @@ export class RequestExecutor {
   private static responseRepository = new ResponseRepository();
 
   /**
-   * Execute HTTP request
+   * Execute HTTP request with inheritance support
    */
   static async execute(
     request: HttpRequest,
     workspaceId: string,
-    variables: Map<string, string>
+    variables: Map<string, string>,
+    folders: Folder[],
+    workspace: Workspace | null
   ): Promise<RequestExecutionResult> {
     const startTime = Date.now();
     const httpClient = http.createHttp();
@@ -35,23 +40,29 @@ export class RequestExecutor {
       // 1. Resolve template variables in URL
       const resolvedUrl = this.buildUrl(request, variables);
 
-      // 2. Resolve headers
-      const resolvedHeaders = this.resolveHeaders(request, variables);
+      // 2. Resolve authentication with inheritance
+      const resolvedAuth = InheritanceService.resolveAuth(request, folders, workspace);
 
-      // 3. Apply authentication
-      const authHeaders = AuthService.getAuthHeaders(request.auth, variables);
+      // 3. Resolve headers with inheritance
+      const inheritedHeaders = InheritanceService.resolveHeaders(request, folders, workspace);
+      const resolvedHeaders = this.resolveHeadersWithTemplates(inheritedHeaders, variables);
+
+      // 4. Apply authentication (only if not null)
+      const authHeaders = resolvedAuth !== null 
+        ? AuthService.getAuthHeaders(resolvedAuth, variables)
+        : {};
       const finalHeaders = { ...resolvedHeaders, ...authHeaders };
 
-      // 4. Get cookies
+      // 5. Get cookies
       const cookieHeader = await CookieService.getCookieHeader(workspaceId, resolvedUrl);
       if (cookieHeader) {
         finalHeaders['Cookie'] = cookieHeader;
       }
 
-      // 5. Resolve body
+      // 6. Resolve body
       const resolvedBody = this.resolveBody(request, variables);
 
-      // 6. Build HTTP request options
+      // 8. Build HTTP request options
       const options: http.HttpRequestOptions = {
         method: this.mapHttpMethod(request.method),
         header: finalHeaders,
@@ -64,17 +75,18 @@ export class RequestExecutor {
         options.extraData = resolvedBody;
       }
 
-      // 7. Execute request
+      // 9. Execute request
       console.info(`Executing ${request.method} ${resolvedUrl}`);
       const httpResponse = await httpClient.request(resolvedUrl, options);
 
-      // 8. Calculate elapsed time
+      // 10. Calculate elapsed time
       const elapsedTime = Date.now() - startTime;
 
-      // 9. Store cookies from response
-      await CookieService.storeCookies(workspaceId, httpResponse.header, resolvedUrl);
+      // 11. Store cookies from response
+      const headerRecord: Record<string, string | string[]> = httpResponse.header as Record<string, string | string[]>;
+      await CookieService.storeCookies(workspaceId, headerRecord, resolvedUrl);
 
-      // 10. Create response object
+      // 12. Create response object
       const response = new HttpResponse();
       response.request_id = request.id;
       response.status_code = httpResponse.responseCode;
@@ -83,19 +95,19 @@ export class RequestExecutor {
       response.elapsed_time = elapsedTime;
       response.state = 'success';
 
-      // 11. Get response body
+      // 13. Get response body
       const bodyContent = typeof httpResponse.result === 'string'
         ? httpResponse.result
         : JSON.stringify(httpResponse.result);
       response.size = bodyContent.length;
 
-      // 12. Save response body to file
+      // 14. Save response body to file
       response.body_path = await ResponseStorageService.saveResponseBody(
         response.id || this.generateResponseId(),
         bodyContent
       );
 
-      // 13. Save response to database
+      // 15. Save response to database
       await this.responseRepository.createResponse(response);
 
       console.info(`Request completed: ${response.status_code} in ${elapsedTime}ms`);
@@ -165,23 +177,21 @@ export class RequestExecutor {
   }
 
   /**
-   * Resolve headers with template variables
+   * Resolve headers with template variables (after inheritance)
    */
-  private static resolveHeaders(
-    request: HttpRequest,
+  private static resolveHeadersWithTemplates(
+    headers: HttpHeader[],
     variables: Map<string, string>
   ): Record<string, string> {
-    const headers: Record<string, string> = {};
+    const result: Record<string, string> = {};
 
-    request.headers
-      .filter(h => h.enabled)
-      .forEach(header => {
-        const name = TemplateEngine.resolve(header.name, variables);
-        const value = TemplateEngine.resolve(header.value, variables);
-        headers[name] = value;
-      });
+    headers.forEach((header: HttpHeader) => {
+      const name: string = TemplateEngine.resolve(header.name, variables);
+      const value: string = TemplateEngine.resolve(header.value, variables);
+      result[name] = value;
+    });
 
-    return headers;
+    return result;
   }
 
   /**
@@ -248,12 +258,13 @@ export class RequestExecutor {
         return http.RequestMethod.PUT;
       case 'DELETE':
         return http.RequestMethod.DELETE;
-      case 'PATCH':
-        return http.RequestMethod.PATCH;
       case 'HEAD':
         return http.RequestMethod.HEAD;
       case 'OPTIONS':
         return http.RequestMethod.OPTIONS;
+      case 'PATCH':
+        // PATCH might not be available in older versions, use POST as fallback
+        return http.RequestMethod.POST;
       default:
         return http.RequestMethod.GET;
     }
