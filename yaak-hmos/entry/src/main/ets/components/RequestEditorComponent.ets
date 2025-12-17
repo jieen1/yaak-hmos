@@ -1,78 +1,154 @@
+/**
+ * Request Editor Component
+ * Main editor for HTTP requests with tabs for Params, Headers, Body, Auth
+ */
+
 import { HttpRequest } from '../model/HttpRequest';
-import { KeyValueTable } from './KeyValueTable';
-import { UrlBar } from './UrlBar';
+import { HttpMethod } from '../model/Types';
+import { ThemedSelect, SelectOption } from './ThemedSelect';
+import { ThemedTextInput } from './ThemedTextInput';
+import { ThemedButton } from './ThemedButton';
+import { QueryParamsEditor } from './QueryParamsEditor';
+import { HeadersEditor } from './HeadersEditor';
+import { BodyEditor } from './BodyEditor';
+import { AuthEditor } from './AuthEditor';
 
 @ComponentV2
 export struct RequestEditorComponent {
-  @Param @Require request: HttpRequest | null;
-  @Event $request: (val: HttpRequest | null) => void;
-  @Param @Require onExecute: () => void;
+  @Param request: HttpRequest = new HttpRequest();
+  @Param onExecute: () => void = () => {};
   @Param isLoading: boolean = false;
+  @Param onChange: (request: HttpRequest) => void = () => {};
 
-  @Local currentTabIndex: number = 0;
+  @Local activeTab: number = 0;
+
+  private methodOptions: SelectOption[] = [
+    { label: 'GET', value: 'GET' },
+    { label: 'POST', value: 'POST' },
+    { label: 'PUT', value: 'PUT' },
+    { label: 'DELETE', value: 'DELETE' },
+    { label: 'PATCH', value: 'PATCH' },
+    { label: 'HEAD', value: 'HEAD' },
+    { label: 'OPTIONS', value: 'OPTIONS' }
+  ];
 
   build() {
     Column() {
-      if (this.request) {
-        // 1. URL Bar
-        UrlBar({
-          request: this.request,
-          onSend: this.onExecute,
-          isLoading: this.isLoading
+      // Request line (Method, URL, Send button)
+      Row() {
+        // Method selector
+        ThemedSelect({
+          options: this.methodOptions,
+          selectedValue: this.request.method,
+          onSelectChange: (value: string) => {
+            this.request.method = value as HttpMethod;
+            this.onChange(this.request);
+          },
+          selectSize: 'md'
         })
+          .width(120)
+          .margin({ right: $r('app.float.spacing_sm') })
 
-        // 2. Tabs
-        Tabs({ index: this.currentTabIndex }) {
-          TabContent() {
-             KeyValueTable({ 
-               data: this.request.params, 
-               $data: (val: string) => { if (this.request) this.request.params = val; },
-               placeholderKey: "Key",
-               placeholderValue: "Value"
-             })
-          }.tabBar("Params")
-          
-          TabContent() {
-             Column() {
-               Text("Auth configuration coming soon...").fontColor('#888888').margin(20)
-             }
-          }.tabBar("Auth")
+        // URL input
+        ThemedTextInput({
+          value: this.request.url,
+          placeholder: 'Enter request URL',
+          onValueChange: (value: string) => {
+            this.request.url = value;
+            this.onChange(this.request);
+          },
+          inputSize: 'md'
+        })
+          .flexGrow(1)
+          .margin({ right: $r('app.float.spacing_sm') })
 
-          TabContent() {
-             KeyValueTable({ 
-               data: this.request.headers, 
-               $data: (val: string) => { if (this.request) this.request.headers = val; },
-               placeholderKey: "Header",
-               placeholderValue: "Value"
-             })
-          }.tabBar("Headers")
-
-          TabContent() {
-            TextArea({ text: this.request.body || '', placeholder: 'Request Body (JSON, Text, etc.)' })
-              .width('100%')
-              .height('100%')
-              .fontFamily('Monospace')
-              .fontSize(14)
-              .backgroundColor('#FAFAFA')
-              .padding(10)
-              .onChange((value: string) => {
-                if (this.request) this.request.body = value;
-              })
-          }.tabBar("Body")
+        // Send/Cancel button
+        if (this.isLoading) {
+          ThemedButton({
+            text: 'Cancel',
+            onButtonClick: () => {
+              // Cancel request
+            },
+            buttonType: 'danger',
+            buttonSize: 'md'
+          })
+            .width(100)
+        } else {
+          ThemedButton({
+            text: 'Send',
+            onButtonClick: () => {
+              this.onExecute();
+            },
+            buttonSize: 'md'
+          })
+            .width(100)
         }
-        .barMode(BarMode.Fixed)
-        .layoutWeight(1)
-        .onChange((index: number) => {
-          this.currentTabIndex = index;
-        })
-      } else {
-        Column() {
-          Text("Select a request to start").fontSize(16).fontColor('#888888')
-        }.justifyContent(FlexAlign.Center).height('100%')
       }
+      .width('100%')
+      .padding($r('app.float.spacing_md'))
+      .backgroundColor($r('app.color.surface'))
+
+      // Tabs
+      Tabs({ index: this.activeTab }) {
+        TabContent() {
+          QueryParamsEditor({
+            params: this.request.query_params,
+            onChange: (params) => {
+              this.request.query_params = params;
+              this.onChange(this.request);
+            }
+          })
+        }
+        .tabBar('Params')
+
+        TabContent() {
+          HeadersEditor({
+            headers: this.request.headers,
+            onChange: (headers) => {
+              this.request.headers = headers;
+              this.onChange(this.request);
+            }
+          })
+        }
+        .tabBar('Headers')
+
+        TabContent() {
+          BodyEditor({
+            body: this.request.body || '',
+            bodyType: this.request.body_type,
+            onBodyChange: (body) => {
+              this.request.body = body;
+              this.onChange(this.request);
+            },
+            onBodyTypeChange: (bodyType) => {
+              this.request.body_type = bodyType;
+              this.onChange(this.request);
+            }
+          })
+        }
+        .tabBar('Body')
+
+        TabContent() {
+          AuthEditor({
+            auth: this.request.auth,
+            onChange: (auth) => {
+              this.request.auth = auth;
+              this.onChange(this.request);
+            }
+          })
+        }
+        .tabBar('Auth')
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .barMode(BarMode.Fixed)
+      .barPosition(BarPosition.Start)
+      .onChange((index: number) => {
+        this.activeTab = index;
+      })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Color.White)
+    .backgroundColor($r('app.color.background'))
   }
 }
