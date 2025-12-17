@@ -7,6 +7,12 @@
 import { Cookie } from '../model/CookieJar';
 import { CookieRepository } from '../database/CookieRepository';
 
+interface ParsedUrl {
+  protocol: string;
+  hostname: string;
+  pathname: string;
+}
+
 export class CookieService {
   private static cookieRepository = new CookieRepository();
 
@@ -86,15 +92,23 @@ export class CookieService {
 
     // First part is name=value
     if (parts.length > 0) {
-      const [name, ...valueParts] = parts[0].split('=');
-      cookie.name = name.trim();
-      cookie.value = valueParts.join('=').trim();
+      const nameValueParts = parts[0].split('=');
+      if (nameValueParts.length > 0) {
+        cookie.name = nameValueParts[0].trim();
+        const valueParts: string[] = [];
+        for (let i = 1; i < nameValueParts.length; i++) {
+          valueParts.push(nameValueParts[i]);
+        }
+        cookie.value = valueParts.join('=').trim();
+      }
     }
 
     // Parse attributes
     for (let i = 1; i < parts.length; i++) {
       const part = parts[i];
-      const [key, value] = part.split('=').map(p => p.trim());
+      const keyValueParts = part.split('=').map((p: string): string => p.trim());
+      const key = keyValueParts.length > 0 ? keyValueParts[0] : '';
+      const value = keyValueParts.length > 1 ? keyValueParts[1] : '';
       const lowerKey = key.toLowerCase();
 
       switch (lowerKey) {
@@ -185,17 +199,18 @@ export class CookieService {
   /**
    * Parse URL string
    */
-  private static parseUrl(url: string): { protocol: string; hostname: string; pathname: string } | null {
+  private static parseUrl(url: string): ParsedUrl | null {
     try {
       // Simple URL parsing
       const match = url.match(/^(https?):\/\/([^\/]+)(\/.*)?$/);
       if (!match) return null;
 
-      return {
+      const result: ParsedUrl = {
         protocol: match[1] + ':',
         hostname: match[2],
         pathname: match[3] || '/'
       };
+      return result;
     } catch (error) {
       console.error(`Failed to parse URL: ${error}`);
       return null;

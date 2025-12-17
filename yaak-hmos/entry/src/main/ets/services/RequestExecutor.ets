@@ -51,7 +51,7 @@ export class RequestExecutor {
       const authHeaders = resolvedAuth !== null 
         ? AuthService.getAuthHeaders(resolvedAuth, variables)
         : {};
-      const finalHeaders = { ...resolvedHeaders, ...authHeaders };
+      const finalHeaders: Record<string, string> = Object.assign({}, resolvedHeaders, authHeaders);
 
       // 5. Get cookies
       const cookieHeader = await CookieService.getCookieHeader(workspaceId, resolvedUrl);
@@ -68,12 +68,9 @@ export class RequestExecutor {
         header: finalHeaders,
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: 30000,
-        readTimeout: 30000
+        readTimeout: 30000,
+        extraData: resolvedBody || undefined
       };
-
-      if (resolvedBody) {
-        options.extraData = resolvedBody;
-      }
 
       // 9. Execute request
       console.info(`Executing ${request.method} ${resolvedUrl}`);
@@ -154,17 +151,21 @@ export class RequestExecutor {
     let url = TemplateEngine.resolve(request.url, variables);
 
     // Add enabled query parameters
-    const queryParams = request.query_params
-      .filter(p => p.enabled)
-      .map(p => {
+    const queryParams: string[] = [];
+    request.query_params.forEach((p: HttpHeader) => {
+      if (p.enabled) {
         const name = TemplateEngine.resolve(p.name, variables);
         const value = TemplateEngine.resolve(p.value, variables);
-        return `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
-      });
+        queryParams.push(`${encodeURIComponent(name)}=${encodeURIComponent(value)}`);
+      }
+    });
 
     // Add API key as query parameter if needed
     const apiKeyParams = AuthService.getApiKeyQueryParams(request.auth, variables);
-    Object.entries(apiKeyParams).forEach(([name, value]) => {
+    const apiKeyEntries = Object.entries(apiKeyParams);
+    apiKeyEntries.forEach((entry: [string, string]) => {
+      const name: string = entry[0];
+      const value: string = entry[1];
       queryParams.push(`${encodeURIComponent(name)}=${encodeURIComponent(value)}`);
     });
 
@@ -229,10 +230,13 @@ export class RequestExecutor {
    */
   private static buildFormUrlEncoded(body: string, variables: Map<string, string>): string {
     try {
-      const data = JSON.parse(body);
+      const data: ESObject = JSON.parse(body) as ESObject;
       const params: string[] = [];
 
-      Object.entries(data).forEach(([key, value]) => {
+      const entries = Object.entries(data);
+      entries.forEach((entry: [string, Object]) => {
+        const key: string = entry[0];
+        const value: Object = entry[1];
         const resolvedKey = TemplateEngine.resolve(key, variables);
         const resolvedValue = TemplateEngine.resolve(String(value), variables);
         params.push(`${encodeURIComponent(resolvedKey)}=${encodeURIComponent(resolvedValue)}`);
@@ -276,7 +280,10 @@ export class RequestExecutor {
   private static parseResponseHeaders(headers: Object): ResponseHeader[] {
     const responseHeaders: ResponseHeader[] = [];
 
-    Object.entries(headers).forEach(([name, value]) => {
+    const entries = Object.entries(headers);
+    entries.forEach((entry: [string, Object]) => {
+      const name: string = entry[0];
+      const value: Object = entry[1];
       const header = new ResponseHeader();
       header.name = name;
       header.value = Array.isArray(value) ? value.join(', ') : String(value);
