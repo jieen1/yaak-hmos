@@ -21,10 +21,10 @@ export class TemplateEngine {
     let iterations = 0;
     const maxIterations = 5;
 
-    while (this.TEMPLATE_REGEX.test(result) && iterations < maxIterations) {
-      this.TEMPLATE_REGEX.lastIndex = 0; // Reset regex
-      result = result.replace(this.TEMPLATE_REGEX, (match, expression) => {
-        return this.resolveExpression(expression.trim(), variables, match);
+    while (TemplateEngine.TEMPLATE_REGEX.test(result) && iterations < maxIterations) {
+      TemplateEngine.TEMPLATE_REGEX.lastIndex = 0; // Reset regex
+      result = result.replace(TemplateEngine.TEMPLATE_REGEX, (match: string, expression: string): string => {
+        return TemplateEngine.resolveExpression(expression.trim(), variables, match);
       });
       iterations++;
     }
@@ -42,7 +42,7 @@ export class TemplateEngine {
   ): string {
     // Check if it's a function call
     if (expression.includes('(')) {
-      return this.executeFunction(expression, variables, originalMatch);
+      return TemplateEngine.executeFunction(expression, variables, originalMatch);
     }
 
     // Simple variable lookup
@@ -58,24 +58,26 @@ export class TemplateEngine {
     variables: Map<string, string>,
     originalMatch: string
   ): string {
-    const functionMatch = expression.match(/^(\w+)\((.*)\)$/);
+    const functionMatch: RegExpMatchArray | null = expression.match(/^(\w+)\((.*)\)$/);
     if (!functionMatch) return originalMatch;
 
-    const [, functionName, argsStr] = functionMatch;
-    const args = this.parseArguments(argsStr, variables);
+    // Extract function name and arguments (no destructuring)
+    const functionName: string = functionMatch[1];
+    const argsStr: string = functionMatch[2];
+    const args = TemplateEngine.parseArguments(argsStr, variables);
 
     try {
       switch (functionName) {
         case 'timestamp':
-          return this.timestamp();
+          return TemplateEngine.timestamp();
         case 'uuid':
-          return this.uuid();
+          return TemplateEngine.uuid();
         case 'random':
-          return this.random(args);
+          return TemplateEngine.random(args);
         case 'base64':
-          return this.base64(args);
+          return TemplateEngine.base64(args);
         case 'md5':
-          return this.md5(args);
+          return TemplateEngine.md5(args);
         default:
           console.warn(`Unknown template function: ${functionName}`);
           return originalMatch;
@@ -111,7 +113,7 @@ export class TemplateEngine {
           currentArg += char;
         }
       } else if (char === ',' && !inQuotes) {
-        args.push(this.resolveArgument(currentArg.trim(), variables));
+        args.push(TemplateEngine.resolveArgument(currentArg.trim(), variables));
         currentArg = '';
       } else {
         currentArg += char;
@@ -119,7 +121,7 @@ export class TemplateEngine {
     }
 
     if (currentArg.trim()) {
-      args.push(this.resolveArgument(currentArg.trim(), variables));
+      args.push(TemplateEngine.resolveArgument(currentArg.trim(), variables));
     }
 
     return args;
@@ -152,9 +154,9 @@ export class TemplateEngine {
    * Generates a UUID v4
    */
   private static uuid(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c: string): string => {
+      const r: number = Math.random() * 16 | 0;
+      const v: number = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
   }
@@ -205,7 +207,7 @@ export class TemplateEngine {
       // Note: HarmonyOS cryptoFramework is async, so we return a placeholder
       // In real implementation, this should be handled asynchronously
       // For now, return a simple hash
-      return this.simpleHash(str);
+      return TemplateEngine.simpleHash(str);
     } catch (error) {
       console.error(`MD5 hashing error: ${error}`);
       return args[0];

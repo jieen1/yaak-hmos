@@ -263,6 +263,18 @@
     {
       "name": "close",
       "value": "Close"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": ""
+    },
+    {
+      "name": "module_desc",
+      "value": ""
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": ""
     }
   ]
 }

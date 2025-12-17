@@ -17,7 +17,7 @@ export class ResponseStorageService {
    * Initialize service with context
    */
   static init(context: common.UIAbilityContext): void {
-    this.context = context;
+    ResponseStorageService.context = context;
   }
 
   /**
@@ -27,12 +27,12 @@ export class ResponseStorageService {
     responseId: string,
     body: string | ArrayBuffer
   ): Promise<string> {
-    if (!this.context) {
+    if (!ResponseStorageService.context) {
       throw new Error('ResponseStorageService not initialized');
     }
 
-    const filesDir = this.context.filesDir;
-    const responseDir = `${filesDir}/${this.RESPONSE_DIR}`;
+    const filesDir = ResponseStorageService.context.filesDir;
+    const responseDir = `${filesDir}/${ResponseStorageService.RESPONSE_DIR}`;
 
     // Ensure directory exists
     try {
@@ -60,8 +60,9 @@ export class ResponseStorageService {
       console.info(`Response body saved to: ${filePath}`);
       return filePath;
     } catch (error) {
-      console.error(`Failed to save response body: ${JSON.stringify(error)}`);
-      throw error;
+      const errorMsg = `Failed to save response body: ${JSON.stringify(error)}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
   }
 
@@ -115,7 +116,7 @@ export class ResponseStorageService {
       if (now - response.created_at > maxAge) {
         try {
           // Delete response body file
-          await this.deleteResponseBody(response.body_path);
+          await ResponseStorageService.deleteResponseBody(response.body_path);
           // Delete response record from database
           await responseRepository.deleteResponse(response.id);
           deletedCount++;
@@ -132,10 +133,10 @@ export class ResponseStorageService {
    * Get response directory path
    */
   static getResponseDir(): string {
-    if (!this.context) {
+    if (!ResponseStorageService.context) {
       throw new Error('ResponseStorageService not initialized');
     }
-    return `${this.context.filesDir}/${this.RESPONSE_DIR}`;
+    return `${ResponseStorageService.context.filesDir}/${ResponseStorageService.RESPONSE_DIR}`;
   }
 
   /**
@@ -143,7 +144,7 @@ export class ResponseStorageService {
    */
   static async getTotalResponseSize(): Promise<number> {
     try {
-      const responseDir = this.getResponseDir();
+      const responseDir = ResponseStorageService.getResponseDir();
       await fs.access(responseDir);
 
       const files = await fs.listFile(responseDir);
@@ -171,7 +172,7 @@ export class ResponseStorageService {
    */
   static async clearAllResponses(): Promise<void> {
     try {
-      const responseDir = this.getResponseDir();
+      const responseDir = ResponseStorageService.getResponseDir();
       await fs.access(responseDir);
 
       const files = await fs.listFile(responseDir);

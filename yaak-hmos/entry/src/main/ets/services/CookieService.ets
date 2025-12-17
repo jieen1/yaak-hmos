@@ -18,16 +18,16 @@ export class CookieService {
     headers: Record<string, string | string[]>,
     url: string
   ): Promise<void> {
-    const setCookieHeaders = this.getSetCookieHeaders(headers);
+    const setCookieHeaders = CookieService.getSetCookieHeaders(headers);
     if (setCookieHeaders.length === 0) return;
 
-    const parsedUrl = this.parseUrl(url);
+    const parsedUrl = CookieService.parseUrl(url);
     if (!parsedUrl) return;
 
     for (const cookieStr of setCookieHeaders) {
       try {
-        const cookie = this.parseCookie(cookieStr, parsedUrl.hostname);
-        await this.cookieRepository.upsertCookie(workspaceId, cookie);
+        const cookie = CookieService.parseCookie(cookieStr, parsedUrl.hostname);
+        await CookieService.cookieRepository.upsertCookie(workspaceId, cookie);
       } catch (error) {
         console.error(`Failed to parse cookie: ${error}`);
       }
@@ -38,15 +38,15 @@ export class CookieService {
    * Get cookies for a request
    */
   static async getCookiesForRequest(workspaceId: string, url: string): Promise<Cookie[]> {
-    const parsedUrl = this.parseUrl(url);
+    const parsedUrl = CookieService.parseUrl(url);
     if (!parsedUrl) return [];
 
-    const allCookies = await this.cookieRepository.getAllCookies(workspaceId);
+    const allCookies = await CookieService.cookieRepository.getAllCookies(workspaceId);
     const now = Date.now();
 
     return allCookies.filter(cookie => {
       // Check domain match
-      if (!this.domainMatches(cookie.domain, parsedUrl.hostname)) {
+      if (!CookieService.domainMatches(cookie.domain, parsedUrl.hostname)) {
         return false;
       }
 
@@ -73,7 +73,7 @@ export class CookieService {
    * Get Cookie header string for request
    */
   static async getCookieHeader(workspaceId: string, url: string): Promise<string> {
-    const cookies = await this.getCookiesForRequest(workspaceId, url);
+    const cookies = await CookieService.getCookiesForRequest(workspaceId, url);
     return cookies.map(c => `${c.name}=${c.value}`).join('; ');
   }
 
@@ -105,7 +105,7 @@ export class CookieService {
           cookie.path = value || '/';
           break;
         case 'expires':
-          cookie.expires = this.parseExpires(value);
+          cookie.expires = CookieService.parseExpires(value);
           break;
         case 'max-age':
           const maxAge = parseInt(value);
@@ -206,13 +206,13 @@ export class CookieService {
    * Delete expired cookies for a workspace
    */
   static async deleteExpiredCookies(workspaceId: string): Promise<void> {
-    await this.cookieRepository.deleteExpiredCookies(workspaceId);
+    await CookieService.cookieRepository.deleteExpiredCookies(workspaceId);
   }
 
   /**
    * Clear all cookies for a workspace
    */
   static async clearAllCookies(workspaceId: string): Promise<void> {
-    await this.cookieRepository.clearAllCookies(workspaceId);
+    await CookieService.cookieRepository.clearAllCookies(workspaceId);
   }
 }

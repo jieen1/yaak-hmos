@@ -4,6 +4,27 @@ import { ResponseHeader } from '../model';
 export struct ResponseHeadersTab {
   @Param headers: ResponseHeader[] = [];
 
+  // Helper methods to filter headers (non-UI logic)
+  private getSetCookieHeaders(): ResponseHeader[] {
+    const result: ResponseHeader[] = [];
+    this.headers.forEach((h: ResponseHeader) => {
+      if (h.name.toLowerCase() === 'set-cookie') {
+        result.push(h);
+      }
+    });
+    return result;
+  }
+
+  private getRegularHeaders(): ResponseHeader[] {
+    const result: ResponseHeader[] = [];
+    this.headers.forEach((h: ResponseHeader) => {
+      if (h.name.toLowerCase() !== 'set-cookie') {
+        result.push(h);
+      }
+    });
+    return result;
+  }
+
   build() {
     Column() {
       if (this.headers.length === 0) {
@@ -50,56 +71,47 @@ export struct ResponseHeadersTab {
 
   @Builder
   buildSetCookieHeaders() {
-    const setCookieHeaders = this.headers.filter(h =>
-      h.name.toLowerCase() === 'set-cookie'
-    );
+    Column() {
+      Text('Set-Cookie Headers')
+        .fontSize($r('app.float.font_size_sm'))
+        .fontColor($r('app.color.text_secondary'))
+        .fontWeight(FontWeight.Bold)
+        .margin({ bottom: $r('app.float.spacing_sm') })
+        .visibility(this.getSetCookieHeaders().length > 0 ? Visibility.Visible : Visibility.None)
 
-    if (setCookieHeaders.length > 0) {
-      Column() {
-        Text('Set-Cookie Headers')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
-          .fontWeight(FontWeight.Bold)
-          .margin({ bottom: $r('app.float.spacing_sm') })
+      ForEach(this.getSetCookieHeaders(), (header: ResponseHeader, index: number) => {
+        this.buildHeaderItem(header, index);
+      }, (header: ResponseHeader, index: number) => `set-cookie-${index}`)
 
-        ForEach(setCookieHeaders, (header: ResponseHeader, index: number) => {
-          this.buildHeaderItem(header, index);
-        }, (header: ResponseHeader, index: number) => `set-cookie-${index}`)
-
-        // Divider
-        Row()
-          .width('100%')
-          .height(1)
-          .backgroundColor($r('app.color.divider'))
-          .margin({
-            top: $r('app.float.spacing_md'),
-            bottom: $r('app.float.spacing_md')
-          })
-      }
-      .width('100%')
+      // Divider
+      Row()
+        .width('100%')
+        .height(1)
+        .backgroundColor($r('app.color.divider'))
+        .margin({
+          top: $r('app.float.spacing_md'),
+          bottom: $r('app.float.spacing_md')
+        })
+        .visibility(this.getSetCookieHeaders().length > 0 ? Visibility.Visible : Visibility.None)
     }
+    .width('100%')
   }
 
   @Builder
   buildRegularHeaders() {
-    const regularHeaders = this.headers.filter(h =>
-      h.name.toLowerCase() !== 'set-cookie'
-    );
+    Column() {
+      Text('Response Headers')
+        .fontSize($r('app.float.font_size_sm'))
+        .fontColor($r('app.color.text_secondary'))
+        .fontWeight(FontWeight.Bold)
+        .margin({ bottom: $r('app.float.spacing_sm') })
+        .visibility(this.getRegularHeaders().length > 0 ? Visibility.Visible : Visibility.None)
 
-    if (regularHeaders.length > 0) {
-      Column() {
-        Text('Response Headers')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
-          .fontWeight(FontWeight.Bold)
-          .margin({ bottom: $r('app.float.spacing_sm') })
-
-        ForEach(regularHeaders, (header: ResponseHeader, index: number) => {
-          this.buildHeaderItem(header, index);
-        }, (header: ResponseHeader, index: number) => `header-${index}`)
-      }
-      .width('100%')
+      ForEach(this.getRegularHeaders(), (header: ResponseHeader, index: number) => {
+        this.buildHeaderItem(header, index);
+      }, (header: ResponseHeader, index: number) => `header-${index}`)
     }
+    .width('100%')
   }
 
   @Builder

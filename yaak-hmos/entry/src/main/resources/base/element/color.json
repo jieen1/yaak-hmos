@@ -199,6 +199,10 @@
     {
       "name": "status_5xx",
       "value": "#DC2626"
+    },
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
     }
   ]
 }

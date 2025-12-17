@@ -18,16 +18,17 @@ export class AuthService {
   ): Record<string, string> {
     switch (auth.type) {
       case 'basic':
-        return this.getBasicAuthHeaders(auth, variables);
+        return AuthService.getBasicAuthHeaders(auth, variables);
       case 'bearer':
-        return this.getBearerAuthHeaders(auth, variables);
+        return AuthService.getBearerAuthHeaders(auth, variables);
       case 'api-key':
-        return this.getApiKeyHeaders(auth, variables);
+        return AuthService.getApiKeyHeaders(auth, variables);
       case 'oauth2':
-        return this.getOAuth2Headers(auth, variables);
+        return AuthService.getOAuth2Headers(auth, variables);
       case 'none':
       default:
-        return {};
+        const emptyHeaders: Record<string, string> = {};
+        return emptyHeaders;
     }
   }
 
@@ -44,7 +45,8 @@ export class AuthService {
 
     if (!username) {
       console.warn('Basic Auth: username is empty');
-      return {};
+      const emptyHeaders: Record<string, string> = {};
+      return emptyHeaders;
     }
 
     try {
@@ -58,7 +60,8 @@ export class AuthService {
       };
     } catch (error) {
       console.error(`Basic Auth encoding error: ${error}`);
-      return {};
+      const emptyHeaders: Record<string, string> = {};
+      return emptyHeaders;
     }
   }
 
@@ -74,7 +77,8 @@ export class AuthService {
 
     if (!token) {
       console.warn('Bearer Auth: token is empty');
-      return {};
+      const emptyHeaders: Record<string, string> = {};
+      return emptyHeaders;
     }
 
     return {
@@ -101,12 +105,13 @@ export class AuthService {
     // Only return headers if location is 'header'
     // Query parameters are handled separately in URL building
     if (auth.api_key_location === 'header') {
-      return {
-        [name]: value
-      };
+      const headers: Record<string, string> = {};
+      headers[name] = value;
+      return headers;
     }
 
-    return {};
+    const emptyHeaders: Record<string, string> = {};
+    return emptyHeaders;
   }
 
   /**
@@ -121,7 +126,8 @@ export class AuthService {
 
     if (!accessToken) {
       console.warn('OAuth2 Auth: access token is empty');
-      return {};
+      const emptyHeaders: Record<string, string> = {};
+      return emptyHeaders;
     }
 
     return {
@@ -137,19 +143,21 @@ export class AuthService {
     variables: Map<string, string>
   ): Record<string, string> {
     if (auth.type !== 'api-key' || auth.api_key_location !== 'query') {
-      return {};
+      const emptyParams: Record<string, string> = {};
+      return emptyParams;
     }
 
     const name = TemplateEngine.resolve(auth.api_key_name, variables);
     const value = TemplateEngine.resolve(auth.api_key_value, variables);
 
     if (!name || !value) {
-      return {};
+      const emptyParams: Record<string, string> = {};
+      return emptyParams;
     }
 
-    return {
-      [name]: value
-    };
+    const params: Record<string, string> = {};
+    params[name] = value;
+    return params;
   }
 
   /**
@@ -175,7 +183,7 @@ export class AuthService {
       case 'api-key':
         return !!auth.api_key_name && !!auth.api_key_value;
       case 'oauth2':
-        return !!auth.oauth2_access_token && !this.isOAuth2TokenExpired(auth);
+        return !!auth.oauth2_access_token && !AuthService.isOAuth2TokenExpired(auth);
       case 'none':
       default:
         return true;

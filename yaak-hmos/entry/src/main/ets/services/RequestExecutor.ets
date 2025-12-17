@@ -38,14 +38,14 @@ export class RequestExecutor {
 
     try {
       // 1. Resolve template variables in URL
-      const resolvedUrl = this.buildUrl(request, variables);
+      const resolvedUrl = RequestExecutor.buildUrl(request, variables);
 
       // 2. Resolve authentication with inheritance
       const resolvedAuth = InheritanceService.resolveAuth(request, folders, workspace);
 
       // 3. Resolve headers with inheritance
       const inheritedHeaders = InheritanceService.resolveHeaders(request, folders, workspace);
-      const resolvedHeaders = this.resolveHeadersWithTemplates(inheritedHeaders, variables);
+      const resolvedHeaders = RequestExecutor.resolveHeadersWithTemplates(inheritedHeaders, variables);
 
       // 4. Apply authentication (only if not null)
       const authHeaders = resolvedAuth !== null 
@@ -60,11 +60,11 @@ export class RequestExecutor {
       }
 
       // 6. Resolve body
-      const resolvedBody = this.resolveBody(request, variables);
+      const resolvedBody = RequestExecutor.resolveBody(request, variables);
 
       // 8. Build HTTP request options
       const options: http.HttpRequestOptions = {
-        method: this.mapHttpMethod(request.method),
+        method: RequestExecutor.mapHttpMethod(request.method),
         header: finalHeaders,
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: 30000,
@@ -90,8 +90,8 @@ export class RequestExecutor {
       const response = new HttpResponse();
       response.request_id = request.id;
       response.status_code = httpResponse.responseCode;
-      response.status_text = this.getStatusText(httpResponse.responseCode);
-      response.headers = this.parseResponseHeaders(httpResponse.header);
+      response.status_text = RequestExecutor.getStatusText(httpResponse.responseCode);
+      response.headers = RequestExecutor.parseResponseHeaders(httpResponse.header);
       response.elapsed_time = elapsedTime;
       response.state = 'success';
 
@@ -103,12 +103,12 @@ export class RequestExecutor {
 
       // 14. Save response body to file
       response.body_path = await ResponseStorageService.saveResponseBody(
-        response.id || this.generateResponseId(),
+        response.id || RequestExecutor.generateResponseId(),
         bodyContent
       );
 
       // 15. Save response to database
-      await this.responseRepository.createResponse(response);
+      await RequestExecutor.responseRepository.createResponse(response);
 
       console.info(`Request completed: ${response.status_code} in ${elapsedTime}ms`);
 
@@ -132,11 +132,11 @@ export class RequestExecutor {
 
       const errorMessage = `Request failed: ${JSON.stringify(error)}`;
       response.body_path = await ResponseStorageService.saveResponseBody(
-        response.id || this.generateResponseId(),
+        response.id || RequestExecutor.generateResponseId(),
         errorMessage
       );
 
-      await this.responseRepository.createResponse(response);
+      await RequestExecutor.responseRepository.createResponse(response);
 
       return {
         response,

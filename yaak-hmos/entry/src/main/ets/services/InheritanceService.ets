@@ -69,7 +69,7 @@ export class InheritanceService {
     }
 
     // Add folder headers in order from root to leaf (middle priority)
-    const folderChain: Folder[] = this.getFolderChain(request.folder_id, folders);
+    const folderChain: Folder[] = InheritanceService.getFolderChain(request.folder_id, folders);
     folderChain.forEach((folder: Folder) => {
       folder.headers.forEach((header: HttpHeader) => {
         if (header.enabled) {

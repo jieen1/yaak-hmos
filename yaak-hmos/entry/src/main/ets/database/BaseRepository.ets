@@ -26,21 +26,40 @@ export class BaseRepository {
 
   /**
    * Execute operation within a transaction
+   * 
+   * Example usage:
+   * ```typescript
+   * await this.executeInTransaction(async (transaction) => {
+   *   await transaction.execute('DELETE FROM table WHERE id = ?', ['123']);
+   *   await transaction.execute('INSERT INTO table VALUES (?, ?)', ['456', 'value']);
+   *   return true;
+   * });
+   * ```
    */
   protected async executeInTransaction<T>(
-    operation: () => Promise<T>
+    operation: (transaction: relationalStore.Transaction) => Promise<T>
   ): Promise<T> {
     const store = this.getStore();
-    
+    if (store === undefined) {
+      throw new Error('Database store is undefined');
+    }
+
     try {
-      await store.beginTransaction();
-      const result = await operation();
-      await store.commit();
-      return result;
+      const transaction = await store.createTransaction();
+      try {
+        const result = await operation(transaction);
+        await transaction.commit();
+        return result;
+      } catch (error) {
+        await transaction.rollback();
+        const errorMsg = `Transaction operation failed: ${JSON.stringify(error)}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
     } catch (error) {
-      await store.rollback();
-      console.error(`Transaction failed: ${JSON.stringify(error)}`);
-      throw error;
+      const errorMsg = `Create transaction failed: ${JSON.stringify(error)}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
   }
 

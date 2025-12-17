@@ -62,7 +62,7 @@ export class ResponseRepository extends BaseRepository {
     const predicates = this.createPredicates();
     predicates.equalTo('request_id', requestId);
     predicates.orderByDesc('created_at');
-    predicates.limit(1);
+    predicates.limitAs(1);
 
     const resultSet = await this.query(predicates);
 
