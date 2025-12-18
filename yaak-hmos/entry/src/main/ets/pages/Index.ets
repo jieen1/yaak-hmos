@@ -26,14 +26,9 @@ import { EmptyState } from '../components/EmptyState';
 import { SettingsDialog } from '../components/SettingsDialog';
 import { WorkspaceManagementDialog } from '../components/WorkspaceManagementDialog';
 import { EnvironmentManagementDialog } from '../components/EnvironmentManagementDialog';
+import { ResizeHandle, ResizeEvent } from '../components/ResizeHandle';
+import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 import common from '@ohos.app.ability.common';
-import preferences from '@ohos.data.preferences';
-
-// Persistent storage keys
-const SIDEBAR_WIDTH_KEY = 'yaak_sidebar_width';
-const RESPONSE_WIDTH_KEY = 'yaak_response_width';
-const RESPONSE_VIEWER_HIDDEN_KEY = 'yaak_response_viewer_hidden';
-const PREFERENCES_NAME = 'yaak_preferences';
 
 @Entry
 @ComponentV2
@@ -65,14 +60,23 @@ struct Index {
 
   // Persistent UI Settings
   @Local sidebarWidth: number = 250;
-  @Local responseWidth: number = 250;
+  @Local responseWidth: number = 350;
   @Local responseViewerHidden: boolean = true;
+
+  // Resize state
+  @Local isSidebarResizing: boolean = false;
+  @Local isResponseResizing: boolean = false;
+  @Local sidebarResizeStartWidth: number = 0;
+  @Local responseResizeStartWidth: number = 0;
+  @Local isResponseDragging: boolean = false;
+  @Local responseDragStartX: number = 0;
+  @Local responseDragStartWidth: number = 0;
 
   // Context
   private context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
 
-  // Preferences for persistent storage
-  private preferencesStore: preferences.Preferences | null = null;
+  // Preferences service
+  private preferencesService: PreferencesService = PreferencesService.getInstance();
 
   // Repository Instances
   private workspaceRepo: WorkspaceRepository = new WorkspaceRepository();
@@ -84,8 +88,8 @@ struct Index {
   async aboutToAppear(): Promise<void> {
     console.info('[Index] Starting application initialization');
     try {
-      // Initialize preferences store
-      await this.initPreferences();
+      // Initialize preferences service
+      await this.preferencesService.init(this.context);
 
       // Load persistent settings
       await this.loadPersistentSettings();
@@ -126,74 +130,86 @@ struct Index {
     }
   }
 
-  // Initialize preferences store
-  async initPreferences(): Promise<void> {
-    try {
-      this.preferencesStore = await preferences.getPreferences(this.context, PREFERENCES_NAME);
-    } catch (error) {
-      console.error('Failed to initialize preferences:', JSON.stringify(error));
-    }
-  }
-
   // Load persistent settings from preferences
   async loadPersistentSettings(): Promise<void> {
-    if (!this.preferencesStore) return;
-
     try {
-      const savedSidebarWidth: number = await this.preferencesStore.get(SIDEBAR_WIDTH_KEY, 250) as number;
-      this.sidebarWidth = savedSidebarWidth;
+      // Load global settings
+      this.responseViewerHidden = await this.preferencesService.getBoolean(
+        PreferenceKeys.RESPONSE_VIEWER_HIDDEN,
+        true
+      );
 
-      const savedResponseWidth: number = await this.preferencesStore.get(RESPONSE_WIDTH_KEY, 350) as number;
-      this.responseWidth = savedResponseWidth;
+      // Load workspace-specific settings if workspace is selected
+      if (this.selectedWorkspace) {
+        const workspaceId: string = this.selectedWorkspace.id;
+        
+        this.sidebarWidth = await this.preferencesService.getNumber(
+          PreferenceKeys.getSidebarWidthKey(workspaceId),
+          250
+        );
 
-      const savedResponseViewerHidden: boolean = await this.preferencesStore.get(
-        RESPONSE_VIEWER_HIDDEN_KEY,
-        false
-      ) as boolean;
-      this.responseViewerHidden = savedResponseViewerHidden;
+        this.sidebarHidden = await this.preferencesService.getBoolean(
+          PreferenceKeys.getSidebarHiddenKey(workspaceId),
+          false
+        );
 
-      console.info('Loaded persistent settings:', {
+        this.responseWidth = await this.preferencesService.getNumber(
+          PreferenceKeys.getResponseWidthKey(workspaceId),
+          350
+        );
+      }
+
+      console.info('[Index] Loaded persistent settings:', {
         sidebarWidth: this.sidebarWidth,
+        sidebarHidden: this.sidebarHidden,
         responseWidth: this.responseWidth,
         responseViewerHidden: this.responseViewerHidden
       });
     } catch (error) {
-      console.error('Failed to load persistent settings:', JSON.stringify(error));
+      console.error('[Index] Failed to load persistent settings:', JSON.stringify(error));
     }
   }
 
   // Save persistent settings to preferences
   async saveSidebarWidth(width: number): Promise<void> {
-    if (!this.preferencesStore) return;
+    if (!this.selectedWorkspace) return;
 
     try {
-      await this.preferencesStore.put(SIDEBAR_WIDTH_KEY, width);
-      await this.preferencesStore.flush();
+      const key: string = PreferenceKeys.getSidebarWidthKey(this.selectedWorkspace.id);
+      await this.preferencesService.setNumber(key, width);
     } catch (error) {
-      console.error('Failed to save sidebar width:', JSON.stringify(error));
+      console.error('[Index] Failed to save sidebar width:', JSON.stringify(error));
+    }
+  }
+
+  async saveSidebarHidden(hidden: boolean): Promise<void> {
+    if (!this.selectedWorkspace) return;
+
+    try {
+      const key: string = PreferenceKeys.getSidebarHiddenKey(this.selectedWorkspace.id);
+      await this.preferencesService.setBoolean(key, hidden);
+    } catch (error) {
+      console.error('[Index] Failed to save sidebar hidden:', JSON.stringify(error));
     }
   }
 
   async saveResponseWidth(width: number): Promise<void> {
-    if (!this.preferencesStore) return;
+    if (!this.selectedWorkspace) return;
 
     try {
-      await this.preferencesStore.put(RESPONSE_WIDTH_KEY, width);
-      await this.preferencesStore.flush();
+      const key: string = PreferenceKeys.getResponseWidthKey(this.selectedWorkspace.id);
+      await this.preferencesService.setNumber(key, width);
     } catch (error) {
-      console.error('Failed to save response width:', JSON.stringify(error));
+      console.error('[Index] Failed to save response width:', JSON.stringify(error));
     }
   }
 
   async saveResponseViewerHidden(hidden: boolean): Promise<void> {
-    if (!this.preferencesStore) return;
-
     try {
-      await this.preferencesStore.put(RESPONSE_VIEWER_HIDDEN_KEY, hidden);
-      await this.preferencesStore.flush();
-      console.info('Saved response viewer hidden:', hidden);
+      await this.preferencesService.setBoolean(PreferenceKeys.RESPONSE_VIEWER_HIDDEN, hidden);
+      console.info('[Index] Saved response viewer hidden:', hidden);
     } catch (error) {
-      console.error('Failed to save response viewer hidden:', JSON.stringify(error));
+      console.error('[Index] Failed to save response viewer hidden:', JSON.stringify(error));
     }
   }
 
@@ -788,18 +804,10 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
   }
 
-  @Local isSidebarDragging: boolean = false;
-  @Local sidebarDragStartX: number = 0;
-  @Local sidebarDragStartWidth: number = 0;
-
-  @Local isResponseDragging: boolean = false;
-  @Local responseDragStartX: number = 0;
-  @Local responseDragStartWidth: number = 0;
-
   @Builder
   buildMainContent() {
     Row() {
-      // Sidebar with inline resize logic
+      // Sidebar with ResizeHandle
       if (!this.sidebarHidden) {
         Column() {
           SidebarComponent({
@@ -808,53 +816,24 @@ struct Index {
             onRequestCreate: this.handleRequestCreate,
             onFolderCreate: this.handleFolderCreate,
             onRequestSelect: this.handleRequestSelectById,
-            onFolderToggle: this.handleFolderToggle
+            onFolderToggle: this.handleFolderToggle,
+            onRequestRename: this.handleRequestRename,
+            onRequestDelete: this.handleRequestDelete,
+            onRequestDuplicate: this.handleRequestDuplicate
           })
         }
         .width(this.sidebarWidth)
         .height('100%')
         .backgroundColor($r('app.color.sidebar_background'))
 
-        // Resize Handle
-        Column() {
-          Column()
-            .width(2)
-            .height('100%')
-            .backgroundColor(this.isSidebarDragging ? $r('app.color.primary') : $r('app.color.divider'))
-        }
-        .width(8)
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .backgroundColor(Color.Transparent)
-        .gesture(
-          PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
-            .onActionStart((event: GestureEvent) => {
-              this.isSidebarDragging = true;
-              this.sidebarDragStartX = event.fingerList[0].globalX;
-              this.sidebarDragStartWidth = this.sidebarWidth;
-            })
-            .onActionUpdate((event: GestureEvent) => {
-              if (this.isSidebarDragging) {
-                const currentX: number = event.fingerList[0].globalX;
-                const deltaX: number = currentX - this.sidebarDragStartX;
-                let newWidth: number = this.sidebarDragStartWidth + deltaX;
-
-                // Apply constraints
-                if (newWidth < 200) {
-                  newWidth = 200;
-                } else if (newWidth > 500) {
-                  newWidth = 500;
-                }
-
-                this.sidebarWidth = newWidth;
-              }
-            })
-            .onActionEnd(() => {
-              this.isSidebarDragging = false;
-              // Save to persistent storage
-              this.saveSidebarWidth(this.sidebarWidth);
-            })
-        )
+        // Resize Handle for Sidebar
+        ResizeHandle({
+          side: 'right',
+          onResizeStart: this.handleSidebarResizeStart,
+          onResizeMove: this.handleSidebarResizeMove,
+          onResizeEnd: this.handleSidebarResizeEnd,
+          onReset: this.handleSidebarReset
+        })
       }
 
       // Request Editor - takes remaining space
@@ -893,24 +872,32 @@ struct Index {
         .gesture(
           PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
             .onActionStart((event: GestureEvent) => {
-              this.isResponseDragging = true;
-              this.responseDragStartX = event.fingerList[0].globalX;
-              this.responseDragStartWidth = this.responseWidth;
+              if (event.fingerList && event.fingerList.length > 0) {
+                const finger = event.fingerList[0];
+                if (finger) {
+                  this.isResponseDragging = true;
+                  this.responseDragStartX = finger.globalX;
+                  this.responseDragStartWidth = this.responseWidth;
+                }
+              }
             })
             .onActionUpdate((event: GestureEvent) => {
-              if (this.isResponseDragging) {
-                const currentX: number = event.fingerList[0].globalX;
-                const deltaX: number = this.responseDragStartX - currentX;
-                let newWidth: number = this.responseDragStartWidth + deltaX;
+              if (this.isResponseDragging && event.fingerList && event.fingerList.length > 0) {
+                const finger = event.fingerList[0];
+                if (finger) {
+                  const currentX: number = finger.globalX;
+                  const deltaX: number = this.responseDragStartX - currentX;
+                  let newWidth: number = this.responseDragStartWidth + deltaX;
 
-                // Apply constraints
-                if (newWidth < 300) {
-                  newWidth = 300;
-                } else if (newWidth > 800) {
-                  newWidth = 800;
+                  // Apply constraints
+                  if (newWidth < 300) {
+                    newWidth = 300;
+                  } else if (newWidth > 800) {
+                    newWidth = 800;
+                  }
+
+                  this.responseWidth = newWidth;
                 }
-
-                this.responseWidth = newWidth;
               }
             })
             .onActionEnd(() => {
@@ -966,5 +953,109 @@ struct Index {
 
   handleRequestChangeCallback = async (req: HttpRequest): Promise<void> => {
     await this.handleRequestChange(req);
+  }
+
+  // Sidebar Resize Handlers
+  handleSidebarResizeStart = (): void => {
+    this.sidebarResizeStartWidth = this.sidebarWidth;
+    this.isSidebarResizing = true;
+    console.info('[Index] Sidebar resize started, initial width:', this.sidebarWidth);
+  }
+
+  handleSidebarResizeMove = (event: ResizeEvent): void => {
+    const delta: number = event.x - event.xStart;
+    let newWidth: number = this.sidebarResizeStartWidth + delta;
+
+    // Check for auto-hide (width < 50px)
+    if (newWidth < 50) {
+      this.sidebarHidden = true;
+      this.sidebarWidth = 250; // Reset to default
+      console.info('[Index] Sidebar auto-hidden, width reset to 250px');
+    } else {
+      this.sidebarHidden = false;
+      // Apply constraints: min 200px, max 600px
+      if (newWidth < 200) {
+        newWidth = 200;
+      } else if (newWidth > 600) {
+        newWidth = 600;
+      }
+      this.sidebarWidth = newWidth;
+    }
+  }
+
+  handleSidebarResizeEnd = (): void => {
+    this.isSidebarResizing = false;
+    console.info('[Index] Sidebar resize ended, final width:', this.sidebarWidth);
+    
+    // Persist to preferences
+    this.saveSidebarWidth(this.sidebarWidth);
+    this.saveSidebarHidden(this.sidebarHidden);
+  }
+
+  handleSidebarReset = (): void => {
+    this.sidebarWidth = 250;
+    this.sidebarHidden = false;
+    console.info('[Index] Sidebar width reset to default: 250px');
+    
+    // Persist to preferences
+    this.saveSidebarWidth(this.sidebarWidth);
+    this.saveSidebarHidden(this.sidebarHidden);
+  }
+
+  // Request Management Handlers
+  handleRequestRename = async (requestId: string, newName: string): Promise<void> => {
+    try {
+      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+      if (!request) {
+        console.error('[Index] Request not found for rename:', requestId);
+        return;
+      }
+
+      request.name = newName;
+      request.updated_at = Date.now();
+
+      await this.requestRepo.updateRequest(request);
+      await this.loadRequests();
+      this.rebuildSidebar();
+
+      console.info('[Index] Request renamed:', requestId, newName);
+    } catch (error) {
+      console.error('[Index] Failed to rename request:', JSON.stringify(error));
+    }
+  }
+
+  handleRequestDelete = async (requestId: string): Promise<void> => {
+    try {
+      await this.requestRepo.deleteRequest(requestId);
+      
+      // If deleted request was selected, clear selection
+      if (this.selectedRequest?.id === requestId) {
+        this.selectedRequest = null;
+        this.selectedResponse = null;
+        this.responseBody = '';
+      }
+
+      await this.loadRequests();
+      this.rebuildSidebar();
+
+      console.info('[Index] Request deleted:', requestId);
+    } catch (error) {
+      console.error('[Index] Failed to delete request:', JSON.stringify(error));
+    }
+  }
+
+  handleRequestDuplicate = async (requestId: string): Promise<void> => {
+    try {
+      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+      if (!request) {
+        console.error('[Index] Request not found for duplicate:', requestId);
+        return;
+      }
+
+      await this.duplicateRequest(request);
+      console.info('[Index] Request duplicated:', requestId);
+    } catch (error) {
+      console.error('[Index] Failed to duplicate request:', JSON.stringify(error));
+    }
   }
 }

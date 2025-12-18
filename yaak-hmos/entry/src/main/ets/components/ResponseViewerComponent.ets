@@ -1,6 +1,11 @@
-import { HttpResponse } from '../model';
+import { HttpResponse, ResponseHeader } from '../model';
 import { ResponseHeadersTab } from './ResponseHeadersTab';
 import { ResponseInfoTab } from './ResponseInfoTab';
+import { ContentTypeDetector, ContentTypeInfo } from '../services/ContentTypeDetector';
+import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
+import { TextViewer } from './TextViewer';
+import { ImageViewer } from './ImageViewer';
+import { VideoViewer, AudioViewer } from './MediaViewer';
 
 @ComponentV2
 export struct ResponseViewerComponent {
@@ -10,6 +15,75 @@ export struct ResponseViewerComponent {
 
   @Local activeTab: string = 'body';
   @Local viewMode: string = 'pretty'; // 'pretty' or 'raw'
+  @Local contentTypeInfo: ContentTypeInfo | null = null;
+  
+  private preferencesService: PreferencesService = PreferencesService.getInstance();
+
+  async aboutToAppear(): Promise<void> {
+    await this.loadPreferences();
+    this.detectContentType();
+  }
+
+  async loadPreferences(): Promise<void> {
+    if (!this.response) return;
+
+    try {
+      // Load view mode preference
+      const viewModeKey: string = PreferenceKeys.getViewModeKey(this.response.request_id);
+      this.viewMode = await this.preferencesService.getString(viewModeKey, 'pretty');
+
+      // Load active tab preference
+      const activeTabKey: string = PreferenceKeys.getActiveTabKey(this.response.request_id);
+      this.activeTab = await this.preferencesService.getString(activeTabKey, 'body');
+
+      console.info('[ResponseViewer] Loaded preferences:', {
+        viewMode: this.viewMode,
+        activeTab: this.activeTab
+      });
+    } catch (error) {
+      console.error('[ResponseViewer] Failed to load preferences:', JSON.stringify(error));
+    }
+  }
+
+  detectContentType(): void {
+    if (!this.response) return;
+
+    // Get Content-Type header
+    const headers: ResponseHeader[] = this.response.headers || [];
+    const contentTypeHeader: ResponseHeader | undefined = headers.find(
+      (h: ResponseHeader) => h.name.toLowerCase() === 'content-type'
+    );
+
+    const contentTypeValue: string | null = contentTypeHeader ? contentTypeHeader.value : null;
+    
+    // Detect content type
+    this.contentTypeInfo = ContentTypeDetector.detect(contentTypeValue, this.responseBody);
+    
+    console.info('[ResponseViewer] Content type detected:', {
+      category: this.contentTypeInfo.category,
+      language: this.contentTypeInfo.language,
+      mimeType: this.contentTypeInfo.mimeType,
+      canFormat: this.contentTypeInfo.canFormat
+    });
+  }
+
+  async savePreferences(): Promise<void> {
+    if (!this.response) return;
+
+    try {
+      // Save view mode
+      const viewModeKey: string = PreferenceKeys.getViewModeKey(this.response.request_id);
+      await this.preferencesService.setString(viewModeKey, this.viewMode);
+
+      // Save active tab
+      const activeTabKey: string = PreferenceKeys.getActiveTabKey(this.response.request_id);
+      await this.preferencesService.setString(activeTabKey, this.activeTab);
+
+      console.info('[ResponseViewer] Saved preferences');
+    } catch (error) {
+      console.error('[ResponseViewer] Failed to save preferences:', JSON.stringify(error));
+    }
+  }
 
   build() {
     Column() {
@@ -132,6 +206,7 @@ export struct ResponseViewerComponent {
         })
         .onClick(() => {
           this.activeTab = 'body';
+          this.savePreferences();
         })
 
       // Headers Tab
@@ -146,6 +221,7 @@ export struct ResponseViewerComponent {
         .margin({ left: $r('app.float.spacing_md') })
         .onClick(() => {
           this.activeTab = 'headers';
+          this.savePreferences();
         })
 
       // Info Tab
@@ -160,6 +236,7 @@ export struct ResponseViewerComponent {
         .margin({ left: $r('app.float.spacing_md') })
         .onClick(() => {
           this.activeTab = 'info';
+          this.savePreferences();
         })
     }
     .width('100%')
@@ -189,48 +266,123 @@ export struct ResponseViewerComponent {
   @Builder
   buildBodyTab() {
     Column() {
-      // View Mode Toggle
-      Row() {
-        Button('Pretty')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor(this.viewMode === 'pretty' ? $r('app.color.button_text') : $r('app.color.text_primary'))
-          .backgroundColor(this.viewMode === 'pretty' ? $r('app.color.primary') : $r('app.color.surface_highlight'))
-          .height(32)
-          .onClick(() => {
-            this.viewMode = 'pretty';
-          })
+      // View Mode Toggle (only show for text content that can be formatted)
+      if (this.contentTypeInfo && 
+          this.contentTypeInfo.category === 'text' && 
+          this.contentTypeInfo.canFormat) {
+        Row() {
+          Button('Pretty')
+            .fontSize($r('app.float.font_size_sm'))
+            .fontColor(this.viewMode === 'pretty' ? $r('app.color.button_text') : $r('app.color.text_primary'))
+            .backgroundColor(this.viewMode === 'pretty' ? $r('app.color.primary') : $r('app.color.surface_highlight'))
+            .height(32)
+            .onClick(() => {
+              this.viewMode = 'pretty';
+              this.savePreferences();
+            })
 
-        Button('Raw')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor(this.viewMode === 'raw' ? $r('app.color.button_text') : $r('app.color.text_primary'))
-          .backgroundColor(this.viewMode === 'raw' ? $r('app.color.primary') : $r('app.color.surface_highlight'))
-          .height(32)
-          .margin({ left: $r('app.float.spacing_sm') })
-          .onClick(() => {
-            this.viewMode = 'raw';
-          })
+          Button('Raw')
+            .fontSize($r('app.float.font_size_sm'))
+            .fontColor(this.viewMode === 'raw' ? $r('app.color.button_text') : $r('app.color.text_primary'))
+            .backgroundColor(this.viewMode === 'raw' ? $r('app.color.primary') : $r('app.color.surface_highlight'))
+            .height(32)
+            .margin({ left: $r('app.float.spacing_sm') })
+            .onClick(() => {
+              this.viewMode = 'raw';
+              this.savePreferences();
+            })
+        }
+        .width('100%')
+        .padding($r('app.float.spacing_md'))
+        .backgroundColor($r('app.color.surface'))
       }
-      .width('100%')
-      .padding($r('app.float.spacing_md'))
-      .backgroundColor($r('app.color.surface'))
 
-      // Response Body
-      Scroll() {
-        Text(this.formatResponse())
-          .fontFamily('monospace')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_primary'))
-          .width('100%')
-          .padding($r('app.float.spacing_md'))
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .backgroundColor($r('app.color.background'))
-      .scrollBar(BarState.Auto)
+      // Content viewer based on content type
+      this.buildContentViewer();
     }
     .width('100%')
     .layoutWeight(1)
   }
+
+  @Builder
+  buildContentViewer() {
+    if (!this.contentTypeInfo) {
+      Column() {
+        Text('No content to display')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+    } else if (this.contentTypeInfo.category === 'text') {
+      Column() {
+        TextViewer({
+          text: this.responseBody,
+          language: this.getTextLanguage(),
+          pretty: this.viewMode === 'pretty'
+        })
+      }
+      .width('100%')
+      .layoutWeight(1)
+    } else if (this.contentTypeInfo.category === 'image') {
+      Column() {
+        ImageViewer({
+          imagePath: this.response?.body_path || ''
+        })
+      }
+      .width('100%')
+      .layoutWeight(1)
+    } else if (this.contentTypeInfo.category === 'video') {
+      Column() {
+        VideoViewer({
+          videoPath: this.response?.body_path || ''
+        })
+      }
+      .width('100%')
+      .layoutWeight(1)
+    } else if (this.contentTypeInfo.category === 'audio') {
+      Column() {
+        AudioViewer({
+          audioPath: this.response?.body_path || ''
+        })
+      }
+      .width('100%')
+      .layoutWeight(1)
+    } else {
+      Column() {
+        Text('Unsupported content type')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_secondary'))
+          .margin({ bottom: $r('app.float.spacing_sm') })
+
+        Text(this.contentTypeInfo?.mimeType || 'Unknown')
+          .fontSize($r('app.float.font_size_sm'))
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+    }
+  }
+
+  private getTextLanguage(): 'json' | 'xml' | 'html' | 'text' {
+    if (!this.contentTypeInfo) {
+      return 'text';
+    }
+    
+    if (this.contentTypeInfo.language === 'none' || 
+        this.contentTypeInfo.language === 'css' ||
+        this.contentTypeInfo.language === 'javascript') {
+      return 'text';
+    }
+    
+    return this.contentTypeInfo.language;
+  }
+
+
 
   private getStatusColor(): ResourceStr {
     const status = this.response?.status_code || 0;
@@ -242,25 +394,6 @@ export struct ResponseViewerComponent {
       return $r('app.color.warning');
     }
     return $r('app.color.text_primary');
-  }
-
-  private formatResponse(): string {
-    if (!this.responseBody) {
-      return 'No response body';
-    }
-
-    if (this.viewMode === 'raw') {
-      return this.responseBody;
-    }
-
-    // Try to format as JSON
-    try {
-      const parsed: ESObject = JSON.parse(this.responseBody) as ESObject;
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      // Not JSON, return as-is
-      return this.responseBody;
-    }
   }
 
   private formatSize(bytes: number): string {

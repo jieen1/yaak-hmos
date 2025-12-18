@@ -423,3 +423,163 @@ struct Parent {
 ## 🎯 Remember
 
 **When in doubt, be explicit!** ArkTS favors verbosity and type safety over brevity. Always declare types, interfaces, and use helper methods instead of inline operations.
+
+
+### 6. @Builder Method Calls
+**NEVER call @Builder methods directly inside another @Builder method.**
+
+This causes "Only UI component syntax can be written here" compilation errors.
+
+❌ **WRONG:**
+```typescript
+@Builder
+buildBodyTab() {
+  Column() {
+    if (!this.data) {
+      this.buildEmptyState();  // ERROR: Direct @Builder call
+    } else {
+      this.buildContent();     // ERROR: Direct @Builder call
+    }
+  }
+}
+
+@Builder
+buildEmptyState() {
+  Text('Empty')
+}
+```
+
+✅ **CORRECT - Wrap in UI containers:**
+```typescript
+@Builder
+buildBodyTab() {
+  Column() {
+    this.buildContentViewer();  // Call @Builder that returns proper UI
+  }
+}
+
+@Builder
+buildContentViewer() {
+  if (!this.data) {
+    Column() {
+      Text('Empty')
+    }
+    .width('100%')
+    .layoutWeight(1)
+  } else {
+    Column() {
+      MyComponent({ data: this.data })
+    }
+    .width('100%')
+    .layoutWeight(1)
+  }
+}
+```
+
+**Alternative - Use helper methods for logic:**
+```typescript
+@Builder
+buildBodyTab() {
+  Column() {
+    if (this.shouldShowEmpty()) {
+      Column() {
+        Text('Empty')
+      }
+    } else {
+      Column() {
+        MyComponent({ data: this.data })
+      }
+    }
+  }
+}
+
+private shouldShowEmpty(): boolean {
+  return !this.data;
+}
+```
+
+### 7. Map Initialization with Object Literals
+**NEVER use array literals with object literals in Map constructor.**
+
+❌ **WRONG:**
+```typescript
+private static readonly MAP: Map<string, Info> = new Map([
+  ['key1', { category: 'text', language: 'json' }],  // ERROR
+  ['key2', { category: 'image', language: 'none' }]  // ERROR
+]);
+```
+
+✅ **CORRECT - Use initialization method:**
+```typescript
+private static readonly MAP: Map<string, Info> = ContentTypeDetector.initMap();
+
+private static initMap(): Map<string, Info> {
+  const map: Map<string, Info> = new Map();
+  
+  const info1: Info = { category: 'text', language: 'json' };
+  map.set('key1', info1);
+  
+  const info2: Info = { category: 'image', language: 'none' };
+  map.set('key2', info2);
+  
+  return map;
+}
+```
+
+**Rules:**
+- Create a separate static initialization method
+- Each object must be explicitly typed and assigned to a variable
+- Use `map.set()` to add entries one by one
+
+### 8. Type Imports in Decorated Signatures
+**Use `import type` for types used only in decorated signatures.**
+
+❌ **WRONG:**
+```typescript
+import { ContextMenuItem, MenuPosition } from './ContextMenu';
+
+@ComponentV2
+export struct RequestItem {
+  @Param menuPosition: MenuPosition = { x: 0, y: 0 };  // ERROR
+}
+```
+
+✅ **CORRECT:**
+```typescript
+import { ContextMenu } from './ContextMenu';
+import type { ContextMenuItem, MenuPosition } from './ContextMenu';
+
+@ComponentV2
+export struct RequestItem {
+  @Param menuPosition: MenuPosition = { x: 0, y: 0 };  // OK
+}
+```
+
+**Rule:** When `isolatedModules` and `emitDecoratorMetadata` are enabled, types referenced in decorated signatures (@Param, @Local, etc.) must be imported with `import type`.
+
+## 📋 Complete Checklist
+
+Before committing code, verify:
+
+- [ ] No `any` or `unknown` types used
+- [ ] No inline object literals without explicit types
+- [ ] All interfaces properly declared
+- [ ] All function return types explicitly annotated
+- [ ] No property name conflicts with built-in attributes
+- [ ] All component attributes verified against documentation
+- [ ] All array operations use explicit types
+- [ ] All callback parameters have descriptive names
+- [ ] No callbacks passed through @BuilderParam
+- [ ] No direct @Builder method calls inside @Builder methods
+- [ ] Map initialization uses helper method, not array literals
+- [ ] Type imports use `import type` for decorated signatures
+- [ ] All object literals in @Param have explicit interface types
+
+## 🎯 Summary
+
+**When in doubt, be explicit!** ArkTS favors verbosity and type safety over brevity. Always:
+1. Declare interfaces for all object shapes
+2. Use helper methods for complex initialization
+3. Wrap UI components properly in @Builder methods
+4. Import types correctly for decorated properties
+5. Avoid inline operations - create explicit helper methods instead

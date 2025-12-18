@@ -19,6 +19,9 @@ export struct SidebarComponent {
   @Param onFolderCreate: () => void = () => {};
   @Param onRequestSelect: (requestId: string) => void = () => {};
   @Param onFolderToggle: (folderId: string) => void = () => {};
+  @Param onRequestRename: (requestId: string, newName: string) => void = () => {};
+  @Param onRequestDelete: (requestId: string) => void = () => {};
+  @Param onRequestDuplicate: (requestId: string) => void = () => {};
 
   @Local filterText: string = '';
   @Local expandedFolders: Set<string> = new Set();
@@ -126,6 +129,15 @@ export struct SidebarComponent {
           isSelected: item.getId() === this.selectedRequestId,
           onSelect: () => {
             this.onRequestSelect(item.getId());
+          },
+          onRename: (newName: string) => {
+            this.onRequestRename(item.getId(), newName);
+          },
+          onDelete: () => {
+            this.onRequestDelete(item.getId());
+          },
+          onDuplicate: () => {
+            this.onRequestDuplicate(item.getId());
           }
         })
       }
