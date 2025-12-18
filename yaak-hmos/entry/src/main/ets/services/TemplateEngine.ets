@@ -62,8 +62,14 @@ export class TemplateEngine {
     if (!functionMatch) return originalMatch;
 
     // Extract function name and arguments (no destructuring)
-    const functionName: string = functionMatch[1];
-    const argsStr: string = functionMatch[2];
+    const functionName: string = functionMatch[1] || '';
+    const argsStr: string = functionMatch[2] || '';
+    
+    if (!functionName) {
+      console.warn(`[TemplateEngine] Invalid function name in: ${expression}`);
+      return originalMatch;
+    }
+    
     const args = TemplateEngine.parseArguments(argsStr, variables);
 
     try {
@@ -131,6 +137,12 @@ export class TemplateEngine {
    * Resolve a single argument (could be a variable reference)
    */
   private static resolveArgument(arg: string, variables: Map<string, string>): string {
+    // Handle empty or invalid arguments
+    if (!arg || typeof arg !== 'string') {
+      console.warn(`[TemplateEngine] Invalid argument: ${arg}`);
+      return '';
+    }
+
     // Remove quotes if present
     if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
       return arg.slice(1, -1);
@@ -166,8 +178,10 @@ export class TemplateEngine {
    * Generates a random number between min and max
    */
   private static random(args: string[]): string {
-    const min = args.length > 0 ? parseInt(args[0]) : 0;
-    const max = args.length > 1 ? parseInt(args[1]) : 100;
+    const arg0: string | undefined = args[0];
+    const arg1: string | undefined = args[1];
+    const min = arg0 ? parseInt(arg0) : 0;
+    const max = arg1 ? parseInt(arg1) : 100;
 
     if (isNaN(min) || isNaN(max)) {
       return '0';
@@ -185,13 +199,17 @@ export class TemplateEngine {
     if (args.length === 0) return '';
 
     try {
-      const str = args[0];
+      const arg0: string | undefined = args[0];
+      const str: string = arg0 || '';
+      if (!str) return '';
+      
       const helper = new util.Base64Helper();
       const uint8Array = new util.TextEncoder().encodeInto(str);
       return helper.encodeToStringSync(uint8Array);
     } catch (error) {
       console.error(`Base64 encoding error: ${error}`);
-      return args[0];
+      const arg0: string | undefined = args[0];
+      return arg0 || '';
     }
   }
 
@@ -203,14 +221,18 @@ export class TemplateEngine {
     if (args.length === 0) return '';
 
     try {
-      const str = args[0];
+      const arg0: string | undefined = args[0];
+      const str: string = arg0 || '';
+      if (!str) return '';
+      
       // Note: HarmonyOS cryptoFramework is async, so we return a placeholder
       // In real implementation, this should be handled asynchronously
       // For now, return a simple hash
       return TemplateEngine.simpleHash(str);
     } catch (error) {
       console.error(`MD5 hashing error: ${error}`);
-      return args[0];
+      const arg0: string | undefined = args[0];
+      return arg0 || '';
     }
   }
 

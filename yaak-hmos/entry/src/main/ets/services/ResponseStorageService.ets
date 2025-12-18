@@ -22,47 +22,76 @@ export class ResponseStorageService {
 
   /**
    * Save response body to file
+   * Based on HarmonyOS documentation - using SYNC APIs consistently
    */
   static async saveResponseBody(
     responseId: string,
     body: string | ArrayBuffer
   ): Promise<string> {
     if (!ResponseStorageService.context) {
+      console.error('[ResponseStorageService] Service not initialized');
       throw new Error('ResponseStorageService not initialized');
     }
 
     const filesDir = ResponseStorageService.context.filesDir;
     const responseDir = `${filesDir}/${ResponseStorageService.RESPONSE_DIR}`;
+    
+    console.info(`[ResponseStorageService] filesDir: ${filesDir}`);
+    console.info(`[ResponseStorageService] responseDir: ${responseDir}`);
+    console.info(`[ResponseStorageService] responseId: ${responseId}`);
 
-    // Ensure directory exists
+    // Ensure directory exists using SYNC API (matching HarmonyOS documentation pattern)
     try {
-      await fs.access(responseDir);
+      if (!fs.accessSync(responseDir)) {
+        console.info(`[ResponseStorageService] Directory does not exist, creating: ${responseDir}`);
+        fs.mkdirSync(responseDir);
+        console.info(`[ResponseStorageService] Directory created successfully`);
+      } else {
+        console.info(`[ResponseStorageService] Directory exists: ${responseDir}`);
+      }
     } catch (error) {
-      // Directory doesn't exist, create it
-      await fs.mkdir(responseDir);
+      console.error(`[ResponseStorageService] Failed to check/create directory: ${JSON.stringify(error)}`);
+      throw new Error(`Failed to check/create directory: ${JSON.stringify(error)}`);
     }
 
-    const filePath = `${responseDir}/${responseId}.dat`;
+    // File path: use responseId directly without extension (matching Tauri)
+    const filePath = `${responseDir}/${responseId}`;
+    console.info(`[ResponseStorageService] Attempting to save to: ${filePath}`);
 
+    // Use correct OpenMode based on HarmonyOS documentation
+    // READ_WRITE | CREATE | TRUNC
+    let file: fs.File | null = null;
     try {
+      console.info(`[ResponseStorageService] Opening file with READ_WRITE | CREATE | TRUNC mode`);
+      file = fs.openSync(filePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+      console.info(`[ResponseStorageService] File opened successfully, fd: ${file.fd}`);
+      
       // Write body to file
       if (typeof body === 'string') {
-        const file = await fs.open(filePath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
-        await fs.write(file.fd, body);
-        await fs.close(file.fd);
+        console.info(`[ResponseStorageService] Writing string body (${body.length} chars)`);
+        fs.writeSync(file.fd, body);
       } else {
-        // ArrayBuffer
-        const file = await fs.open(filePath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
-        await fs.write(file.fd, body);
-        await fs.close(file.fd);
+        console.info(`[ResponseStorageService] Writing ArrayBuffer body (${body.byteLength} bytes)`);
+        fs.writeSync(file.fd, body);
       }
-
-      console.info(`Response body saved to: ${filePath}`);
+      
+      console.info(`[ResponseStorageService] Data written successfully`);
       return filePath;
     } catch (error) {
       const errorMsg = `Failed to save response body: ${JSON.stringify(error)}`;
-      console.error(errorMsg);
+      console.error(`[ResponseStorageService] ${errorMsg}`);
+      console.error(`[ResponseStorageService] Error details - filePath: ${filePath}, body type: ${typeof body}`);
       throw new Error(errorMsg);
+    } finally {
+      // Always close file descriptor, even if error occurs
+      if (file !== null) {
+        try {
+          fs.closeSync(file.fd);
+          console.info(`[ResponseStorageService] File closed successfully`);
+        } catch (closeError) {
+          console.error(`[ResponseStorageService] Failed to close file: ${JSON.stringify(closeError)}`);
+        }
+      }
     }
   }
 
@@ -70,23 +99,32 @@ export class ResponseStorageService {
    * Load response body from file
    */
   static async loadResponseBody(bodyPath: string): Promise<string> {
+    let file: fs.File | null = null;
     try {
       // Check if file exists
       await fs.access(bodyPath);
 
       // Read file content
-      const file = await fs.open(bodyPath, fs.OpenMode.READ_ONLY);
+      file = await fs.open(bodyPath, fs.OpenMode.READ_ONLY);
       const stat = await fs.stat(bodyPath);
       const buffer = new ArrayBuffer(stat.size);
       await fs.read(file.fd, buffer);
-      await fs.close(file.fd);
 
-      // Convert ArrayBuffer to string
-      const decoder = new util.TextDecoder('utf-8', { ignoreBOM: true });
-      return decoder.decodeWithStream(new Uint8Array(buffer), { stream: false });
+      // Convert ArrayBuffer to string using TextDecoder
+      const textDecoder = util.TextDecoder.create('utf-8', { ignoreBOM: true });
+      return textDecoder.decodeToString(new Uint8Array(buffer));
     } catch (error) {
-      console.error(`Failed to load response body from ${bodyPath}: ${JSON.stringify(error)}`);
+      console.error(`[ResponseStorageService] Failed to load response body from ${bodyPath}: ${JSON.stringify(error)}`);
       return '';
+    } finally {
+      // Always close file descriptor
+      if (file !== null) {
+        try {
+          await fs.close(file.fd);
+        } catch (closeError) {
+          console.error(`[ResponseStorageService] Failed to close file: ${JSON.stringify(closeError)}`);
+        }
+      }
     }
   }
 

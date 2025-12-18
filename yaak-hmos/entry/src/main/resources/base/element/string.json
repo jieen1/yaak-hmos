@@ -275,6 +275,10 @@
     {
       "name": "EntryAbility_label",
       "value": ""
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "Required to send HTTP requests to APIs"
     }
   ]
 }

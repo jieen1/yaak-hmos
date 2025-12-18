@@ -18,7 +18,7 @@ export struct RequestEditorComponent {
   @Param request: HttpRequest = new HttpRequest();
   @Param onExecute: () => void = () => {};
   @Param isLoading: boolean = false;
-  @Param onChange: (request: HttpRequest) => void = () => {};
+  @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
 
   @Local activeTab: number = 0;
 

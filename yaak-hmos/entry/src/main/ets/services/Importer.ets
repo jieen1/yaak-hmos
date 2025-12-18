@@ -8,7 +8,10 @@ export class Importer {
    * Very simplified regex parser for demonstration.
    */
   public static importCurl(curlCommand: string, workspaceId: string): HttpRequest | null {
-    if (!curlCommand.trim().startsWith('curl')) return null;
+    if (!curlCommand || typeof curlCommand !== 'string') return null;
+    
+    const trimmedCommand = curlCommand.trim();
+    if (!trimmedCommand || !trimmedCommand.startsWith('curl')) return null;
 
     const req = new HttpRequest();
     req.id = UUID.randomUUID();
@@ -23,9 +26,12 @@ export class Importer {
     // For now, let's just create a dummy request to show structure
     
     // Attempt to find URL
-    const urlParts = curlCommand.split(' ').filter(p => p.startsWith('http'));
+    const urlParts = curlCommand.split(' ').filter((p: string) => p && typeof p === 'string' && p.startsWith('http'));
     if (urlParts.length > 0) {
-      req.url = urlParts[0].replace(/['"]/g, '');
+      const firstUrl: string | undefined = urlParts[0];
+      if (firstUrl) {
+        req.url = firstUrl.replace(/['"]/g, '');
+      }
     }
 
     // Attempt to find method

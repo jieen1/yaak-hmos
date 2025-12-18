@@ -73,8 +73,18 @@ export class RequestExecutor {
       };
 
       // 9. Execute request
-      console.info(`Executing ${request.method} ${resolvedUrl}`);
+      console.info(`[RequestExecutor] Executing ${request.method} ${resolvedUrl}`);
+      console.info(`[RequestExecutor] Headers:`, JSON.stringify(finalHeaders));
+      console.info(`[RequestExecutor] Request options:`, JSON.stringify({
+        method: options.method,
+        expectDataType: options.expectDataType,
+        connectTimeout: options.connectTimeout,
+        readTimeout: options.readTimeout,
+        hasBody: !!options.extraData
+      }));
+      
       const httpResponse = await httpClient.request(resolvedUrl, options);
+      console.info(`[RequestExecutor] HTTP response received, code: ${httpResponse.responseCode}`);
 
       // 10. Calculate elapsed time
       const elapsedTime = Date.now() - startTime;
@@ -85,6 +95,7 @@ export class RequestExecutor {
 
       // 12. Create response object
       const response = new HttpResponse();
+      response.id = RequestExecutor.generateResponseId(); // Generate ID first
       response.request_id = request.id;
       response.status_code = httpResponse.responseCode;
       response.status_text = RequestExecutor.getStatusText(httpResponse.responseCode);
@@ -97,28 +108,32 @@ export class RequestExecutor {
         ? httpResponse.result
         : JSON.stringify(httpResponse.result);
       response.size = bodyContent.length;
+      console.info(`[RequestExecutor] Response body size: ${response.size} bytes`);
 
       // 14. Save response body to file
       response.body_path = await ResponseStorageService.saveResponseBody(
-        response.id || RequestExecutor.generateResponseId(),
+        response.id,
         bodyContent
       );
+      console.info(`[RequestExecutor] Response body saved to: ${response.body_path}`);
 
       // 15. Save response to database
       await RequestExecutor.responseRepository.createResponse(response);
+      console.info(`[RequestExecutor] Response saved to database, ID: ${response.id}`);
 
-      console.info(`Request completed: ${response.status_code} in ${elapsedTime}ms`);
+      console.info(`[RequestExecutor] Request completed: ${response.status_code} in ${elapsedTime}ms`);
 
       return {
         response,
         bodyContent
       };
     } catch (error) {
-      console.error(`Request execution failed: ${JSON.stringify(error)}`);
+      console.error(`[RequestExecutor] Request execution failed:`, error);
 
       // Create error response
       const elapsedTime = Date.now() - startTime;
       const response = new HttpResponse();
+      response.id = RequestExecutor.generateResponseId(); // Generate ID first
       response.request_id = request.id;
       response.status_code = 0;
       response.status_text = 'Error';
@@ -129,7 +144,7 @@ export class RequestExecutor {
 
       const errorMessage = `Request failed: ${JSON.stringify(error)}`;
       response.body_path = await ResponseStorageService.saveResponseBody(
-        response.id || RequestExecutor.generateResponseId(),
+        response.id,
         errorMessage
       );
 

@@ -65,7 +65,7 @@ struct Index {
 
   // Persistent UI Settings
   @Local sidebarWidth: number = 250;
-  @Local responseWidth: number = 350;
+  @Local responseWidth: number = 250;
   @Local responseViewerHidden: boolean = true;
 
   // Context
@@ -82,6 +82,7 @@ struct Index {
   private responseRepo: ResponseRepository = new ResponseRepository();
 
   async aboutToAppear(): Promise<void> {
+    console.info('[Index] Starting application initialization');
     try {
       // Initialize preferences store
       await this.initPreferences();
@@ -90,17 +91,22 @@ struct Index {
       await this.loadPersistentSettings();
 
       // Initialize database
+      console.info('[Index] Initializing database');
       await DatabaseManager.getInstance().init(this.context);
       await DatabaseManager.getInstance().waitForInit();
+      console.info('[Index] Database initialized successfully');
 
       // Initialize ResponseStorageService
       ResponseStorageService.init(this.context);
+      console.info('[Index] ResponseStorageService initialized');
 
       // Load workspaces
       await this.loadWorkspaces();
+      console.info(`[Index] Loaded ${this.workspaces.length} workspaces`);
 
       // Create default workspace if none exist
       if (this.workspaces.length === 0) {
+        console.info('[Index] Creating default workspace');
         await this.createDefaultWorkspace();
       }
 
@@ -108,10 +114,13 @@ struct Index {
       if (this.workspaces.length > 0) {
         const firstWorkspace: Workspace | undefined = this.workspaces[0];
         this.selectedWorkspace = firstWorkspace || null;
+        console.info(`[Index] Selected workspace: ${this.selectedWorkspace?.name}`);
         await this.loadWorkspaceData();
       }
+      
+      console.info('[Index] Application initialization completed');
     } catch (error) {
-      console.error('Initialization failed:', JSON.stringify(error));
+      console.error('[Index] Initialization failed:', error);
     } finally {
       this.isLoading = false;
     }
@@ -139,7 +148,7 @@ struct Index {
 
       const savedResponseViewerHidden: boolean = await this.preferencesStore.get(
         RESPONSE_VIEWER_HIDDEN_KEY,
-        true
+        false
       ) as boolean;
       this.responseViewerHidden = savedResponseViewerHidden;
 
@@ -575,8 +584,12 @@ struct Index {
 
   // Request Execution
   async executeRequest(): Promise<void> {
-    if (!this.selectedRequest) return;
+    if (!this.selectedRequest) {
+      console.warn('[Index] No request selected');
+      return;
+    }
 
+    console.info(`[Index] Starting request execution: ${this.selectedRequest.method} ${this.selectedRequest.url}`);
     this.isRequestLoading = true;
     this.responseBody = '';
     this.selectedResponse = null;
@@ -595,6 +608,8 @@ struct Index {
         this.selectedWorkspace
       );
 
+      console.info(`[Index] Request completed successfully, status: ${result.response.status_code}`);
+
       // Update UI with response
       this.selectedResponse = result.response;
       this.responseBody = result.bodyContent;
@@ -606,7 +621,7 @@ struct Index {
       }
 
     } catch (error) {
-      console.error('Request execution failed:', JSON.stringify(error));
+      console.error(`[Index] Request execution failed:`, error);
       // RequestExecutor already creates error response, but we need to handle UI
       this.responseBody = `Error: ${JSON.stringify(error)}`;
       
@@ -641,11 +656,16 @@ struct Index {
     this.responseBody = '';
   }
 
-  handleRequestChange(request: HttpRequest): void {
+  async handleRequestChange(request: HttpRequest): Promise<void> {
     if (this.selectedRequest && request.id === this.selectedRequest.id) {
       this.selectedRequest = request;
       // Save changes to database
-      this.requestRepo.updateRequest(request);
+      try {
+        await this.requestRepo.updateRequest(request);
+        console.info(`[Index] Request updated: ${request.id}`);
+      } catch (error) {
+        console.error(`[Index] Failed to update request:`, error);
+      }
     }
   }
 
@@ -944,7 +964,7 @@ struct Index {
     this.executeRequest();
   }
 
-  handleRequestChangeCallback = (req: HttpRequest): void => {
-    this.handleRequestChange(req);
+  handleRequestChangeCallback = async (req: HttpRequest): Promise<void> => {
+    await this.handleRequestChange(req);
   }
 }

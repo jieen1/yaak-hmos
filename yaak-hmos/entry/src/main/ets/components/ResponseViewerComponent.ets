@@ -1,4 +1,4 @@
-import { HttpResponse, ResponseHeader } from '../model';
+import { HttpResponse } from '../model';
 import { ResponseHeadersTab } from './ResponseHeadersTab';
 import { ResponseInfoTab } from './ResponseInfoTab';
 
