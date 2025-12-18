@@ -14,11 +14,13 @@ export struct WorkspaceHeader {
   @Param activeWorkspace: Workspace | null = null;
   @Param environments: Environment[] = [];
   @Param activeEnvironment: Environment | null = null;
+  @Param responseViewerHidden: boolean = true;
   @Param onWorkspaceSelect: (workspace: Workspace) => void = () => {};
   @Param onEnvironmentSelect: (environment: Environment | null) => void = () => {};
   @Param onOpenSettings: () => void = () => {};
   @Param onManageWorkspaces: () => void = () => {};
   @Param onManageEnvironments: () => void = () => {};
+  @Param onToggleResponseViewer: () => void = () => {};
 
   build() {
     Row() {
@@ -84,6 +86,18 @@ export struct WorkspaceHeader {
       }
 
       Blank()
+
+      // Response Viewer Toggle Button
+      ThemedButton({
+        symbolIcon: this.responseViewerHidden ? $r('sys.symbol.open_sidebar') : $r('sys.symbol.close_sidebar'),
+        onButtonClick: () => {
+          this.onToggleResponseViewer();
+        },
+        buttonType: 'ghost',
+        buttonSize: 'md',
+        isCircle: true
+      })
+        .margin({ right: $r('app.float.spacing_sm') })
 
       // Settings Button
       ThemedButton({

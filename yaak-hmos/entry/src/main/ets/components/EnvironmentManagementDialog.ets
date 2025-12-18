@@ -101,26 +101,33 @@ export struct EnvironmentManagementDialog {
       .padding($r('app.float.spacing_md'))
 
       // Environment List
-      Scroll() {
+      if (this.environments.length === 0) {
         Column() {
-          if (this.environments.length === 0) {
-            Text('No environments yet')
-              .fontSize($r('app.float.font_size_md'))
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .padding($r('app.float.spacing_2xl'))
-          } else {
-            ForEach(this.environments, (environment: Environment) => {
+          Text('No environments yet')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.text_secondary'))
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .padding($r('app.float.spacing_2xl'))
+        }
+        .layoutWeight(1)
+        .width('100%')
+      } else {
+        List() {
+          ForEach(this.environments, (environment: Environment) => {
+            ListItem() {
               this.buildEnvironmentItem(environment);
-            }, (environment: Environment) => environment.id)
-          }
+            }
+          }, (environment: Environment) => environment.id)
         }
         .width('100%')
+        .layoutWeight(1)
+        .divider({
+          strokeWidth: 1,
+          color: $r('app.color.divider')
+        })
+        .scrollBar(BarState.Auto)
       }
-      .layoutWeight(1)
-      .width('100%')
-      .scrollBar(BarState.Auto)
     }
     .width('100%')
     .height('100%')
@@ -142,51 +149,79 @@ export struct EnvironmentManagementDialog {
           .width('100%')
           .margin({ top: $r('app.float.spacing_xs') })
       }
-      .flexGrow(1)
+      .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
 
       Row() {
-        Button('Edit')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.primary'))
-          .backgroundColor(Color.Transparent)
-          .padding($r('app.float.spacing_sm'))
-          .onClick(() => {
+        ThemedButton({
+          text: 'Edit',
+          onButtonClick: () => {
             this.editingEnvironment = environment;
             this.newEnvironmentName = environment.name;
             this.newEnvironmentVariables = [...environment.variables];
-          })
+          },
+          buttonType: 'ghost',
+          buttonSize: 'sm'
+        })
+          .margin({ right: $r('app.float.spacing_xs') })
 
-        Button('Delete')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.danger'))
-          .backgroundColor(Color.Transparent)
-          .padding($r('app.float.spacing_sm'))
-          .onClick(() => {
+        ThemedButton({
+          text: 'Delete',
+          onButtonClick: () => {
             this.handleDelete(environment.id);
-          })
+          },
+          buttonType: 'ghost',
+          buttonSize: 'sm'
+        })
       }
     }
     .width('100%')
-    .padding($r('app.float.spacing_md'))
-    .backgroundColor($r('app.color.surface'))
-    .borderRadius($r('app.float.border_radius_md'))
-    .margin({ bottom: $r('app.float.spacing_sm') })
+    .padding({
+      left: $r('app.float.spacing_md'),
+      right: $r('app.float.spacing_md'),
+      top: $r('app.float.spacing_md'),
+      bottom: $r('app.float.spacing_md')
+    })
+    .alignItems(VerticalAlign.Center)
+    .border({
+      width: { bottom: 1 },
+      color: $r('app.color.divider')
+    })
   }
 
   @Builder
   buildEnvironmentForm() {
     Column() {
-      // Form Header
-      Text(this.editingEnvironment ? 'Edit Environment' : 'Create Environment')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Medium)
-        .width('100%')
-        .padding($r('app.float.spacing_md'))
+      // Form Header with back button
+      Row() {
+        ThemedButton({
+          symbolIcon: $r("sys.symbol.chevron_left"),
+          onButtonClick: () => {
+            this.showCreateForm = false;
+            this.editingEnvironment = null;
+          },
+          buttonType: 'ghost',
+          buttonSize: 'md'
+        })
+          .margin({ right: $r('app.float.spacing_sm') })
+
+        Text(this.editingEnvironment ? 'Edit Environment' : 'Create Environment')
+          .fontSize($r('app.float.font_size_lg'))
+          .fontColor($r('app.color.text_primary'))
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .padding($r('app.float.spacing_md'))
+      .alignItems(VerticalAlign.Center)
+      .border({
+        width: { bottom: 1 },
+        color: $r('app.color.divider')
+      })
 
       // Form Fields
-      Scroll() {
+      Column() {
+        // Name Field
         Column() {
           Text('Name')
             .fontSize($r('app.float.font_size_sm'))
@@ -199,78 +234,90 @@ export struct EnvironmentManagementDialog {
             placeholder: 'Enter environment name',
             onValueChange: (value: string) => {
               this.newEnvironmentName = value;
-            }
+            },
+            inputSize: 'md'
           })
-            .margin({ bottom: $r('app.float.spacing_lg') })
-
-          // Variables Section
-          Row() {
-            Text('Variables')
-              .fontSize($r('app.float.font_size_md'))
-              .fontColor($r('app.color.text_primary'))
-              .fontWeight(FontWeight.Medium)
-              .flexGrow(1)
-
-            Button('+ Add')
-              .fontSize($r('app.float.font_size_sm'))
-              .fontColor($r('app.color.button_text'))
-              .backgroundColor($r('app.color.primary'))
-              .padding({
-                left: $r('app.float.spacing_md'),
-                right: $r('app.float.spacing_md'),
-                top: $r('app.float.spacing_xs'),
-                bottom: $r('app.float.spacing_xs')
-              })
-              .onClick(() => {
-                this.addVariable();
-              })
-          }
-          .width('100%')
-          .margin({ bottom: $r('app.float.spacing_md') })
-
-          // Variables List
-          if (this.newEnvironmentVariables.length === 0) {
-            Text('No variables yet')
-              .fontSize($r('app.float.font_size_sm'))
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .padding($r('app.float.spacing_lg'))
-          } else {
-            ForEach(this.newEnvironmentVariables, (variable: EnvironmentVariable, index: number) => {
-              this.buildVariableRow(variable, index);
-            }, (variable: EnvironmentVariable) => variable.id)
-          }
         }
         .width('100%')
-        .padding($r('app.float.spacing_md'))
+        .padding($r('app.float.spacing_lg'))
+
+        // Variables Section Header
+        Row() {
+          Text('Variables')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.text_primary'))
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+
+          ThemedButton({
+            text: 'Add',
+            onButtonClick: () => {
+              this.addVariable();
+            },
+            buttonSize: 'sm'
+          })
+        }
+        .width('100%')
+        .padding({
+          left: $r('app.float.spacing_lg'),
+          right: $r('app.float.spacing_lg'),
+          bottom: $r('app.float.spacing_sm')
+        })
+        .alignItems(VerticalAlign.Center)
+
+        // Variables List
+        if (this.newEnvironmentVariables.length === 0) {
+          Text('No variables yet')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.text_secondary'))
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .padding($r('app.float.spacing_2xl'))
+        } else {
+          List() {
+            ForEach(this.newEnvironmentVariables, (variable: EnvironmentVariable, index: number) => {
+              ListItem() {
+                this.buildVariableRow(variable, index);
+              }
+            }, (variable: EnvironmentVariable) => variable.id)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .divider({
+            strokeWidth: 1,
+            color: $r('app.color.divider')
+          })
+        }
       }
       .layoutWeight(1)
       .width('100%')
-      .scrollBar(BarState.Auto)
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Start)
 
       // Form Actions
       Row() {
-        Button('Cancel')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_primary'))
-          .backgroundColor($r('app.color.surface'))
-          .flexGrow(1)
-          .margin({ right: $r('app.float.spacing_sm') })
-          .onClick(() => {
+        ThemedButton({
+          text: 'Cancel',
+          onButtonClick: () => {
             this.showCreateForm = false;
             this.editingEnvironment = null;
-          })
+          },
+          buttonType: 'secondary',
+          buttonSize: 'md'
+        })
+          .layoutWeight(1)
+          .margin({ right: $r('app.float.spacing_sm') })
 
-        Button(this.editingEnvironment ? 'Update' : 'Create')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.button_text'))
-          .backgroundColor($r('app.color.primary'))
-          .flexGrow(1)
-          .margin({ left: $r('app.float.spacing_sm') })
-          .onClick(() => {
+        ThemedButton({
+          text: this.editingEnvironment ? 'Update' : 'Create',
+          onButtonClick: () => {
             this.handleSave();
-          })
+          },
+          buttonType: 'primary',
+          buttonSize: 'md'
+        })
+          .layoutWeight(1)
+          .margin({ left: $r('app.float.spacing_sm') })
       }
       .width('100%')
       .padding($r('app.float.spacing_md'))
@@ -292,48 +339,55 @@ export struct EnvironmentManagementDialog {
         .onChange((value: boolean) => {
           variable.enabled = value;
         })
+        .width(24)
+        .height(24)
+        .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Name input
+      // Name input - fixed width
       ThemedTextInput({
         value: variable.name,
         placeholder: 'Variable Name',
         onValueChange: (value: string) => {
           variable.name = value;
         },
-        inputSize: 'sm'
+        inputSize: 'md'
       })
-        .flexGrow(1)
+        .width(200)
+        .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      // Value input
+      // Value input - takes remaining space
       ThemedTextInput({
         value: variable.value,
         placeholder: 'Variable Value',
         onValueChange: (value: string) => {
           variable.value = value;
         },
-        inputSize: 'sm'
+        inputSize: 'md'
       })
-        .flexGrow(1)
+        .layoutWeight(1)
         .margin({ right: $r('app.float.spacing_sm') })
 
       // Delete button
-      Button('×')
-        .fontSize($r('app.float.font_size_2xl'))
-        .fontColor($r('app.color.danger'))
-        .backgroundColor(Color.Transparent)
-        .width(32)
-        .height(32)
-        .onClick(() => {
-          this.deleteVariable(index);
-        })
+      ThemedButton({
+        symbolIcon: $r("sys.symbol.xmark"),
+        onButtonClick: () => this.deleteVariable(index),
+        buttonType: 'ghost'
+      })
     }
     .width('100%')
-    .padding($r('app.float.spacing_sm'))
-    .margin({ bottom: $r('app.float.spacing_xs') })
-    .backgroundColor($r('app.color.surface_highlight'))
-    .borderRadius($r('app.float.border_radius_sm'))
+    .padding({
+      left: $r('app.float.spacing_md'),
+      right: $r('app.float.spacing_md'),
+      top: $r('app.float.spacing_sm'),
+      bottom: $r('app.float.spacing_sm')
+    })
+    .alignItems(VerticalAlign.Center)
+    .border({
+      width: { bottom: 1 },
+      color: $r('app.color.divider')
+    })
   }
 
   private addVariable(): void {

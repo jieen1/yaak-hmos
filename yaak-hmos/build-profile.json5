@@ -1,6 +1,19 @@
 {
   "app": {
     "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\jieen\\.ohos\\config\\default_yaak-hmos_GTWpzjK6r0kCwwdDuGnTGGhzEgpNrgJtGvA9dQcaIk8=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B56035CB1D46E42BFDB4EB7E4D8CCAEFBBD391577D3B242152F45167ED43234E2F919F697DD23A9",
+          "profile": "C:\\Users\\jieen\\.ohos\\config\\default_yaak-hmos_GTWpzjK6r0kCwwdDuGnTGGhzEgpNrgJtGvA9dQcaIk8=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\jieen\\.ohos\\config\\default_yaak-hmos_GTWpzjK6r0kCwwdDuGnTGGhzEgpNrgJtGvA9dQcaIk8=.p12",
+          "storePassword": "0000001BB86B3938FA6A0A61849CC38FF3B47FBD7C9019848A10B078C79E15827BFBAFD5C0FC03FB6FF0A3"
+        }
+      }
     ],
     "products": [
       {
@@ -24,7 +37,7 @@
       {
         "name": "release"
       }
-    ]
+    ],
   },
   "modules": [
     {

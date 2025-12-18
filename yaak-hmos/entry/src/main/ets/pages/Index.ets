@@ -27,6 +27,13 @@ import { SettingsDialog } from '../components/SettingsDialog';
 import { WorkspaceManagementDialog } from '../components/WorkspaceManagementDialog';
 import { EnvironmentManagementDialog } from '../components/EnvironmentManagementDialog';
 import common from '@ohos.app.ability.common';
+import preferences from '@ohos.data.preferences';
+
+// Persistent storage keys
+const SIDEBAR_WIDTH_KEY = 'yaak_sidebar_width';
+const RESPONSE_WIDTH_KEY = 'yaak_response_width';
+const RESPONSE_VIEWER_HIDDEN_KEY = 'yaak_response_viewer_hidden';
+const PREFERENCES_NAME = 'yaak_preferences';
 
 @Entry
 @ComponentV2
@@ -56,8 +63,16 @@ struct Index {
   @Local showWorkspaceManagementDialog: boolean = false;
   @Local showEnvironmentManagementDialog: boolean = false;
 
+  // Persistent UI Settings
+  @Local sidebarWidth: number = 250;
+  @Local responseWidth: number = 350;
+  @Local responseViewerHidden: boolean = true;
+
   // Context
-  private context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+  private context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+
+  // Preferences for persistent storage
+  private preferencesStore: preferences.Preferences | null = null;
 
   // Repository Instances
   private workspaceRepo: WorkspaceRepository = new WorkspaceRepository();
@@ -68,6 +83,12 @@ struct Index {
 
   async aboutToAppear(): Promise<void> {
     try {
+      // Initialize preferences store
+      await this.initPreferences();
+
+      // Load persistent settings
+      await this.loadPersistentSettings();
+
       // Initialize database
       await DatabaseManager.getInstance().init(this.context);
       await DatabaseManager.getInstance().waitForInit();
@@ -93,6 +114,77 @@ struct Index {
       console.error('Initialization failed:', JSON.stringify(error));
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  // Initialize preferences store
+  async initPreferences(): Promise<void> {
+    try {
+      this.preferencesStore = await preferences.getPreferences(this.context, PREFERENCES_NAME);
+    } catch (error) {
+      console.error('Failed to initialize preferences:', JSON.stringify(error));
+    }
+  }
+
+  // Load persistent settings from preferences
+  async loadPersistentSettings(): Promise<void> {
+    if (!this.preferencesStore) return;
+
+    try {
+      const savedSidebarWidth: number = await this.preferencesStore.get(SIDEBAR_WIDTH_KEY, 250) as number;
+      this.sidebarWidth = savedSidebarWidth;
+
+      const savedResponseWidth: number = await this.preferencesStore.get(RESPONSE_WIDTH_KEY, 350) as number;
+      this.responseWidth = savedResponseWidth;
+
+      const savedResponseViewerHidden: boolean = await this.preferencesStore.get(
+        RESPONSE_VIEWER_HIDDEN_KEY,
+        true
+      ) as boolean;
+      this.responseViewerHidden = savedResponseViewerHidden;
+
+      console.info('Loaded persistent settings:', {
+        sidebarWidth: this.sidebarWidth,
+        responseWidth: this.responseWidth,
+        responseViewerHidden: this.responseViewerHidden
+      });
+    } catch (error) {
+      console.error('Failed to load persistent settings:', JSON.stringify(error));
+    }
+  }
+
+  // Save persistent settings to preferences
+  async saveSidebarWidth(width: number): Promise<void> {
+    if (!this.preferencesStore) return;
+
+    try {
+      await this.preferencesStore.put(SIDEBAR_WIDTH_KEY, width);
+      await this.preferencesStore.flush();
+    } catch (error) {
+      console.error('Failed to save sidebar width:', JSON.stringify(error));
+    }
+  }
+
+  async saveResponseWidth(width: number): Promise<void> {
+    if (!this.preferencesStore) return;
+
+    try {
+      await this.preferencesStore.put(RESPONSE_WIDTH_KEY, width);
+      await this.preferencesStore.flush();
+    } catch (error) {
+      console.error('Failed to save response width:', JSON.stringify(error));
+    }
+  }
+
+  async saveResponseViewerHidden(hidden: boolean): Promise<void> {
+    if (!this.preferencesStore) return;
+
+    try {
+      await this.preferencesStore.put(RESPONSE_VIEWER_HIDDEN_KEY, hidden);
+      await this.preferencesStore.flush();
+      console.info('Saved response viewer hidden:', hidden);
+    } catch (error) {
+      console.error('Failed to save response viewer hidden:', JSON.stringify(error));
     }
   }
 
@@ -489,8 +581,6 @@ struct Index {
     this.responseBody = '';
     this.selectedResponse = null;
 
-    const startTime: number = Date.now();
-
     try {
       // Merge environment variables
       const envs: Environment[] = this.selectedEnvironment ? [this.selectedEnvironment] : [];
@@ -508,11 +598,23 @@ struct Index {
       // Update UI with response
       this.selectedResponse = result.response;
       this.responseBody = result.bodyContent;
+      
+      // Auto-open response viewer when response is received
+      if (this.responseViewerHidden) {
+        this.responseViewerHidden = false;
+        this.saveResponseViewerHidden(false);
+      }
 
     } catch (error) {
       console.error('Request execution failed:', JSON.stringify(error));
       // RequestExecutor already creates error response, but we need to handle UI
       this.responseBody = `Error: ${JSON.stringify(error)}`;
+      
+      // Auto-open response viewer even on error
+      if (this.responseViewerHidden) {
+        this.responseViewerHidden = false;
+        this.saveResponseViewerHidden(false);
+      }
     } finally {
       this.isRequestLoading = false;
     }
@@ -555,6 +657,7 @@ struct Index {
         activeWorkspace: this.selectedWorkspace,
         environments: this.environments,
         activeEnvironment: this.selectedEnvironment,
+        responseViewerHidden: this.responseViewerHidden,
         onWorkspaceSelect: (ws: Workspace) => {
           this.handleWorkspaceSelect(ws);
         },
@@ -569,6 +672,11 @@ struct Index {
         },
         onManageEnvironments: () => {
           this.showEnvironmentManagementDialog = true;
+        },
+        onToggleResponseViewer: () => {
+          this.responseViewerHidden = !this.responseViewerHidden;
+          // Save to persistent storage
+          this.saveResponseViewerHidden(this.responseViewerHidden);
         }
       })
 
@@ -660,12 +768,10 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
   }
 
-  @Local sidebarWidth: number = 250;
   @Local isSidebarDragging: boolean = false;
   @Local sidebarDragStartX: number = 0;
   @Local sidebarDragStartWidth: number = 0;
 
-  @Local responseWidth: number = 350;
   @Local isResponseDragging: boolean = false;
   @Local responseDragStartX: number = 0;
   @Local responseDragStartWidth: number = 0;
@@ -725,8 +831,8 @@ struct Index {
             })
             .onActionEnd(() => {
               this.isSidebarDragging = false;
-              const storageKey: string = `sidebar_width_${this.selectedWorkspace?.id || 'default'}`;
-              AppStorage.setOrCreate(storageKey, this.sidebarWidth);
+              // Save to persistent storage
+              this.saveSidebarWidth(this.sidebarWidth);
             })
         )
       }
@@ -751,58 +857,61 @@ struct Index {
       .height('100%')
       .backgroundColor($r('app.color.background'))
 
-      // Resize Handle for Response
-      Column() {
-        Column()
-          .width(2)
-          .height('100%')
-          .backgroundColor(this.isResponseDragging ? $r('app.color.primary') : $r('app.color.divider'))
-      }
-      .width(8)
-      .height('100%')
-      .justifyContent(FlexAlign.Center)
-      .backgroundColor(Color.Transparent)
-      .gesture(
-        PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
-          .onActionStart((event: GestureEvent) => {
-            this.isResponseDragging = true;
-            this.responseDragStartX = event.fingerList[0].globalX;
-            this.responseDragStartWidth = this.responseWidth;
-          })
-          .onActionUpdate((event: GestureEvent) => {
-            if (this.isResponseDragging) {
-              const currentX: number = event.fingerList[0].globalX;
-              const deltaX: number = this.responseDragStartX - currentX;
-              let newWidth: number = this.responseDragStartWidth + deltaX;
+      // Response Viewer (conditionally rendered)
+      if (!this.responseViewerHidden) {
+        // Resize Handle for Response
+        Column() {
+          Column()
+            .width(2)
+            .height('100%')
+            .backgroundColor(this.isResponseDragging ? $r('app.color.primary') : $r('app.color.divider'))
+        }
+        .width(8)
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(Color.Transparent)
+        .gesture(
+          PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
+            .onActionStart((event: GestureEvent) => {
+              this.isResponseDragging = true;
+              this.responseDragStartX = event.fingerList[0].globalX;
+              this.responseDragStartWidth = this.responseWidth;
+            })
+            .onActionUpdate((event: GestureEvent) => {
+              if (this.isResponseDragging) {
+                const currentX: number = event.fingerList[0].globalX;
+                const deltaX: number = this.responseDragStartX - currentX;
+                let newWidth: number = this.responseDragStartWidth + deltaX;
 
-              // Apply constraints
-              if (newWidth < 300) {
-                newWidth = 300;
-              } else if (newWidth > 800) {
-                newWidth = 800;
+                // Apply constraints
+                if (newWidth < 300) {
+                  newWidth = 300;
+                } else if (newWidth > 800) {
+                  newWidth = 800;
+                }
+
+                this.responseWidth = newWidth;
               }
+            })
+            .onActionEnd(() => {
+              this.isResponseDragging = false;
+              // Save to persistent storage
+              this.saveResponseWidth(this.responseWidth);
+            })
+        )
 
-              this.responseWidth = newWidth;
-            }
+        // Response Viewer
+        Column() {
+          ResponseViewerComponent({
+            response: this.selectedResponse,
+            responseBody: this.responseBody,
+            isLoading: this.isRequestLoading
           })
-          .onActionEnd(() => {
-            this.isResponseDragging = false;
-            const storageKey: string = `response_width_${this.selectedWorkspace?.id || 'default'}`;
-            AppStorage.setOrCreate(storageKey, this.responseWidth);
-          })
-      )
-
-      // Response Viewer
-      Column() {
-        ResponseViewerComponent({
-          response: this.selectedResponse,
-          responseBody: this.responseBody,
-          isLoading: this.isRequestLoading
-        })
+        }
+        .width(this.responseWidth)
+        .height('100%')
+        .backgroundColor($r('app.color.background'))
       }
-      .width(this.responseWidth)
-      .height('100%')
-      .backgroundColor($r('app.color.background'))
     }
     .width('100%')
     .layoutWeight(1)

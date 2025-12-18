@@ -100,26 +100,33 @@ export struct WorkspaceManagementDialog {
       .padding($r('app.float.spacing_md'))
 
       // Workspace List
-      Scroll() {
+      if (this.workspaces.length === 0) {
         Column() {
-          if (this.workspaces.length === 0) {
-            Text('No workspaces yet')
-              .fontSize($r('app.float.font_size_md'))
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .padding($r('app.float.spacing_2xl'))
-          } else {
-            ForEach(this.workspaces, (workspace: Workspace) => {
+          Text('No workspaces yet')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.text_secondary'))
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .padding($r('app.float.spacing_2xl'))
+        }
+        .layoutWeight(1)
+        .width('100%')
+      } else {
+        List() {
+          ForEach(this.workspaces, (workspace: Workspace) => {
+            ListItem() {
               this.buildWorkspaceItem(workspace);
-            }, (workspace: Workspace) => workspace.id)
-          }
+            }
+          }, (workspace: Workspace) => workspace.id)
         }
         .width('100%')
+        .layoutWeight(1)
+        .divider({
+          strokeWidth: 1,
+          color: $r('app.color.divider')
+        })
+        .scrollBar(BarState.Auto)
       }
-      .layoutWeight(1)
-      .width('100%')
-      .scrollBar(BarState.Auto)
     }
     .width('100%')
     .height('100%')
@@ -143,110 +150,152 @@ export struct WorkspaceManagementDialog {
             .margin({ top: $r('app.float.spacing_xs') })
         }
       }
-      .flexGrow(1)
+      .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
 
       Row() {
-        Button('Edit')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.primary'))
-          .backgroundColor(Color.Transparent)
-          .padding($r('app.float.spacing_sm'))
-          .onClick(() => {
+        ThemedButton({
+          text: 'Edit',
+          onButtonClick: () => {
             this.editingWorkspace = workspace;
             this.newWorkspaceName = workspace.name;
             this.newWorkspaceDescription = workspace.description;
-          })
+          },
+          buttonType: 'ghost',
+          buttonSize: 'sm'
+        })
+          .margin({ right: $r('app.float.spacing_xs') })
 
-        Button('Delete')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.danger'))
-          .backgroundColor(Color.Transparent)
-          .padding($r('app.float.spacing_sm'))
-          .onClick(() => {
+        ThemedButton({
+          text: 'Delete',
+          onButtonClick: () => {
             this.handleDelete(workspace.id);
-          })
+          },
+          buttonType: 'ghost',
+          buttonSize: 'sm'
+        })
       }
     }
     .width('100%')
-    .padding($r('app.float.spacing_md'))
-    .backgroundColor($r('app.color.surface'))
-    .borderRadius($r('app.float.border_radius_md'))
-    .margin({ bottom: $r('app.float.spacing_sm') })
+    .padding({
+      left: $r('app.float.spacing_md'),
+      right: $r('app.float.spacing_md'),
+      top: $r('app.float.spacing_md'),
+      bottom: $r('app.float.spacing_md')
+    })
+    .alignItems(VerticalAlign.Center)
+    .border({
+      width: { bottom: 1 },
+      color: $r('app.color.divider')
+    })
   }
 
   @Builder
   buildWorkspaceForm() {
     Column() {
-      // Form Header
-      Text(this.editingWorkspace ? 'Edit Workspace' : 'Create Workspace')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Medium)
-        .width('100%')
-        .padding($r('app.float.spacing_md'))
+      // Form Header with back button
+      Row() {
+        ThemedButton({
+          symbolIcon: $r("sys.symbol.chevron_left"),
+          onButtonClick: () => {
+            this.showCreateForm = false;
+            this.editingWorkspace = null;
+          },
+          buttonType: 'ghost',
+          buttonSize: 'md'
+        })
+          .margin({ right: $r('app.float.spacing_sm') })
+
+        Text(this.editingWorkspace ? 'Edit Workspace' : 'Create Workspace')
+          .fontSize($r('app.float.font_size_lg'))
+          .fontColor($r('app.color.text_primary'))
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .padding($r('app.float.spacing_md'))
+      .alignItems(VerticalAlign.Center)
+      .border({
+        width: { bottom: 1 },
+        color: $r('app.color.divider')
+      })
 
       // Form Fields
       Scroll() {
         Column() {
-          Text('Name')
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor($r('app.color.text_secondary'))
-            .width('100%')
-            .margin({ bottom: $r('app.float.spacing_xs') })
+          // Name Field
+          Column() {
+            Text('Name')
+              .fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary'))
+              .width('100%')
+              .margin({ bottom: $r('app.float.spacing_xs') })
 
-          ThemedTextInput({
-            value: this.newWorkspaceName,
-            placeholder: 'Enter workspace name',
-            onValueChange: (value: string) => {
-              this.newWorkspaceName = value;
-            }
-          })
-            .margin({ bottom: $r('app.float.spacing_md') })
+            ThemedTextInput({
+              value: this.newWorkspaceName,
+              placeholder: 'Enter workspace name',
+              onValueChange: (value: string) => {
+                this.newWorkspaceName = value;
+              },
+              inputSize: 'md'
+            })
+          }
+          .width('100%')
+          .margin({ bottom: $r('app.float.spacing_lg') })
 
-          Text('Description (Optional)')
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor($r('app.color.text_secondary'))
-            .width('100%')
-            .margin({ bottom: $r('app.float.spacing_xs') })
+          // Description Field
+          Column() {
+            Text('Description (Optional)')
+              .fontSize($r('app.float.font_size_sm'))
+              .fontColor($r('app.color.text_secondary'))
+              .width('100%')
+              .margin({ bottom: $r('app.float.spacing_xs') })
 
-          ThemedTextInput({
-            value: this.newWorkspaceDescription,
-            placeholder: 'Enter workspace description',
-            onValueChange: (value: string) => {
-              this.newWorkspaceDescription = value;
-            }
-          })
+            ThemedTextInput({
+              value: this.newWorkspaceDescription,
+              placeholder: 'Enter workspace description',
+              onValueChange: (value: string) => {
+                this.newWorkspaceDescription = value;
+              },
+              inputSize: 'md'
+            })
+          }
+          .width('100%')
         }
         .width('100%')
-        .padding($r('app.float.spacing_md'))
+        .padding($r('app.float.spacing_lg'))
+        .alignItems(HorizontalAlign.Start)
       }
       .layoutWeight(1)
       .width('100%')
+      .height('100%')
       .scrollBar(BarState.Auto)
+      .align(Alignment.TopStart)
 
       // Form Actions
       Row() {
-        Button('Cancel')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_primary'))
-          .backgroundColor($r('app.color.surface'))
-          .flexGrow(1)
-          .margin({ right: $r('app.float.spacing_sm') })
-          .onClick(() => {
+        ThemedButton({
+          text: 'Cancel',
+          onButtonClick: () => {
             this.showCreateForm = false;
             this.editingWorkspace = null;
-          })
+          },
+          buttonType: 'secondary',
+          buttonSize: 'md'
+        })
+          .layoutWeight(1)
+          .margin({ right: $r('app.float.spacing_sm') })
 
-        Button(this.editingWorkspace ? 'Update' : 'Create')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.button_text'))
-          .backgroundColor($r('app.color.primary'))
-          .flexGrow(1)
-          .margin({ left: $r('app.float.spacing_sm') })
-          .onClick(() => {
+        ThemedButton({
+          text: this.editingWorkspace ? 'Update' : 'Create',
+          onButtonClick: () => {
             this.handleSave();
-          })
+          },
+          buttonType: 'primary',
+          buttonSize: 'md'
+        })
+          .layoutWeight(1)
+          .margin({ left: $r('app.float.spacing_sm') })
       }
       .width('100%')
       .padding($r('app.float.spacing_md'))
