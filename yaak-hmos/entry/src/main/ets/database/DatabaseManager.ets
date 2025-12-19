@@ -1,6 +1,7 @@
 /**
  * Database Manager
  * Singleton class for managing RDB Store connection and initialization
+ * Includes error recovery with retry logic
  */
 
 import relationalStore from '@ohos.data.relationalStore';
@@ -13,11 +14,26 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
   customDir: 'database'
 };
 
+// Retry configuration interface
+interface RetryConfig {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
+
 export class DatabaseManager {
   private static instance: DatabaseManager;
   private rdbStore: relationalStore.RdbStore | null = null;
   private initPromise: Promise<void> | null = null;
+  private context: common.UIAbilityContext | null = null;
   private static readonly CURRENT_VERSION = 1;
+  
+  // Default retry configuration
+  private static readonly DEFAULT_RETRY_CONFIG: RetryConfig = {
+    maxRetries: 3,
+    baseDelayMs: 100,
+    maxDelayMs: 2000
+  };
 
   private constructor() {
   }
@@ -33,10 +49,12 @@ export class DatabaseManager {
   }
 
   /**
-   * Initialize database with proper error handling
+   * Initialize database with proper error handling and retry logic
    */
   public async init(context: common.UIAbilityContext): Promise<void> {
     if (this.initPromise) return this.initPromise;
+    
+    this.context = context;
 
     this.initPromise = new Promise<void>(async (resolve, reject) => {
       try {
@@ -308,6 +326,147 @@ export class DatabaseManager {
       this.rdbStore = null;
       this.initPromise = null;
       console.info('Database connection closed');
+    }
+  }
+
+  /**
+   * Execute operation with retry logic and exponential backoff
+   */
+  public async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    config: RetryConfig = DatabaseManager.DEFAULT_RETRY_CONFIG
+  ): Promise<T> {
+    let lastError: Error = new Error('Unknown error');
+    
+    for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        if (attempt < config.maxRetries) {
+          // Calculate delay with exponential backoff
+          const delay: number = Math.min(
+            config.baseDelayMs * Math.pow(2, attempt),
+            config.maxDelayMs
+          );
+          
+          console.warn(`[DatabaseManager] ${operationName} failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${delay}ms...`);
+          
+          await this.sleep(delay);
+        }
+      }
+    }
+    
+    console.error(`[DatabaseManager] ${operationName} failed after ${config.maxRetries + 1} attempts`);
+    throw lastError;
+  }
+
+  /**
+   * Sleep for specified milliseconds
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, ms);
+    });
+  }
+
+  /**
+   * Execute SQL with retry
+   */
+  public async executeSqlWithRetry(sql: string): Promise<void> {
+    await this.executeWithRetry(
+      async () => {
+        const store = this.getStore();
+        if (!store) {
+          throw new Error('Database not initialized');
+        }
+        await store.executeSql(sql);
+      },
+      `executeSql: ${sql.substring(0, 50)}...`
+    );
+  }
+
+  /**
+   * Check database integrity
+   */
+  public async checkIntegrity(): Promise<boolean> {
+    try {
+      const store = this.getStore();
+      if (!store) {
+        return false;
+      }
+      
+      // Try a simple query to verify database is accessible
+      const predicates = new relationalStore.RdbPredicates('workspaces');
+      predicates.limitAs(1);
+      const resultSet = await store.query(predicates, ['id']);
+      resultSet.close();
+      
+      return true;
+    } catch (error) {
+      console.error('[DatabaseManager] Integrity check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Attempt to recover from database errors
+   * Returns true if recovery was successful
+   */
+  public async attemptRecovery(): Promise<boolean> {
+    console.info('[DatabaseManager] Attempting database recovery...');
+    
+    try {
+      // Close existing connection
+      await this.close();
+      
+      // Wait a moment
+      await this.sleep(500);
+      
+      // Reinitialize
+      if (this.context) {
+        await this.init(this.context);
+        
+        // Verify recovery
+        const isHealthy: boolean = await this.checkIntegrity();
+        
+        if (isHealthy) {
+          console.info('[DatabaseManager] Recovery successful');
+          return true;
+        }
+      }
+      
+      console.error('[DatabaseManager] Recovery failed');
+      return false;
+    } catch (error) {
+      console.error('[DatabaseManager] Recovery error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Execute operation in a transaction
+   */
+  public async executeInTransaction<T>(operation: () => Promise<T>): Promise<T> {
+    const store = this.getStore();
+    if (!store) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      await store.beginTransaction();
+      const result: T = await operation();
+      await store.commit();
+      return result;
+    } catch (error) {
+      await store.rollBack();
+      // ArkTS requires throwing Error instances, not arbitrary types
+      const errorToThrow: Error = error instanceof Error ? error : new Error(String(error));
+      throw errorToThrow;
     }
   }
 }

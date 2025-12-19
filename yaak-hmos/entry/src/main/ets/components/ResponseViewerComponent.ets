@@ -6,16 +6,21 @@ import { PreferencesService, PreferenceKeys } from '../services/PreferencesServi
 import { TextViewer } from './TextViewer';
 import { ImageViewer } from './ImageViewer';
 import { VideoViewer, AudioViewer } from './MediaViewer';
+import promptAction from '@ohos.promptAction';
 
 @ComponentV2
 export struct ResponseViewerComponent {
   @Param response: HttpResponse | null = null;
   @Param responseBody: string = '';
   @Param isLoading: boolean = false;
+  @Param responseHistory: HttpResponse[] = [];
+  @Param onSelectResponse: (response: HttpResponse) => void = () => {};
+  @Param onClearHistory: () => void = () => {};
 
   @Local activeTab: string = 'body';
   @Local viewMode: string = 'pretty'; // 'pretty' or 'raw'
   @Local contentTypeInfo: ContentTypeInfo | null = null;
+  @Local showHistory: boolean = false;
   
   private preferencesService: PreferencesService = PreferencesService.getInstance();
 
@@ -143,6 +148,11 @@ export struct ResponseViewerComponent {
       // Status Bar
       this.buildStatusBar();
 
+      // History Panel (collapsible)
+      if (this.showHistory && this.responseHistory.length > 0) {
+        this.buildHistoryPanel();
+      }
+
       // Tabs
       this.buildTabs();
 
@@ -178,6 +188,20 @@ export struct ResponseViewerComponent {
         .fontSize($r('app.float.font_size_sm'))
         .fontColor($r('app.color.text_secondary'))
         .margin({ left: $r('app.float.spacing_md') })
+
+      Blank()
+
+      // History toggle button
+      if (this.responseHistory.length > 0) {
+        Button(this.showHistory ? '▲ History' : '▼ History')
+          .fontSize($r('app.float.font_size_xs'))
+          .fontColor($r('app.color.text_secondary'))
+          .backgroundColor(Color.Transparent)
+          .height(28)
+          .onClick(() => {
+            this.showHistory = !this.showHistory;
+          })
+      }
     }
     .width('100%')
     .height(48)
@@ -189,6 +213,103 @@ export struct ResponseViewerComponent {
     .border({
       width: { bottom: 1 },
       color: $r('app.color.divider')
+    })
+  }
+
+  @Builder
+  buildHistoryPanel() {
+    Column() {
+      // History header
+      Row() {
+        Text('Response History')
+          .fontSize($r('app.float.font_size_sm'))
+          .fontColor($r('app.color.text_primary'))
+          .fontWeight(FontWeight.Medium)
+
+        Blank()
+
+        Button('Clear')
+          .fontSize($r('app.float.font_size_xs'))
+          .fontColor($r('app.color.danger'))
+          .backgroundColor(Color.Transparent)
+          .height(24)
+          .onClick(() => {
+            this.showClearHistoryConfirmation();
+          })
+      }
+      .width('100%')
+      .padding({
+        left: $r('app.float.spacing_md'),
+        right: $r('app.float.spacing_md'),
+        top: $r('app.float.spacing_sm'),
+        bottom: $r('app.float.spacing_sm')
+      })
+
+      // History list
+      List() {
+        ForEach(this.responseHistory, (historyResponse: HttpResponse) => {
+          ListItem() {
+            this.buildHistoryItem(historyResponse)
+          }
+        }, (historyResponse: HttpResponse) => historyResponse.id)
+      }
+      .width('100%')
+      .height(150)
+      .scrollBar(BarState.Auto)
+    }
+    .width('100%')
+    .backgroundColor($r('app.color.surface_highlight'))
+    .border({
+      width: { bottom: 1 },
+      color: $r('app.color.divider')
+    })
+  }
+
+  @Builder
+  buildHistoryItem(historyResponse: HttpResponse) {
+    Row() {
+      // Status indicator
+      Text(`${historyResponse.status_code}`)
+        .fontSize($r('app.float.font_size_xs'))
+        .fontColor(this.getStatusColorForCode(historyResponse.status_code))
+        .fontWeight(FontWeight.Bold)
+        .width(40)
+
+      // Timestamp
+      Text(this.formatTimestamp(historyResponse.created_at))
+        .fontSize($r('app.float.font_size_xs'))
+        .fontColor($r('app.color.text_secondary'))
+        .flexGrow(1)
+
+      // Duration
+      Text(`${historyResponse.elapsed_time}ms`)
+        .fontSize($r('app.float.font_size_xs'))
+        .fontColor($r('app.color.text_secondary'))
+        .margin({ right: $r('app.float.spacing_sm') })
+
+      // Size
+      Text(this.formatSize(historyResponse.size))
+        .fontSize($r('app.float.font_size_xs'))
+        .fontColor($r('app.color.text_secondary'))
+
+      // Selected indicator
+      if (this.response?.id === historyResponse.id) {
+        Text('●')
+          .fontSize($r('app.float.font_size_xs'))
+          .fontColor($r('app.color.primary'))
+          .margin({ left: $r('app.float.spacing_sm') })
+      }
+    }
+    .width('100%')
+    .height(36)
+    .padding({
+      left: $r('app.float.spacing_md'),
+      right: $r('app.float.spacing_md')
+    })
+    .backgroundColor(this.response?.id === historyResponse.id ? 
+      $r('app.color.sidebar_item_selected') : Color.Transparent)
+    .onClick(() => {
+      this.onSelectResponse(historyResponse);
     })
   }
 
@@ -403,6 +524,61 @@ export struct ResponseViewerComponent {
       return `${(bytes / 1024).toFixed(2)} KB`;
     } else {
       return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+  }
+
+  private getStatusColorForCode(statusCode: number): ResourceStr {
+    if (statusCode >= 200 && statusCode < 300) {
+      return $r('app.color.success');
+    } else if (statusCode >= 400) {
+      return $r('app.color.danger');
+    } else if (statusCode >= 300 && statusCode < 400) {
+      return $r('app.color.warning');
+    }
+    return $r('app.color.text_primary');
+  }
+
+  private formatTimestamp(timestamp: number): string {
+    const date: Date = new Date(timestamp);
+    const hours: string = date.getHours().toString().padStart(2, '0');
+    const minutes: string = date.getMinutes().toString().padStart(2, '0');
+    const seconds: string = date.getSeconds().toString().padStart(2, '0');
+    const month: string = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day: string = date.getDate().toString().padStart(2, '0');
+    return `${month}/${day} ${hours}:${minutes}:${seconds}`;
+  }
+
+  private showClearHistoryConfirmation(): void {
+    try {
+      promptAction.showDialog({
+        title: 'Clear History',
+        message: 'Are you sure you want to clear all response history for this request?',
+        buttons: [
+          { text: 'Cancel', color: '#000000' },
+          { text: 'Clear', color: '#ff4d4f' }
+        ]
+      }).then((result: promptAction.ShowDialogSuccessResponse) => {
+        if (result.index === 1) {
+          this.onClearHistory();
+          this.showHistory = false;
+          this.showToast('History cleared');
+        }
+      }).catch((error: Error) => {
+        console.error('[ResponseViewer] Clear history confirmation error:', error);
+      });
+    } catch (error) {
+      console.error('[ResponseViewer] Failed to show clear history confirmation:', error);
+    }
+  }
+
+  private showToast(message: string): void {
+    try {
+      promptAction.showToast({
+        message: message,
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('[ResponseViewer] Toast error:', error);
     }
   }
 }

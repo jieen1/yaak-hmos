@@ -2,16 +2,19 @@
  * Response Storage Service
  * Manages response body storage to filesystem
  * Handles both string and ArrayBuffer body types
+ * Includes LRU caching for improved performance
  */
 
 import fs from '@ohos.file.fs';
 import common from '@ohos.app.ability.common';
 import util from '@ohos.util';
 import { ResponseRepository } from '../database/ResponseRepository';
+import { ResponseCache, CacheStats } from './ResponseCache';
 
 export class ResponseStorageService {
   private static readonly RESPONSE_DIR = 'responses';
   private static context: common.UIAbilityContext | null = null;
+  private static cache: ResponseCache = ResponseCache.getInstance();
 
   /**
    * Initialize service with context
@@ -96,9 +99,20 @@ export class ResponseStorageService {
   }
 
   /**
-   * Load response body from file
+   * Load response body from file with caching
+   * Uses LRU cache for improved performance
    */
   static async loadResponseBody(bodyPath: string): Promise<string> {
+    // Extract response ID from path for cache key
+    const responseId: string = ResponseStorageService.extractResponseId(bodyPath);
+    
+    // Check cache first
+    const cachedBody: string | null = ResponseStorageService.cache.get(responseId);
+    if (cachedBody !== null) {
+      return cachedBody;
+    }
+
+    // Load from file
     let file: fs.File | null = null;
     try {
       // Check if file exists
@@ -112,7 +126,12 @@ export class ResponseStorageService {
 
       // Convert ArrayBuffer to string using TextDecoder
       const textDecoder = util.TextDecoder.create('utf-8', { ignoreBOM: true });
-      return textDecoder.decodeToString(new Uint8Array(buffer));
+      const body: string = textDecoder.decodeToString(new Uint8Array(buffer));
+      
+      // Cache the loaded body
+      ResponseStorageService.cache.put(responseId, body);
+      
+      return body;
     } catch (error) {
       console.error(`[ResponseStorageService] Failed to load response body from ${bodyPath}: ${JSON.stringify(error)}`);
       return '';
@@ -129,10 +148,24 @@ export class ResponseStorageService {
   }
 
   /**
-   * Delete response body file
+   * Extract response ID from file path
+   */
+  private static extractResponseId(bodyPath: string): string {
+    const parts: string[] = bodyPath.split('/');
+    const lastPart: string | undefined = parts[parts.length - 1];
+    return lastPart || bodyPath;
+  }
+
+  /**
+   * Delete response body file and remove from cache
    */
   static async deleteResponseBody(bodyPath: string): Promise<void> {
     try {
+      // Remove from cache
+      const responseId: string = ResponseStorageService.extractResponseId(bodyPath);
+      ResponseStorageService.cache.remove(responseId);
+      
+      // Delete file
       await fs.access(bodyPath);
       await fs.unlink(bodyPath);
       console.info(`Response body deleted: ${bodyPath}`);
@@ -210,6 +243,9 @@ export class ResponseStorageService {
    */
   static async clearAllResponses(): Promise<void> {
     try {
+      // Clear cache
+      ResponseStorageService.cache.clear();
+      
       const responseDir = ResponseStorageService.getResponseDir();
       await fs.access(responseDir);
 
@@ -230,5 +266,60 @@ export class ResponseStorageService {
     } catch (error) {
       console.error(`Failed to clear all responses: ${JSON.stringify(error)}`);
     }
+  }
+
+  /**
+   * Clean up orphaned response files
+   * Removes files that don't have corresponding database records
+   */
+  static async cleanupOrphanedFiles(): Promise<void> {
+    try {
+      const responseDir = ResponseStorageService.getResponseDir();
+      await fs.access(responseDir);
+
+      const files = await fs.listFile(responseDir);
+      const responseRepository = new ResponseRepository();
+      const allResponses = await responseRepository.getAllResponses();
+      
+      // Create a set of valid response IDs
+      const validIds: Set<string> = new Set();
+      allResponses.forEach((response) => {
+        validIds.add(response.id);
+      });
+
+      let deletedCount = 0;
+
+      for (const file of files) {
+        // Check if file corresponds to a valid response
+        if (!validIds.has(file)) {
+          try {
+            const filePath = `${responseDir}/${file}`;
+            await fs.unlink(filePath);
+            deletedCount++;
+            console.info(`Deleted orphaned response file: ${file}`);
+          } catch (error) {
+            console.error(`Failed to delete orphaned file: ${JSON.stringify(error)}`);
+          }
+        }
+      }
+
+      console.info(`Cleaned up ${deletedCount} orphaned response files`);
+    } catch (error) {
+      console.error(`Failed to cleanup orphaned files: ${JSON.stringify(error)}`);
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  static getCacheStats(): CacheStats {
+    return ResponseStorageService.cache.getStats();
+  }
+
+  /**
+   * Clear the response cache
+   */
+  static clearCache(): void {
+    ResponseStorageService.cache.clear();
   }
 }

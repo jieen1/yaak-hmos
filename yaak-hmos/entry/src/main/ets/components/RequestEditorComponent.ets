@@ -17,6 +17,7 @@ import { AuthEditor } from './AuthEditor';
 export struct RequestEditorComponent {
   @Param request: HttpRequest = new HttpRequest();
   @Param onExecute: () => void = () => {};
+  @Param onCancel: () => void = () => {};
   @Param isLoading: boolean = false;
   @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
 
@@ -68,7 +69,7 @@ export struct RequestEditorComponent {
           ThemedButton({
             text: 'Cancel',
             onButtonClick: () => {
-              // Cancel request
+              this.onCancel();
             },
             buttonType: 'danger',
             buttonSize: 'md'

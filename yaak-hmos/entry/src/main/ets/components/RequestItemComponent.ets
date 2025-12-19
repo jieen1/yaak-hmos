@@ -1,181 +1,206 @@
 /**
  * Request Item Component
  * Displays an HTTP request in the sidebar with method badge
- * Enhanced with context menu, rename, and delete functionality
+ * Uses HarmonyOS native bindContextMenu for context menu
+ * Supports double-click to rename and blur to save
  */
 
 import { HttpRequest } from '../model/HttpRequest';
-import { HttpMethod } from '../model/Types';
-import { ContextMenu } from './ContextMenu';
-import type { ContextMenuItem, MenuPosition } from './ContextMenu';
 import promptAction from '@ohos.promptAction';
+import { SymbolGlyphModifier } from '@kit.ArkUI';
 
 @ComponentV2
 export struct RequestItemComponent {
   @Param request: HttpRequest = new HttpRequest();
   @Param level: number = 0;
   @Param isSelected: boolean = false;
+  @Param isEditing: boolean = false;
   @Param onSelect: () => void = () => {};
   @Param onRename: (newName: string) => void = () => {};
   @Param onDelete: () => void = () => {};
   @Param onDuplicate: () => void = () => {};
-  
-  @Local showContextMenu: boolean = false;
-  @Local contextMenuPosition: MenuPosition = { x: 0, y: 0 };
-  @Local isRenaming: boolean = false;
+  @Param onSend: () => void = () => {};
+  @Param onStartEdit: () => void = () => {};
+  @Param onEndEdit: () => void = () => {};
+
   @Local editingName: string = '';
+  @Local private lastClickTime: number = 0;
+  @Local private hasInitializedEdit: boolean = false;
+
+  /**
+   * Build context menu using HarmonyOS native Menu component
+   */
+  @Builder
+  buildContextMenu() {
+    Menu() {
+      MenuItem({ content: 'Send', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.cheers')) })
+        .onClick(() => {
+          this.onSelect();
+          this.onSend();
+        })
+
+      MenuItem({ content: 'Rename', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.rename')) })
+        .onClick(() => {
+          this.startRename();
+        })
+
+      MenuItem({ content: 'Duplicate', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.notepad')) })
+        .onClick(() => {
+          this.onDuplicate();
+        })
+
+      MenuItem({ content: 'Delete', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.trash')) })
+        .onClick(() => {
+          this.showDeleteConfirmation();
+        })
+    }
+  }
 
   build() {
-    Stack() {
-      // Main request item
-      Row() {
-        // Indentation based on level
-        Blank()
-          .width(this.level * 16)
+    Row() {
+      // Indentation based on level
+      Blank()
+        .width(this.level * 16)
 
-        // Spacing for alignment with folders (no expand icon)
-        Blank()
-          .width(20)
+      // Spacing for alignment with folders (no expand icon)
+      Blank()
+        .width(20)
 
-        // HTTP method badge
-        Text(this.request.method)
-          .fontSize($r('app.float.font_size_xs'))
-          .fontColor($r('app.color.button_text'))
-          .backgroundColor(this.getMethodColor())
+      // HTTP method badge
+      Text(this.request.method)
+        .fontSize($r('app.float.font_size_xs'))
+        .fontColor($r('app.color.button_text'))
+        .backgroundColor(this.getMethodColor())
+        .padding({
+          left: $r('app.float.spacing_xs'),
+          right: $r('app.float.spacing_xs'),
+          top: 2,
+          bottom: 2
+        })
+        .borderRadius($r('app.float.border_radius_sm'))
+        .margin({ right: $r('app.float.spacing_sm') })
+        .fontWeight(FontWeight.Bold)
+
+      // Request name or rename input
+      if (this.isEditing) {
+        TextInput({ text: this.getEditingName() })
+          .fontSize($r('app.float.font_size_md'))
+          .flexGrow(1)
+          .backgroundColor($r('app.color.surface'))
+          .borderRadius($r('app.float.border_radius_sm'))
           .padding({
             left: $r('app.float.spacing_xs'),
-            right: $r('app.float.spacing_xs'),
-            top: 2,
-            bottom: 2
+            right: $r('app.float.spacing_xs')
           })
-          .borderRadius($r('app.float.border_radius_sm'))
-          .margin({ right: $r('app.float.spacing_sm') })
-          .fontWeight(FontWeight.Bold)
-
-        // Request name or rename input
-        if (this.isRenaming) {
-          TextInput({ text: this.editingName })
-            .fontSize($r('app.float.font_size_md'))
-            .flexGrow(1)
-            .backgroundColor($r('app.color.surface'))
-            .onSubmit(() => {
-              this.handleRenameSubmit();
-            })
-            .onBlur(() => {
-              this.handleRenameCancel();
-            })
-        } else {
-          Text(this.request.name)
-            .fontSize($r('app.float.font_size_md'))
-            .fontColor($r('app.color.text_primary'))
-            .flexGrow(1)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-      }
-      .width('100%')
-      .height($r('app.float.list_item_height'))
-      .padding({
-        left: $r('app.float.spacing_sm'),
-        right: $r('app.float.spacing_sm')
-      })
-      .backgroundColor(this.isSelected ? $r('app.color.sidebar_item_selected') : $r('app.color.sidebar_background'))
-      .borderRadius($r('app.float.border_radius_sm'))
-      .onClick(() => {
-        if (!this.isRenaming) {
-          this.onSelect();
-        }
-      })
-      .gesture(
-        LongPressGesture({ repeat: false })
-          .onAction((event: GestureEvent) => {
-            if (!this.isRenaming && event.fingerList && event.fingerList.length > 0) {
-              const finger = event.fingerList[0];
-              if (finger) {
-                const pos: MenuPosition = {
-                  x: finger.globalX,
-                  y: finger.globalY
-                };
-                this.contextMenuPosition = pos;
-                this.showContextMenu = true;
-              }
-            }
+          .onChange((value: string) => {
+            this.editingName = value;
           })
-      )
-
-      // Context menu
-      if (this.showContextMenu) {
-        ContextMenu({
-          items: this.getContextMenuItems(),
-          visible: this.showContextMenu,
-          menuPosition: this.contextMenuPosition,
-          onItemSelect: (action: string) => {
-            this.handleContextMenuAction(action);
-            this.showContextMenu = false;
-          }
-        })
+          .onSubmit((enterKey: EnterKeyType) => {
+            this.saveRename();
+          })
+          .onBlur(() => {
+            // Use setTimeout to allow click events to process first
+            setTimeout(() => {
+              this.saveRename();
+            }, 100);
+          })
+          .focusable(true)
+          .defaultFocus(true)
+          .id('request_rename_input_' + this.request.id)
+      } else {
+        Text(this.request.name)
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_primary'))
+          .flexGrow(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
     }
     .width('100%')
-    .alignContent(Alignment.TopStart)
+    .height($r('app.float.list_item_height'))
+    .padding({
+      left: $r('app.float.spacing_sm'),
+      right: $r('app.float.spacing_sm')
+    })
+    .backgroundColor(this.isSelected ? $r('app.color.sidebar_item_selected') : $r('app.color.sidebar_background'))
+    .borderRadius($r('app.float.border_radius_sm'))
+    .onClick(() => {
+      if (this.isEditing) {
+        return;
+      }
+      this.handleClick();
+    })
+    .bindContextMenu(this.buildContextMenu, ResponseType.RightClick)
   }
 
-  private getContextMenuItems(): ContextMenuItem[] {
-    const items: ContextMenuItem[] = [
-      { id: 'rename', label: 'Rename', icon: '✏️' },
-      { id: 'duplicate', label: 'Duplicate', icon: '📋' },
-      { id: 'separator', label: '', separator: true },
-      { id: 'delete', label: 'Delete', icon: '🗑️', danger: true }
-    ];
-    return items;
-  }
-
-  private handleContextMenuAction(action: string): void {
-    switch (action) {
-      case 'rename':
-        this.startRename();
-        break;
-      case 'duplicate':
-        this.onDuplicate();
-        try {
-          promptAction.showToast({
-            message: 'Request duplicated',
-            duration: 2000
-          });
-        } catch (error) {
-          console.error('[RequestItem] Toast error:', error);
-        }
-        break;
-      case 'delete':
-        this.showDeleteConfirmation();
-        break;
+  /**
+   * Get editing name, initialize if needed
+   */
+  private getEditingName(): string {
+    if (!this.hasInitializedEdit && this.isEditing) {
+      this.editingName = this.request.name;
+      this.hasInitializedEdit = true;
     }
+    return this.editingName;
+  }
+
+  /**
+   * Handle click with double-click detection for rename
+   */
+  private handleClick(): void {
+    const currentTime: number = Date.now();
+    const timeDiff: number = currentTime - this.lastClickTime;
+
+    // Double-click threshold: 300ms
+    if (timeDiff < 300 && this.isSelected) {
+      // Double-click on selected item - start rename
+      this.startRename();
+    } else {
+      // Single click - select the item
+      this.onSelect();
+    }
+
+    this.lastClickTime = currentTime;
   }
 
   private startRename(): void {
     this.editingName = this.request.name;
-    this.isRenaming = true;
+    this.hasInitializedEdit = true;
+    this.onStartEdit();
   }
 
-  private handleRenameSubmit(): void {
-    if (this.editingName.trim().length > 0) {
-      this.onRename(this.editingName.trim());
-      this.isRenaming = false;
-    } else {
-      try {
-        promptAction.showToast({
-          message: 'Request name cannot be empty',
-          duration: 2000
-        });
-      } catch (error) {
-        console.error('[RequestItem] Toast error:', error);
-      }
+  /**
+   * Save the rename (called on Enter or blur)
+   */
+  private saveRename(): void {
+    if (!this.isEditing) {
+      return;
     }
+
+    const trimmedName: string = this.editingName.trim();
+    if (trimmedName.length > 0 && trimmedName !== this.request.name) {
+      this.onRename(trimmedName);
+    }
+    this.editingName = '';
+    this.hasInitializedEdit = false;
+    this.onEndEdit();
   }
 
-  private handleRenameCancel(): void {
-    this.isRenaming = false;
+  private cancelRename(): void {
     this.editingName = '';
+    this.hasInitializedEdit = false;
+    this.onEndEdit();
+  }
+
+  private showToast(message: string): void {
+    try {
+      promptAction.showToast({
+        message: message,
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('[RequestItem] Toast error:', error);
+    }
   }
 
   private showDeleteConfirmation(): void {
@@ -190,14 +215,7 @@ export struct RequestItemComponent {
       }).then((result: promptAction.ShowDialogSuccessResponse) => {
         if (result.index === 1) {
           this.onDelete();
-          try {
-            promptAction.showToast({
-              message: 'Request deleted',
-              duration: 2000
-            });
-          } catch (toastError) {
-            console.error('[RequestItem] Toast error:', toastError);
-          }
+          this.showToast('Request deleted');
         }
       }).catch((error: Error) => {
         console.error('[RequestItem] Delete confirmation error:', error);

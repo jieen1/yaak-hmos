@@ -16,6 +16,7 @@ import { FolderRepository } from '../database/FolderRepository';
 import { EnvironmentRepository } from '../database/EnvironmentRepository';
 import { ResponseRepository } from '../database/ResponseRepository';
 import { RequestExecutor, RequestExecutionResult } from '../services/RequestExecutor';
+import promptAction from '@ohos.promptAction';
 import { EnvironmentService } from '../services/EnvironmentService';
 import { ResponseStorageService } from '../services/ResponseStorageService';
 import { WorkspaceHeader } from '../components/WorkspaceHeader';
@@ -48,6 +49,7 @@ struct Index {
 
   // Response Data
   @Local responseBody: string = '';
+  @Local responseHistory: HttpResponse[] = [];
 
   // UI State
   @Local isLoading: boolean = true;
@@ -630,6 +632,9 @@ struct Index {
       this.selectedResponse = result.response;
       this.responseBody = result.bodyContent;
       
+      // Reload response history to include the new response
+      await this.loadResponseHistory(this.selectedRequest.id);
+      
       // Auto-open response viewer when response is received
       if (this.responseViewerHidden) {
         this.responseViewerHidden = false;
@@ -640,6 +645,11 @@ struct Index {
       console.error(`[Index] Request execution failed:`, error);
       // RequestExecutor already creates error response, but we need to handle UI
       this.responseBody = `Error: ${JSON.stringify(error)}`;
+      
+      // Reload response history even on error (error response may have been saved)
+      if (this.selectedRequest) {
+        await this.loadResponseHistory(this.selectedRequest.id);
+      }
       
       // Auto-open response viewer even on error
       if (this.responseViewerHidden) {
@@ -670,6 +680,73 @@ struct Index {
     this.selectedRequest = request;
     this.selectedResponse = null;
     this.responseBody = '';
+    this.responseHistory = [];
+    
+    // Load response history for the selected request
+    if (request) {
+      this.loadResponseHistory(request.id);
+    }
+  }
+
+  async loadResponseHistory(requestId: string): Promise<void> {
+    try {
+      this.responseHistory = await this.responseRepo.getResponsesByRequestId(requestId);
+      console.info(`[Index] Loaded ${this.responseHistory.length} responses for request: ${requestId}`);
+      
+      // If there's history but no selected response, select the latest one
+      if (this.responseHistory.length > 0 && !this.selectedResponse) {
+        const latestResponse: HttpResponse | undefined = this.responseHistory[0];
+        if (latestResponse) {
+          await this.selectResponse(latestResponse);
+        }
+      }
+    } catch (error) {
+      console.error('[Index] Failed to load response history:', JSON.stringify(error));
+    }
+  }
+
+  async selectResponse(response: HttpResponse): Promise<void> {
+    try {
+      this.selectedResponse = response;
+      
+      // Load response body from file
+      if (response.body_path) {
+        this.responseBody = await ResponseStorageService.loadResponseBody(response.body_path);
+      } else {
+        this.responseBody = '';
+      }
+      
+      console.info(`[Index] Selected response: ${response.id}`);
+    } catch (error) {
+      console.error('[Index] Failed to load response body:', JSON.stringify(error));
+      this.responseBody = '';
+    }
+  }
+
+  async clearResponseHistory(): Promise<void> {
+    if (!this.selectedRequest) return;
+
+    try {
+      // Delete all responses for this request
+      await this.responseRepo.deleteResponsesByRequestId(this.selectedRequest.id);
+      
+      // Clear response body files
+      for (let i = 0; i < this.responseHistory.length; i++) {
+        const response: HttpResponse | undefined = this.responseHistory[i];
+        if (response && response.body_path) {
+          await ResponseStorageService.deleteResponseBody(response.body_path);
+        }
+      }
+      
+      // Clear UI state
+      this.responseHistory = [];
+      this.selectedResponse = null;
+      this.responseBody = '';
+      
+      console.info(`[Index] Cleared response history for request: ${this.selectedRequest.id}`);
+    } catch (error) {
+      console.error('[Index] Failed to clear response history:', JSON.stringify(error));
+    }
   }
 
   async handleRequestChange(request: HttpRequest): Promise<void> {
@@ -819,7 +896,13 @@ struct Index {
             onFolderToggle: this.handleFolderToggle,
             onRequestRename: this.handleRequestRename,
             onRequestDelete: this.handleRequestDelete,
-            onRequestDuplicate: this.handleRequestDuplicate
+            onRequestDuplicate: this.handleRequestDuplicate,
+            onRequestSend: this.handleRequestSend,
+            onFolderRename: this.handleFolderRename,
+            onFolderDelete: this.handleFolderDelete,
+            onFolderDuplicate: this.handleFolderDuplicate,
+            onFolderSettings: this.handleFolderSettings,
+            onItemMove: this.handleItemMove
           })
         }
         .width(this.sidebarWidth)
@@ -843,6 +926,7 @@ struct Index {
             request: this.selectedRequest,
             isLoading: this.isRequestLoading,
             onExecute: this.handleExecuteRequest,
+            onCancel: this.handleCancelRequest,
             onChange: this.handleRequestChangeCallback
           })
         } else {
@@ -912,7 +996,10 @@ struct Index {
           ResponseViewerComponent({
             response: this.selectedResponse,
             responseBody: this.responseBody,
-            isLoading: this.isRequestLoading
+            isLoading: this.isRequestLoading,
+            responseHistory: this.responseHistory,
+            onSelectResponse: this.handleSelectResponse,
+            onClearHistory: this.handleClearHistory
           })
         }
         .width(this.responseWidth)
@@ -951,8 +1038,48 @@ struct Index {
     this.executeRequest();
   }
 
+  // Cancel request handler
+  handleCancelRequest = (): void => {
+    this.cancelRequest();
+  }
+
+  cancelRequest(): void {
+    if (!this.selectedRequest) {
+      console.warn('[Index] No request selected to cancel');
+      return;
+    }
+
+    const cancelled: boolean = RequestExecutor.cancelRequest(this.selectedRequest.id);
+    
+    if (cancelled) {
+      this.showToast('Request cancelled');
+    } else {
+      this.showToast('No active request to cancel');
+    }
+  }
+
+  private showToast(message: string): void {
+    try {
+      promptAction.showToast({
+        message: message,
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('[Index] Toast error:', error);
+    }
+  }
+
   handleRequestChangeCallback = async (req: HttpRequest): Promise<void> => {
     await this.handleRequestChange(req);
+  }
+
+  // Response history handlers
+  handleSelectResponse = async (response: HttpResponse): Promise<void> => {
+    await this.selectResponse(response);
+  }
+
+  handleClearHistory = async (): Promise<void> => {
+    await this.clearResponseHistory();
   }
 
   // Sidebar Resize Handlers
@@ -1056,6 +1183,272 @@ struct Index {
       console.info('[Index] Request duplicated:', requestId);
     } catch (error) {
       console.error('[Index] Failed to duplicate request:', JSON.stringify(error));
+    }
+  }
+
+  handleRequestSend = async (requestId: string): Promise<void> => {
+    try {
+      // First select the request
+      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+      if (!request) {
+        console.error('[Index] Request not found for send:', requestId);
+        return;
+      }
+
+      // Select the request
+      this.selectedRequest = request;
+      
+      // Execute the request
+      await this.executeRequest();
+      console.info('[Index] Request sent from context menu:', requestId);
+    } catch (error) {
+      console.error('[Index] Failed to send request:', JSON.stringify(error));
+    }
+  }
+
+  // Folder Management Handlers
+  handleFolderRename = async (folderId: string, newName: string): Promise<void> => {
+    try {
+      const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === folderId);
+      if (!folder) {
+        console.error('[Index] Folder not found for rename:', folderId);
+        return;
+      }
+
+      folder.name = newName;
+      folder.updated_at = Date.now();
+
+      await this.folderRepo.updateFolder(folder);
+      await this.loadFolders();
+      this.rebuildSidebar();
+
+      console.info('[Index] Folder renamed:', folderId, newName);
+    } catch (error) {
+      console.error('[Index] Failed to rename folder:', JSON.stringify(error));
+    }
+  }
+
+  handleFolderDelete = async (folderId: string): Promise<void> => {
+    try {
+      // Delete the folder (soft delete)
+      await this.folderRepo.deleteFolder(folderId);
+      
+      // Also delete all child requests in this folder
+      const childRequests: HttpRequest[] = this.requests.filter(
+        (r: HttpRequest) => r.folder_id === folderId
+      );
+      for (let i = 0; i < childRequests.length; i++) {
+        const childRequest: HttpRequest | undefined = childRequests[i];
+        if (childRequest) {
+          await this.requestRepo.deleteRequest(childRequest.id);
+        }
+      }
+      
+      // Also delete all child folders recursively
+      await this.deleteFolderChildrenRecursive(folderId);
+
+      // If deleted folder contained selected request, clear selection
+      if (this.selectedRequest?.folder_id === folderId) {
+        this.selectedRequest = null;
+        this.selectedResponse = null;
+        this.responseBody = '';
+      }
+
+      await this.loadFolders();
+      await this.loadRequests();
+      this.rebuildSidebar();
+
+      console.info('[Index] Folder deleted:', folderId);
+    } catch (error) {
+      console.error('[Index] Failed to delete folder:', JSON.stringify(error));
+    }
+  }
+
+  private async deleteFolderChildrenRecursive(parentFolderId: string): Promise<void> {
+    // Find child folders
+    const childFolders: Folder[] = this.folders.filter(
+      (f: Folder) => f.folder_id === parentFolderId
+    );
+    
+    for (let i = 0; i < childFolders.length; i++) {
+      const childFolder: Folder | undefined = childFolders[i];
+      if (childFolder) {
+        // Delete child requests in this folder
+        const childRequests: HttpRequest[] = this.requests.filter(
+          (r: HttpRequest) => r.folder_id === childFolder.id
+        );
+        for (let j = 0; j < childRequests.length; j++) {
+          const childRequest: HttpRequest | undefined = childRequests[j];
+          if (childRequest) {
+            await this.requestRepo.deleteRequest(childRequest.id);
+          }
+        }
+        
+        // Recursively delete child folders
+        await this.deleteFolderChildrenRecursive(childFolder.id);
+        
+        // Delete the child folder
+        await this.folderRepo.deleteFolder(childFolder.id);
+      }
+    }
+  }
+
+  handleFolderDuplicate = async (folderId: string): Promise<void> => {
+    try {
+      const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === folderId);
+      if (!folder) {
+        console.error('[Index] Folder not found for duplicate:', folderId);
+        return;
+      }
+
+      await this.duplicateFolder(folder);
+      console.info('[Index] Folder duplicated:', folderId);
+    } catch (error) {
+      console.error('[Index] Failed to duplicate folder:', JSON.stringify(error));
+    }
+  }
+
+  handleFolderSettings = (folderId: string): void => {
+    // TODO: Implement folder settings dialog
+    console.info('[Index] Folder settings requested:', folderId);
+  }
+
+  // Drag and Drop Handler
+  handleItemMove = async (
+    itemId: string,
+    itemType: string,
+    newFolderId: string | null,
+    newSortPriority: number
+  ): Promise<void> => {
+    try {
+      console.info('[Index] Moving item:', itemId, 'type:', itemType, 'to folder:', newFolderId, 'priority:', newSortPriority);
+
+      if (itemType === 'request') {
+        // Find the request
+        const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === itemId);
+        if (!request) {
+          console.error('[Index] Request not found for move:', itemId);
+          return;
+        }
+
+        // Update folder_id and sort_priority
+        request.folder_id = newFolderId;
+        request.sort_priority = newSortPriority;
+        request.updated_at = Date.now();
+
+        // Save to database
+        await this.requestRepo.updateRequest(request);
+
+        // Recalculate sort priorities to avoid conflicts
+        await this.recalculateSortPriorities(newFolderId);
+
+      } else if (itemType === 'folder') {
+        // Find the folder
+        const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === itemId);
+        if (!folder) {
+          console.error('[Index] Folder not found for move:', itemId);
+          return;
+        }
+
+        // Prevent moving folder into itself or its descendants
+        if (this.isDescendantFolder(itemId, newFolderId)) {
+          console.warn('[Index] Cannot move folder into itself or its descendants');
+          return;
+        }
+
+        // Update folder_id and sort_priority
+        folder.folder_id = newFolderId;
+        folder.sort_priority = newSortPriority;
+        folder.updated_at = Date.now();
+
+        // Save to database
+        await this.folderRepo.updateFolder(folder);
+
+        // Recalculate sort priorities to avoid conflicts
+        await this.recalculateSortPriorities(newFolderId);
+      }
+
+      // Reload data and rebuild sidebar
+      await this.loadFolders();
+      await this.loadRequests();
+      this.rebuildSidebar();
+
+      console.info('[Index] Item moved successfully:', itemId);
+    } catch (error) {
+      console.error('[Index] Failed to move item:', JSON.stringify(error));
+    }
+  }
+
+  /**
+   * Check if targetFolderId is a descendant of folderId
+   */
+  private isDescendantFolder(folderId: string, targetFolderId: string | null): boolean {
+    if (!targetFolderId) return false;
+    if (folderId === targetFolderId) return true;
+
+    // Find the target folder and check its parent chain
+    let currentFolderId: string | null = targetFolderId;
+    while (currentFolderId) {
+      if (currentFolderId === folderId) {
+        return true;
+      }
+      const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === currentFolderId);
+      currentFolderId = folder?.folder_id || null;
+    }
+
+    return false;
+  }
+
+  /**
+   * Recalculate sort priorities for items in a folder to avoid conflicts
+   */
+  private async recalculateSortPriorities(folderId: string | null): Promise<void> {
+    // Get all items in the folder
+    const folderItems: Folder[] = this.folders.filter((f: Folder) => f.folder_id === folderId);
+    const requestItems: HttpRequest[] = this.requests.filter((r: HttpRequest) => r.folder_id === folderId);
+
+    // Combine and sort by current priority
+    interface SortableItem {
+      id: string;
+      type: string;
+      priority: number;
+    }
+
+    const allItems: SortableItem[] = [];
+    
+    folderItems.forEach((f: Folder) => {
+      const item: SortableItem = { id: f.id, type: 'folder', priority: f.sort_priority };
+      allItems.push(item);
+    });
+    
+    requestItems.forEach((r: HttpRequest) => {
+      const item: SortableItem = { id: r.id, type: 'request', priority: r.sort_priority };
+      allItems.push(item);
+    });
+
+    // Sort by priority
+    allItems.sort((a: SortableItem, b: SortableItem) => a.priority - b.priority);
+
+    // Reassign integer priorities
+    for (let i = 0; i < allItems.length; i++) {
+      const item: SortableItem | undefined = allItems[i];
+      if (item) {
+        const newPriority: number = i * 10; // Use increments of 10 for easier insertion later
+
+        if (item.type === 'folder') {
+          const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === item.id);
+          if (folder && folder.sort_priority !== newPriority) {
+            folder.sort_priority = newPriority;
+            await this.folderRepo.updateSortPriority(folder.id, newPriority);
+          }
+        } else {
+          const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === item.id);
+          if (request && request.sort_priority !== newPriority) {
+            request.sort_priority = newPriority;
+            await this.requestRepo.updateSortPriority(request.id, newPriority);
+          }
+        }
+      }
     }
   }
 }

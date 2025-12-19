@@ -14,14 +14,27 @@ import { CookieService } from './CookieService';
 import { ResponseStorageService } from './ResponseStorageService';
 import { InheritanceService } from './InheritanceService';
 import { ResponseRepository } from '../database/ResponseRepository';
+import { NetworkError } from '../common/AppError';
+import { ErrorHandler } from '../common/ErrorHandler';
 
 export interface RequestExecutionResult {
   response: HttpResponse;
   bodyContent: string;
 }
 
+// Active request tracking interface
+interface ActiveRequest {
+  httpClient: http.HttpRequest;
+  requestId: string;
+  startTime: number;
+  cancelled: boolean;
+}
+
 export class RequestExecutor {
   private static responseRepository = new ResponseRepository();
+  
+  // Track active requests for cancellation
+  private static activeRequests: Map<string, ActiveRequest> = new Map();
 
   /**
    * Execute HTTP request with inheritance support
@@ -36,9 +49,21 @@ export class RequestExecutor {
     const startTime = Date.now();
     const httpClient = http.createHttp();
 
+    // Track this request for potential cancellation
+    const activeRequest: ActiveRequest = {
+      httpClient: httpClient,
+      requestId: request.id,
+      startTime: startTime,
+      cancelled: false
+    };
+    RequestExecutor.activeRequests.set(request.id, activeRequest);
+
+    // Resolve URL early for error reporting
+    let resolvedUrl: string = request.url;
+
     try {
       // 1. Resolve template variables in URL
-      const resolvedUrl = RequestExecutor.buildUrl(request, variables);
+      resolvedUrl = RequestExecutor.buildUrl(request, variables);
 
       // 2. Resolve authentication with inheritance
       const resolvedAuth = InheritanceService.resolveAuth(request, folders, workspace);
@@ -130,19 +155,33 @@ export class RequestExecutor {
     } catch (error) {
       console.error(`[RequestExecutor] Request execution failed:`, error);
 
-      // Create error response
+      // Check if request was cancelled
+      const currentRequest: ActiveRequest | undefined = RequestExecutor.activeRequests.get(request.id);
+      const wasCancelled: boolean = currentRequest ? currentRequest.cancelled : false;
+
+      // Detect and categorize network errors
+      const networkError: NetworkError | null = RequestExecutor.detectNetworkError(error, resolvedUrl);
+      
+      // Log error with ErrorHandler
+      if (!wasCancelled && networkError) {
+        ErrorHandler.getInstance().handleSilent(networkError);
+      }
+
+      // Create error/cancelled response
       const elapsedTime = Date.now() - startTime;
       const response = new HttpResponse();
-      response.id = RequestExecutor.generateResponseId(); // Generate ID first
+      response.id = RequestExecutor.generateResponseId();
       response.request_id = request.id;
       response.status_code = 0;
-      response.status_text = 'Error';
+      response.status_text = wasCancelled ? 'Cancelled' : (networkError?.code || 'Error');
       response.headers = [];
       response.elapsed_time = elapsedTime;
-      response.state = 'error';
+      response.state = wasCancelled ? 'cancelled' : 'error';
       response.size = 0;
 
-      const errorMessage = `Request failed: ${JSON.stringify(error)}`;
+      const errorMessage: string = wasCancelled 
+        ? 'Request was cancelled by user'
+        : (networkError?.userMessage || `Request failed: ${JSON.stringify(error)}`);
       response.body_path = await ResponseStorageService.saveResponseBody(
         response.id,
         errorMessage
@@ -155,6 +194,8 @@ export class RequestExecutor {
         bodyContent: errorMessage
       };
     } finally {
+      // Remove from active requests
+      RequestExecutor.activeRequests.delete(request.id);
       httpClient.destroy();
     }
   }
@@ -372,10 +413,115 @@ export class RequestExecutor {
   }
 
   /**
-   * Cancel request (placeholder for future implementation)
+   * Cancel an in-flight request
    */
-  static async cancelRequest(requestId: string): Promise<void> {
-    // Will be implemented when we add request tracking
-    console.info(`Cancel request: ${requestId}`);
+  static cancelRequest(requestId: string): boolean {
+    const activeRequest: ActiveRequest | undefined = RequestExecutor.activeRequests.get(requestId);
+    
+    if (!activeRequest) {
+      console.warn(`[RequestExecutor] No active request found for ID: ${requestId}`);
+      return false;
+    }
+
+    try {
+      // Mark as cancelled
+      activeRequest.cancelled = true;
+      
+      // Destroy the HTTP client to abort the request
+      activeRequest.httpClient.destroy();
+      
+      console.info(`[RequestExecutor] Request cancelled: ${requestId}`);
+      return true;
+    } catch (error) {
+      console.error(`[RequestExecutor] Failed to cancel request: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a request is currently active
+   */
+  static isRequestActive(requestId: string): boolean {
+    return RequestExecutor.activeRequests.has(requestId);
+  }
+
+  /**
+   * Get the elapsed time for an active request
+   */
+  static getActiveRequestElapsedTime(requestId: string): number {
+    const activeRequest: ActiveRequest | undefined = RequestExecutor.activeRequests.get(requestId);
+    if (!activeRequest) {
+      return 0;
+    }
+    return Date.now() - activeRequest.startTime;
+  }
+
+  /**
+   * Detect and categorize network errors
+   */
+  private static detectNetworkError(error: Object, url: string): NetworkError | null {
+    const errorStr: string = JSON.stringify(error).toLowerCase();
+    const errorMessage: string = error instanceof Error ? error.message.toLowerCase() : errorStr;
+    
+    // Connection refused
+    if (errorMessage.includes('econnrefused') || errorMessage.includes('connection refused')) {
+      return NetworkError.connectionRefused(url, error instanceof Error ? error : null);
+    }
+    
+    // Host not found
+    if (errorMessage.includes('enotfound') || errorMessage.includes('getaddrinfo') || 
+        errorMessage.includes('host not found')) {
+      const host: string = RequestExecutor.extractHost(url);
+      return NetworkError.hostNotFound(host, error instanceof Error ? error : null);
+    }
+    
+    // Timeout
+    if (errorMessage.includes('etimedout') || errorMessage.includes('timeout') ||
+        errorMessage.includes('esockettimedout')) {
+      return NetworkError.timeout(url, 30000, error instanceof Error ? error : null);
+    }
+    
+    // Network unreachable
+    if (errorMessage.includes('enetunreach') || errorMessage.includes('network is unreachable')) {
+      return NetworkError.networkUnreachable(error instanceof Error ? error : null);
+    }
+    
+    // SSL/TLS errors
+    if (errorMessage.includes('ssl') || errorMessage.includes('certificate') ||
+        errorMessage.includes('tls') || errorMessage.includes('cert')) {
+      return NetworkError.sslError(errorMessage, error instanceof Error ? error : null);
+    }
+    
+    // Connection reset
+    if (errorMessage.includes('econnreset') || errorMessage.includes('connection reset')) {
+      return new NetworkError(
+        'ECONNRESET',
+        `Connection was reset by server: ${url}`,
+        'The connection was unexpectedly closed by the server.',
+        { originalError: error instanceof Error ? error : null, context: url }
+      );
+    }
+    
+    // Generic network error
+    return new NetworkError(
+      'NETWORK_ERROR',
+      `Network error: ${errorMessage}`,
+      'A network error occurred. Please check your connection and try again.',
+      { originalError: error instanceof Error ? error : null, context: url }
+    );
+  }
+
+  /**
+   * Extract host from URL
+   */
+  private static extractHost(url: string): string {
+    try {
+      // Simple extraction without URL class
+      const withoutProtocol: string = url.replace(/^https?:\/\//, '');
+      const hostPart: string = withoutProtocol.split('/')[0] || withoutProtocol;
+      return hostPart.split(':')[0] || hostPart;
+    } catch (error) {
+      return url;
+    }
   }
 }

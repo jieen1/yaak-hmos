@@ -557,6 +557,94 @@ export struct RequestItem {
 
 **Rule:** When `isolatedModules` and `emitDecoratorMetadata` are enabled, types referenced in decorated signatures (@Param, @Local, etc.) must be imported with `import type`.
 
+### 9. Throw Statements (arkts-limited-throw)
+**NEVER throw null, undefined, or arbitrary types. Only throw Error instances.**
+
+ArkTS requires that `throw` statements only accept `Error` instances, not arbitrary types like `null`, `undefined`, or generic caught errors.
+
+❌ **WRONG:**
+```typescript
+let lastError: Error | null = null;
+// ... some code that may set lastError
+throw lastError;  // ERROR: Cannot throw null
+
+// Also wrong:
+try {
+  await operation();
+} catch (error) {
+  throw error;  // ERROR: error is of arbitrary type
+}
+```
+
+✅ **CORRECT:**
+```typescript
+// Initialize with a default Error, never null
+let lastError: Error = new Error('Unknown error');
+// ... some code that may update lastError
+throw lastError;  // OK: Always an Error instance
+
+// For catch blocks, convert to Error first:
+try {
+  await operation();
+} catch (error) {
+  const errorToThrow: Error = error instanceof Error ? error : new Error(String(error));
+  throw errorToThrow;  // OK: Guaranteed to be Error
+}
+```
+
+**Rules:**
+- Never use `Error | null` type for variables that will be thrown
+- Always initialize error variables with a default `new Error()`
+- In catch blocks, convert the caught error to an `Error` instance before re-throwing
+- Use the pattern: `error instanceof Error ? error : new Error(String(error))`
+
+### 10. Object Literals as Return Types (arkts-no-obj-literals-as-types)
+**NEVER use inline object literals as function return type declarations.**
+
+❌ **WRONG:**
+```typescript
+// Inline object literal as return type
+function getStats(): { count: number; total: number; average: number } {
+  return { count: 10, total: 100, average: 10 };
+}
+
+// Also wrong in class methods:
+static getCacheStats(): { entryCount: number; totalSizeBytes: number } {
+  return this.cache.getStats();
+}
+```
+
+✅ **CORRECT:**
+```typescript
+// Define an interface for the return type
+interface Stats {
+  count: number;
+  total: number;
+  average: number;
+}
+
+function getStats(): Stats {
+  const stats: Stats = { count: 10, total: 100, average: 10 };
+  return stats;
+}
+
+// For class methods:
+interface CacheStats {
+  entryCount: number;
+  totalSizeBytes: number;
+}
+
+static getCacheStats(): CacheStats {
+  return this.cache.getStats();
+}
+```
+
+**Rules:**
+- Always define an interface for complex return types
+- Never use `{ prop: type; ... }` syntax in function signatures
+- Export interfaces if they need to be used across files
+- Use the interface name in the return type annotation
+
 ## 📋 Complete Checklist
 
 Before committing code, verify:
@@ -574,6 +662,8 @@ Before committing code, verify:
 - [ ] Map initialization uses helper method, not array literals
 - [ ] Type imports use `import type` for decorated signatures
 - [ ] All object literals in @Param have explicit interface types
+- [ ] Throw statements only throw Error instances (not null or arbitrary types)
+- [ ] No inline object literals as function return types (use interfaces)
 
 ## 🎯 Summary
 
@@ -583,3 +673,5 @@ Before committing code, verify:
 3. Wrap UI components properly in @Builder methods
 4. Import types correctly for decorated properties
 5. Avoid inline operations - create explicit helper methods instead
+6. Only throw Error instances, never null or arbitrary types
+7. Define interfaces for function return types, never use inline object literals
