@@ -12,6 +12,7 @@ import { RequestItemComponent } from './RequestItemComponent';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
 import { ThemedDivider } from './ThemedDivider';
+import { uniformTypeDescriptor } from '@kit.ArkData';
 
 // Drop position type
 type DropPosition = 'before' | 'after' | 'inside';
@@ -43,6 +44,41 @@ export struct SidebarComponent {
 
   @Local filterText: string = '';
   @Local expandedFolders: Set<string> = new Set();
+
+  // Computed property for filtered items - automatically updates when items or filterText changes
+  @Computed
+  get filteredItems(): SidebarItem[] {
+    if (!this.filterText || this.filterText.trim() === '') {
+      return this.items;
+    }
+
+    const searchText: string = this.filterText.toLowerCase();
+    const filtered: SidebarItem[] = [];
+
+    const filterItem = (item: SidebarItem): boolean => {
+      const nameMatch: boolean = item.getName().toLowerCase().includes(searchText);
+
+      // For requests, also check URL
+      if (item.isRequest()) {
+        const request: HttpRequest | null = item.getRequest();
+        const urlMatch: boolean = request ? request.url.toLowerCase().includes(searchText) : false;
+        return nameMatch || urlMatch;
+      }
+
+      // For folders, check if any children match
+      const childrenMatch: boolean = item.children.some((child: SidebarItem) => filterItem(child));
+
+      return nameMatch || childrenMatch;
+    };
+
+    this.items.forEach((item: SidebarItem) => {
+      if (filterItem(item)) {
+        filtered.push(item);
+      }
+    });
+
+    return filtered;
+  }
 
   // Drag and drop state
   @Local isDragging: boolean = false;
@@ -104,15 +140,73 @@ export struct SidebarComponent {
 
       ThemedDivider({})
 
-      // Tree view
+      // Tree view with root-level drop zone
       List() {
-        ForEach(this.getFilteredItems(), (item: SidebarItem, index: number) => {
-          ListItem() {
-            this.buildTreeItem(item, index)
+        Repeat<SidebarItem>(this.filteredItems)
+          .each((obj: RepeatItem<SidebarItem>) => {
+            ListItem() {
+              this.buildTreeItem(obj.item, obj.index)
+            }
+          })
+          .key((item: SidebarItem) => item.getId())
+
+        // Root level drop zone at the end of the list
+        ListItem() {
+          Column() {
+            if (this.isDragging && this.dropTargetId === 'root') {
+              Row()
+                .width('100%')
+                .height(40)
+                .backgroundColor($r('app.color.sidebar_item_selected'))
+                .border({
+                  width: 2,
+                  color: $r('app.color.primary'),
+                  style: BorderStyle.Dashed
+                })
+                .borderRadius($r('app.float.border_radius_sm'))
+            } else if (this.isDragging) {
+              // Show a hint area when dragging
+              Row() {
+                Text('Drop here to move to root')
+                  .fontSize($r('app.float.font_size_sm'))
+                  .fontColor($r('app.color.text_secondary'))
+              }
+              .width('100%')
+              .height(40)
+              .justifyContent(FlexAlign.Center)
+              .backgroundColor($r('app.color.surface'))
+              .borderRadius($r('app.float.border_radius_sm'))
+              .opacity(0.6)
+            }
           }
-        }, (item: SidebarItem) => item.getId())
+          .width('100%')
+          .padding({ top: $r('app.float.spacing_sm') })
+        }
+        .allowDrop([uniformTypeDescriptor.UniformDataType.TEXT])
+        .onDrop((event: DragEvent) => {
+          console.info('[Sidebar] Drop on root level');
+          if (this.isDragging) {
+            this.dropTargetId = 'root';
+            this.dropPosition = 'inside';
+            this.handleDropToRoot();
+          }
+        })
+        .onDragEnter(() => {
+          if (this.isDragging) {
+            this.dropTargetId = 'root';
+            this.dropPosition = 'inside';
+            console.info('[Sidebar] Drag enter root level');
+          }
+        })
+        .onDragLeave(() => {
+          if (this.dropTargetId === 'root') {
+            this.dropTargetId = '';
+            console.info('[Sidebar] Drag leave root level');
+          }
+        })
       }
       .width('100%')
+      .height('100%')
       .layoutWeight(1)
       .padding({
         left: $r('app.float.spacing_sm'),
@@ -135,18 +229,10 @@ export struct SidebarComponent {
   @Builder
   buildTreeItem(item: SidebarItem, index: number) {
     Column() {
-      // Drop indicator before item
-      if (this.isDragging && this.dropTargetId === item.getId() && this.dropPosition === 'before') {
-        Row()
-          .width('100%')
-          .height(2)
-          .backgroundColor($r('app.color.primary'))
-          .margin({ bottom: 2 })
-      }
-
       // Main item content
       if (item.isFolder()) {
         Column() {
+          // Folder item - use border for drop highlight instead of Stack
           FolderItemComponent({
             folder: item.getFolder()!,
             level: item.level,
@@ -181,15 +267,62 @@ export struct SidebarComponent {
             }
           })
 
-          // Show children if expanded
-          if (item.isExpanded) {
-            ForEach(item.children, (child: SidebarItem, childIndex: number) => {
-              this.buildTreeItem(child, childIndex)
-            }, (child: SidebarItem) => child.getId())
+          // Show children if expanded - children are stored in item.children
+          if (item.isExpanded && item.children.length > 0) {
+            Column() {
+              Repeat<SidebarItem>(item.children)
+                .each((childObj: RepeatItem<SidebarItem>) => {
+                  this.buildTreeItem(childObj.item, childObj.index)
+                })
+                .key((child: SidebarItem) => child.getId())
+            }
+            .width('100%')
           }
         }
         .width('100%')
         .opacity(this.isDragging && this.draggedItemId === item.getId() ? 0.5 : 1.0)
+        .backgroundColor(this.isDropTarget(item) ? $r('app.color.sidebar_item_selected') : Color.Transparent)
+        .border({
+          width: this.isDropTarget(item) ? 2 : 0,
+          color: $r('app.color.primary'),
+          style: BorderStyle.Dashed
+        })
+        .borderRadius($r('app.float.border_radius_sm'))
+        .draggable(true)
+        .onDragStart(() => {
+          this.startDrag(item);
+          console.info('[Sidebar] Drag start folder:', item.getId());
+          return undefined;
+        })
+        .onDragEnd(() => {
+          console.info('[Sidebar] Drag end folder:', item.getId());
+          this.resetDragState();
+        })
+        .allowDrop([uniformTypeDescriptor.UniformDataType.TEXT])
+        .onDrop((event: DragEvent) => {
+          console.info('[Sidebar] Drop on folder:', item.getId());
+          if (this.isDragging && this.draggedItemId !== item.getId()) {
+            this.dropTargetId = item.getId();
+            this.dropPosition = 'inside';
+            this.handleDrop();
+          }
+        })
+        .onDragEnter(() => {
+          if (this.isDragging && this.draggedItemId !== item.getId()) {
+            // Check if dragging into a descendant (prevent)
+            if (!this.isDescendant(this.draggedItemId, item.getId())) {
+              this.dropTargetId = item.getId();
+              this.dropPosition = 'inside';
+              console.info('[Sidebar] Drag enter folder:', item.getId());
+            }
+          }
+        })
+        .onDragLeave(() => {
+          if (this.dropTargetId === item.getId()) {
+            this.dropTargetId = '';
+            console.info('[Sidebar] Drag leave folder:', item.getId());
+          }
+        })
       } else if (item.isRequest()) {
         Column() {
           RequestItemComponent({
@@ -223,18 +356,56 @@ export struct SidebarComponent {
         }
         .width('100%')
         .opacity(this.isDragging && this.draggedItemId === item.getId() ? 0.5 : 1.0)
-      }
-
-      // Drop indicator after item
-      if (this.isDragging && this.dropTargetId === item.getId() && this.dropPosition === 'after') {
-        Row()
-          .width('100%')
-          .height(2)
-          .backgroundColor($r('app.color.primary'))
-          .margin({ top: 2 })
+        .draggable(true)
+        .onDragStart(() => {
+          this.startDrag(item);
+          console.info('[Sidebar] Drag start request:', item.getId());
+          return undefined;
+        })
+        .onDragEnd(() => {
+          console.info('[Sidebar] Drag end request:', item.getId());
+          this.resetDragState();
+        })
       }
     }
     .width('100%')
+  }
+
+  /**
+   * Check if item is current drop target
+   */
+  private isDropTarget(item: SidebarItem): boolean {
+    return this.isDragging &&
+      this.dropTargetId === item.getId() &&
+      this.dropPosition === 'inside' &&
+      this.draggedItemId !== item.getId();
+  }
+
+  /**
+   * Check if targetId is a descendant of itemId
+   */
+  private isDescendant(itemId: string, targetId: string): boolean {
+    const item: SidebarItem | null = this.findItemById(itemId);
+    if (!item || !item.isFolder()) {
+      return false;
+    }
+
+    const checkDescendant = (parent: SidebarItem): boolean => {
+      for (let i = 0; i < parent.children.length; i++) {
+        const child: SidebarItem | undefined = parent.children[i];
+        if (child) {
+          if (child.getId() === targetId) {
+            return true;
+          }
+          if (child.isFolder() && checkDescendant(child)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    return checkDescendant(item);
   }
 
   /**
@@ -296,6 +467,37 @@ export struct SidebarComponent {
         );
       }
     }
+
+    this.resetDragState();
+  }
+
+  /**
+   * Handle drop to root level (outside any folder)
+   */
+  private handleDropToRoot(): void {
+    if (!this.isDragging || !this.draggedItemId) {
+      this.resetDragState();
+      return;
+    }
+
+    console.info('[Sidebar] Dropping item to root:', this.draggedItemId);
+
+    // Calculate max sort priority at root level
+    let maxPriority: number = 0;
+    this.items.forEach((item: SidebarItem) => {
+      const priority: number = item.getSortPriority();
+      if (priority > maxPriority) {
+        maxPriority = priority;
+      }
+    });
+
+    // Move to root level (folder_id = null) with priority after all existing items
+    this.onItemMove(
+      this.draggedItemId,
+      this.draggedItemType,
+      null, // null means root level
+      maxPriority + 10
+    );
 
     this.resetDragState();
   }
@@ -392,39 +594,4 @@ export struct SidebarComponent {
     this.dropPosition = 'after';
   }
 
-  /**
-   * Get filtered items based on search text
-   */
-  private getFilteredItems(): SidebarItem[] {
-    if (!this.filterText || this.filterText.trim() === '') {
-      return this.items;
-    }
-
-    const searchText: string = this.filterText.toLowerCase();
-    const filtered: SidebarItem[] = [];
-
-    const filterItem = (item: SidebarItem): boolean => {
-      const nameMatch: boolean = item.getName().toLowerCase().includes(searchText);
-
-      // For requests, also check URL
-      if (item.isRequest()) {
-        const request: HttpRequest | null = item.getRequest();
-        const urlMatch: boolean = request ? request.url.toLowerCase().includes(searchText) : false;
-        return nameMatch || urlMatch;
-      }
-
-      // For folders, check if any children match
-      const childrenMatch: boolean = item.children.some((child: SidebarItem) => filterItem(child));
-
-      return nameMatch || childrenMatch;
-    };
-
-    this.items.forEach((item: SidebarItem) => {
-      if (filterItem(item)) {
-        filtered.push(item);
-      }
-    });
-
-    return filtered;
-  }
 }

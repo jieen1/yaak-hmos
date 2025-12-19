@@ -70,9 +70,6 @@ struct Index {
   @Local isResponseResizing: boolean = false;
   @Local sidebarResizeStartWidth: number = 0;
   @Local responseResizeStartWidth: number = 0;
-  @Local isResponseDragging: boolean = false;
-  @Local responseDragStartX: number = 0;
-  @Local responseDragStartWidth: number = 0;
 
   // Context
   private context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -273,28 +270,40 @@ struct Index {
     }
   }
 
-  // Sidebar Building
+  // Sidebar Building - builds a proper tree structure
   rebuildSidebar(): void {
     const items: SidebarItem[] = [];
-    this.buildSidebarLevel(null, 0, items);
+    this.buildSidebarTree(null, 0, items);
     this.sidebarItems = items;
+    console.info('[Index] Sidebar rebuilt with', items.length, 'root items');
   }
 
-  buildSidebarLevel(parentId: string | null, level: number, result: SidebarItem[]): void {
-    // Add folders at this level
-    const levelFolders: Folder[] = this.folders.filter((f: Folder) => f.folder_id === parentId);
+  /**
+   * Build sidebar tree structure with proper parent-child relationships
+   */
+  buildSidebarTree(parentId: string | null, level: number, result: SidebarItem[]): void {
+    // Get folders at this level, sorted by priority
+    const levelFolders: Folder[] = this.folders
+      .filter((f: Folder) => f.folder_id === parentId)
+      .sort((a: Folder, b: Folder) => a.sort_priority - b.sort_priority);
+
+    // Get requests at this level, sorted by priority
+    const levelRequests: HttpRequest[] = this.requests
+      .filter((r: HttpRequest) => r.folder_id === parentId)
+      .sort((a: HttpRequest, b: HttpRequest) => a.sort_priority - b.sort_priority);
+
+    // Add folders with their children
     levelFolders.forEach((folder: Folder) => {
-      const item: SidebarItem = new SidebarItem('folder', folder, level);
-      result.push(item);
-      // Recursively add children
-      this.buildSidebarLevel(folder.id, level + 1, result);
+      const folderItem: SidebarItem = new SidebarItem('folder', folder, level);
+      // Build children into the folder's children array
+      this.buildSidebarTree(folder.id, level + 1, folderItem.children);
+      result.push(folderItem);
     });
 
     // Add requests at this level
-    const levelRequests: HttpRequest[] = this.requests.filter((r: HttpRequest) => r.folder_id === parentId);
     levelRequests.forEach((request: HttpRequest) => {
-      const item: SidebarItem = new SidebarItem('request', request, level);
-      result.push(item);
+      const requestItem: SidebarItem = new SidebarItem('request', request, level);
+      result.push(requestItem);
     });
   }
 
@@ -884,6 +893,25 @@ struct Index {
   @Builder
   buildMainContent() {
     Row() {
+      // Sidebar toggle button when hidden
+      if (this.sidebarHidden) {
+        Column() {
+          Text('☰')
+            .fontSize(20)
+            .fontColor($r('app.color.text_secondary'))
+            .onClick(() => {
+              this.sidebarHidden = false;
+              this.saveSidebarHidden(false);
+            })
+        }
+        .width(32)
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor($r('app.color.sidebar_background'))
+        .borderWidth({ right: 1 })
+        .borderColor($r('app.color.divider'))
+      }
+
       // Sidebar with ResizeHandle
       if (!this.sidebarHidden) {
         Column() {
@@ -908,6 +936,10 @@ struct Index {
         .width(this.sidebarWidth)
         .height('100%')
         .backgroundColor($r('app.color.sidebar_background'))
+        .animation({
+          duration: 200,
+          curve: Curve.EaseOut
+        })
 
         // Resize Handle for Sidebar
         ResizeHandle({
@@ -942,54 +974,14 @@ struct Index {
 
       // Response Viewer (conditionally rendered)
       if (!this.responseViewerHidden) {
-        // Resize Handle for Response
-        Column() {
-          Column()
-            .width(2)
-            .height('100%')
-            .backgroundColor(this.isResponseDragging ? $r('app.color.primary') : $r('app.color.divider'))
-        }
-        .width(8)
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .backgroundColor(Color.Transparent)
-        .gesture(
-          PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 1 })
-            .onActionStart((event: GestureEvent) => {
-              if (event.fingerList && event.fingerList.length > 0) {
-                const finger = event.fingerList[0];
-                if (finger) {
-                  this.isResponseDragging = true;
-                  this.responseDragStartX = finger.globalX;
-                  this.responseDragStartWidth = this.responseWidth;
-                }
-              }
-            })
-            .onActionUpdate((event: GestureEvent) => {
-              if (this.isResponseDragging && event.fingerList && event.fingerList.length > 0) {
-                const finger = event.fingerList[0];
-                if (finger) {
-                  const currentX: number = finger.globalX;
-                  const deltaX: number = this.responseDragStartX - currentX;
-                  let newWidth: number = this.responseDragStartWidth + deltaX;
-
-                  // Apply constraints
-                  if (newWidth < 300) {
-                    newWidth = 300;
-                  } else if (newWidth > 800) {
-                    newWidth = 800;
-                  }
-
-                  this.responseWidth = newWidth;
-                }
-              }
-            })
-            .onActionEnd(() => {
-              this.isResponseDragging = false;
-              // Save to persistent storage
-              this.saveResponseWidth(this.responseWidth);
-            })
-        )
+        // Resize Handle for Response - using same ResizeHandle component as sidebar
+        ResizeHandle({
+          side: 'left',
+          onResizeStart: this.handleResponseResizeStart,
+          onResizeMove: this.handleResponseResizeMove,
+          onResizeEnd: this.handleResponseResizeEnd,
+          onReset: this.handleResponseReset
+        })
 
         // Response Viewer
         Column() {
@@ -1005,6 +997,10 @@ struct Index {
         .width(this.responseWidth)
         .height('100%')
         .backgroundColor($r('app.color.background'))
+        .animation({
+          duration: 200,
+          curve: Curve.EaseOut
+        })
       }
     }
     .width('100%')
@@ -1127,6 +1123,53 @@ struct Index {
     // Persist to preferences
     this.saveSidebarWidth(this.sidebarWidth);
     this.saveSidebarHidden(this.sidebarHidden);
+  }
+
+  // Response Viewer Resize Handlers
+  handleResponseResizeStart = (): void => {
+    this.responseResizeStartWidth = this.responseWidth;
+    this.isResponseResizing = true;
+    console.info('[Index] Response resize started, initial width:', this.responseWidth);
+  }
+
+  handleResponseResizeMove = (event: ResizeEvent): void => {
+    // For left-side handle, negative delta increases width
+    const delta: number = event.xStart - event.x;
+    let newWidth: number = this.responseResizeStartWidth + delta;
+
+    // Check for auto-hide (width < 50px)
+    if (newWidth < 50) {
+      this.responseViewerHidden = true;
+      this.responseWidth = 350; // Reset to default
+      console.info('[Index] Response viewer auto-hidden, width reset to 350px');
+    } else {
+      // Apply constraints: min 200px, max 800px
+      if (newWidth < 200) {
+        newWidth = 200;
+      } else if (newWidth > 800) {
+        newWidth = 800;
+      }
+      this.responseWidth = newWidth;
+    }
+  }
+
+  handleResponseResizeEnd = (): void => {
+    this.isResponseResizing = false;
+    console.info('[Index] Response resize ended, final width:', this.responseWidth);
+    
+    // Persist to preferences
+    this.saveResponseWidth(this.responseWidth);
+    this.saveResponseViewerHidden(this.responseViewerHidden);
+  }
+
+  handleResponseReset = (): void => {
+    this.responseWidth = 350;
+    this.responseViewerHidden = false;
+    console.info('[Index] Response width reset to default: 350px');
+    
+    // Persist to preferences
+    this.saveResponseWidth(this.responseWidth);
+    this.saveResponseViewerHidden(this.responseViewerHidden);
   }
 
   // Request Management Handlers
