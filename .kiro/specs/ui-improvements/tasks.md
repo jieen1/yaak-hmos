@@ -18,7 +18,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 1. Create ResizeHandle Component
 
-- [ ] 1.1 Create ResizeHandle.ets component file
+- [x] 1.1 Create ResizeHandle.ets component file
   - Implement PanGesture for drag detection
   - Track start position and calculate delta
   - Emit resize events with coordinates
@@ -26,7 +26,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Support double-tap to reset
   - _Requirements: 1.1, 1.2, 1.7_
 
-- [ ] 1.2 Add ResizeHandle to Index.ets
+- [x] 1.2 Add ResizeHandle to Index.ets
   - Position handle between sidebar and main content
   - Wire up event handlers
   - Test drag functionality
@@ -34,26 +34,26 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 2. Implement Sidebar Width Management
 
-- [ ] 2.1 Add sidebar width state to Index.ets
+- [x] 2.1 Add sidebar width state to Index.ets
   - Add @Local sidebarWidth: number = 250
   - Add @Local sidebarHidden: boolean = false
   - Add @Local isResizing: boolean = false
   - _Requirements: 1.1, 1.4, 1.8_
 
-- [ ] 2.2 Implement resize event handlers
+- [x] 2.2 Implement resize event handlers
   - handleResizeStart() - Store initial width
   - handleResizeMove() - Calculate and apply new width
   - handleResizeEnd() - Persist to preferences
   - handleResetWidth() - Reset to default 250px
   - _Requirements: 1.1, 1.2, 1.3, 1.7_
 
-- [ ] 2.3 Add auto-hide logic
+- [x] 2.3 Add auto-hide logic
   - Check if width < 50px during resize
   - Set sidebarHidden = true
   - Reset width to 250px
   - _Requirements: 1.3_
 
-- [ ] 2.4 Implement width persistence
+- [x] 2.4 Implement width persistence
   - Load width from preferences on init
   - Save width to preferences on resize end
   - Key by workspace ID: `sidebar_width_${workspaceId}`
@@ -62,14 +62,14 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 3. Create ContentTypeDetector Service
 
-- [ ] 3.1 Create ContentTypeDetector.ets service file
+- [x] 3.1 Create ContentTypeDetector.ets service file
   - Implement detect() method
   - Parse Content-Type header
   - Implement MIME type mapping
   - Add content-based detection fallback
   - _Requirements: 2.1-2.10, 2.18_
 
-- [ ] 3.2 Add content type mapping table
+- [x] 3.2 Add content type mapping table
   - Map application/json → text viewer, json language
   - Map text/html → text viewer, html language
   - Map text/xml, application/xml → text viewer, xml language
@@ -79,7 +79,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Map application/pdf → pdf viewer
   - _Requirements: 2.1-2.10_
 
-- [ ] 3.3 Implement content-based detection
+- [x] 3.3 Implement content-based detection
   - Check first 20 bytes of content
   - Detect JSON by { or [ prefix
   - Detect HTML by <!doctype or <html prefix
@@ -89,14 +89,14 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 4. Set Up Preferences API Integration
 
-- [ ] 4.1 Create PreferencesService.ets utility
+- [x] 4.1 Create PreferencesService.ets utility
   - Wrap preferences API for easier use
   - Implement get/set/flush methods
   - Add type-safe getters
   - Handle errors gracefully
   - _Requirements: 1.6, 2.19_
 
-- [ ] 4.2 Add preference keys constants
+- [x] 4.2 Add preference keys constants
   - SIDEBAR_WIDTH_PREFIX = 'sidebar_width_'
   - SIDEBAR_HIDDEN_PREFIX = 'sidebar_hidden_'
   - VIEW_MODE_PREFIX = 'view_mode_'
@@ -109,7 +109,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 5. Create Base Response Viewer Components
 
-- [ ] 5.1 Create ResponseViewer.ets component
+- [x] 5.1 Create ResponseViewer.ets component
   - Add @Param response: HttpResponse
   - Add @Local viewMode: 'pretty' | 'raw'
   - Add @Local activeTab: 'body' | 'headers' | 'info'
@@ -118,14 +118,14 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Load response body from file
   - _Requirements: 2.1-2.19, 4.1-4.10_
 
-- [ ] 5.2 Implement response header display
+- [x] 5.2 Implement response header display
   - Show HTTP status code with color coding
   - Show elapsed time (headers + total)
   - Show response size
   - Add loading indicator for in-progress requests
   - _Requirements: 4.1-4.6, 7.1-7.3_
 
-- [ ] 5.3 Implement tab navigation
+- [x] 5.3 Implement tab navigation
   - Create Tabs component with Body/Headers/Info
   - Persist active tab per request ID
   - Show count badge on Headers tab
@@ -134,7 +134,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 6. Implement Text Viewer with Syntax Highlighting
 
-- [ ] 6.1 Create TextViewer.ets component
+- [x] 6.1 Create TextViewer.ets component
   - Add @Param text: string
   - Add @Param language: 'json' | 'xml' | 'html' | 'text'
   - Add @Param pretty: boolean
@@ -143,21 +143,21 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Implement syntax highlighting for HTML
   - _Requirements: 2.1, 2.3, 2.4, 2.11, 2.12_
 
-- [ ] 6.2 Add formatting logic
+- [x] 6.2 Add formatting logic
   - Format JSON with indentation in pretty mode
   - Format XML with indentation in pretty mode
   - Format HTML with indentation in pretty mode
   - Show raw text in raw mode
   - _Requirements: 2.12, 2.13_
 
-- [ ] 6.3 Add view mode toggle
+- [x] 6.3 Add view mode toggle
   - Create mode selector UI (Pretty/Raw buttons)
   - Wire up mode change handler
   - Persist mode to preferences
   - Hide toggle for non-text content
   - _Requirements: 2.11, 2.12, 2.13, 2.19_
 
-- [ ] 6.4 Add large response confirmation
+- [x] 6.4 Add large response confirmation
   - Check content length before rendering
   - Show dialog if > 1MB
   - Provide "Show Response" and "Cancel" buttons
@@ -165,7 +165,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 7. Implement Media Viewers
 
-- [ ] 7.1 Create ImageViewer.ets component
+- [x] 7.1 Create ImageViewer.ets component
   - Add @Param imagePath: string
   - Load image from file path
   - Display image with proper scaling
@@ -173,14 +173,14 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Support pinch-to-zoom gesture
   - _Requirements: 2.5_
 
-- [ ] 7.2 Create VideoViewer.ets component
+- [x] 7.2 Create VideoViewer.ets component
   - Add @Param videoPath: string
   - Use HarmonyOS Video component
   - Add playback controls
   - Show duration and progress
   - _Requirements: 2.6_
 
-- [ ] 7.3 Create AudioViewer.ets component
+- [x] 7.3 Create AudioViewer.ets component
   - Add @Param audioPath: string
   - Use HarmonyOS Audio component
   - Add playback controls
@@ -211,20 +211,20 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 9. Integrate Response Viewer into Index.ets
 
-- [ ] 9.1 Replace existing response display with ResponseViewer
+- [x] 9.1 Replace existing response display with ResponseViewer
   - Import ResponseViewer component
   - Pass current response as prop
   - Remove old response display code
   - Test with different content types
   - _Requirements: 2.1-2.19_
 
-- [ ] 9.2 Add response state handling
+- [x] 9.2 Add response state handling
   - Show loading indicator when state = 'initialized'
   - Show "Empty" message when content_length = 0
   - Show error banner when response has error
   - _Requirements: 2.15, 2.16, 2.17, 4.10_
 
-- [ ] 9.3 Test response viewer with various content types
+- [x] 9.3 Test response viewer with various content types
   - Test JSON response
   - Test XML response
   - Test HTML response
@@ -239,7 +239,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 10. Create Context Menu Component
 
-- [ ] 10.1 Create ContextMenu.ets component
+- [x] 10.1 Create ContextMenu.ets component
   - Add @Param items: ContextMenuItem[]
   - Add @Param visible: boolean
   - Add @Param position: { x, y }
@@ -250,7 +250,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Add danger styling for delete
   - _Requirements: 3.1-3.7_
 
-- [ ] 10.2 Create RequestContextMenu.ets component
+- [x] 10.2 Create RequestContextMenu.ets component
   - Extend ContextMenu with request-specific items
   - Add "Send" action
   - Add "Rename" action
@@ -259,7 +259,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Add "Delete" action
   - _Requirements: 3.1-3.7_
 
-- [ ] 10.3 Create FolderContextMenu.ets component
+- [x] 10.3 Create FolderContextMenu.ets component
   - Extend ContextMenu with folder-specific items
   - Add "Folder Settings" action
   - Add "Send All" action
@@ -272,20 +272,20 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 11. Implement Rename Functionality
 
-- [ ] 11.1 Add rename state to RequestTreeItem
+- [x] 11.1 Add rename state to RequestTreeItem
   - Add @Local isRenaming: boolean = false
   - Add @Local editingName: string = ''
   - Show text input when isRenaming = true
   - _Requirements: 3.8-3.12_
 
-- [ ] 11.2 Implement rename UI
+- [x] 11.2 Implement rename UI
   - Show inline text input with current name
   - Focus input and select all text
   - Handle Enter key to confirm
   - Handle Escape key to cancel
   - _Requirements: 3.9, 3.10, 3.11_
 
-- [ ] 11.3 Implement rename save logic
+- [x] 11.3 Implement rename save logic
   - Validate name is not empty
   - Update request in database
   - Update UI immediately
@@ -294,14 +294,14 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 12. Implement Duplicate Functionality
 
-- [ ] 12.1 Create duplicateRequest method
+- [x] 12.1 Create duplicateRequest method
   - Copy all request properties
   - Generate new unique ID
   - Add " (Copy)" suffix to name
   - Set created_at and updated_at to now
   - _Requirements: 3.13, 3.14, 3.15_
 
-- [ ] 12.2 Implement duplicate save logic
+- [x] 12.2 Implement duplicate save logic
   - Insert new request into database
   - Calculate sort priority (after original)
   - Navigate to new request
@@ -310,13 +310,13 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 13. Implement Delete Functionality
 
-- [ ] 13.1 Create delete confirmation dialog
+- [x] 13.1 Create delete confirmation dialog
   - Show AlertDialog with request name
   - Add "Cancel" button
   - Add "Delete" button (danger style)
   - _Requirements: 3.18_
 
-- [ ] 13.2 Implement delete logic
+- [x] 13.2 Implement delete logic
   - Delete request from database
   - Remove from UI
   - Select next available request
@@ -348,19 +348,19 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 15. Implement Drag and Drop
 
-- [ ] 15.1 Add drag gesture to RequestTreeItem
+- [x] 15.1 Add drag gesture to RequestTreeItem
   - Detect PanGesture start
   - Show drag preview
   - Track drag position
   - _Requirements: 3.27_
 
-- [ ] 15.2 Implement drop target highlighting
+- [x] 15.2 Implement drop target highlighting
   - Highlight folder when dragged over
   - Show drop indicator between items
   - Calculate drop position (before/after/inside)
   - _Requirements: 3.28_
 
-- [ ] 15.3 Implement drop logic
+- [x] 15.3 Implement drop logic
   - Move request to folder if dropped on folder
   - Reorder request if dropped between items
   - Update sortPriority values
@@ -369,22 +369,22 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 16. Add Keyboard Shortcuts
 
-- [ ] 16.1 Implement F2 for rename
+- [x] 16.1 Implement F2 for rename
   - Detect F2 key press when request focused
   - Start rename operation
   - _Requirements: 3.33_
 
-- [ ] 16.2 Implement Delete key for delete
+- [x] 16.2 Implement Delete key for delete
   - Detect Delete key press when request focused
   - Show delete confirmation
   - _Requirements: 3.34_
 
-- [ ] 16.3 Implement Ctrl+D for duplicate
+- [x] 16.3 Implement Ctrl+D for duplicate
   - Detect Ctrl+D key press when request focused
   - Duplicate request
   - _Requirements: 3.35_
 
-- [ ] 16.4 Implement Enter for send
+- [x] 16.4 Implement Enter for send
   - Detect Enter key press when request focused
   - Send HTTP request
   - _Requirements: 3.36_
@@ -392,17 +392,17 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 17. Implement Request Status Indicators
 
-- [ ] 17.1 Add loading indicator to RequestTreeItem
+- [x] 17.1 Add loading indicator to RequestTreeItem
   - Show spinner when request is executing
   - Position next to request name
   - _Requirements: 7.1, 7.6_
 
-- [ ] 17.2 Add status code badge
+- [x] 17.2 Add status code badge
   - Show HTTP status code after request completes
   - Color code by status range (2xx=green, 4xx=orange, 5xx=red)
   - _Requirements: 7.2, 7.3_
 
-- [ ] 17.3 Add HTTP method tag
+- [x] 17.3 Add HTTP method tag
   - Show method badge (GET, POST, etc.)
   - Color code by method (GET=blue, POST=green, DELETE=red)
   - _Requirements: 7.4_
@@ -418,7 +418,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 18. Implement Sidebar Tree Navigation
 
-- [ ] 18.1 Add keyboard navigation
+- [x] 18.1 Add keyboard navigation
   - Implement Up/Down arrow navigation
   - Implement Right arrow to expand folder
   - Implement Left arrow to collapse folder
@@ -426,7 +426,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Implement Space to send request
   - _Requirements: 6.2, 6.3, 6.4, 6.5, 6.6_
 
-- [ ] 18.2 Implement filter functionality
+- [x] 18.2 Implement filter functionality
   - Add filter input at top of sidebar
   - Filter requests by name/URL in real-time
   - Show folders if any child matches
@@ -434,7 +434,7 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
   - Clear filter on Escape
   - _Requirements: 6.7, 6.8, 6.9, 6.10_
 
-- [ ] 18.3 Add focus management
+- [x] 18.3 Add focus management
   - Highlight active request
   - Show focus indicator
   - Support tab navigation
@@ -442,13 +442,13 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 19. Add Response History Support
 
-- [ ] 19.1 Create response history dropdown
+- [x] 19.1 Create response history dropdown
   - Show list of recent responses
   - Display timestamp for each
   - Limit to 10 most recent
   - _Requirements: 5.1, 5.2, 5.6_
 
-- [ ] 19.2 Implement response selection
+- [x] 19.2 Implement response selection
   - Allow selecting historical response
   - Display selected response
   - Show indicator that it's not latest
@@ -458,25 +458,25 @@ This implementation plan breaks down the UI improvements into manageable tasks, 
 
 ### 20. Performance Optimization
 
-- [ ] 20.1 Optimize sidebar resize performance
+- [x] 20.1 Optimize sidebar resize performance
   - Disable transitions during drag
   - Use @Local for immediate updates
   - Throttle preference saves
   - _Requirements: Performance - 60fps_
 
-- [ ] 20.2 Optimize response viewer performance
+- [x] 20.2 Optimize response viewer performance
   - Implement large response confirmation
   - Lazy load syntax highlighting
   - Cache formatted content
   - _Requirements: Performance - <500ms formatting_
 
-- [ ] 20.3 Optimize tree rendering
+- [x] 20.3 Optimize tree rendering
   - Use LazyForEach for tree items
   - Implement viewport culling
   - Cache tree node calculations
   - _Requirements: Performance - <100ms rendering_
 
-- [ ] 20.4 Optimize database operations
+- [x] 20.4 Optimize database operations
   - Batch update operations
   - Use transactions for multiple updates
   - Add indexes on commonly queried fields

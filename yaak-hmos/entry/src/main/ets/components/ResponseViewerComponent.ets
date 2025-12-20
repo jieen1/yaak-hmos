@@ -21,11 +21,24 @@ export struct ResponseViewerComponent {
   @Local viewMode: string = 'pretty'; // 'pretty' or 'raw'
   @Local contentTypeInfo: ContentTypeInfo | null = null;
   @Local showHistory: boolean = false;
+  @Local showLargeResponseConfirmed: boolean = false; // Large response confirmation state
+  
+  // Large response threshold: 1MB
+  private static readonly LARGE_RESPONSE_THRESHOLD: number = 1024 * 1024;
   
   private preferencesService: PreferencesService = PreferencesService.getInstance();
 
   async aboutToAppear(): Promise<void> {
     await this.loadPreferences();
+    this.detectContentType();
+  }
+
+  /**
+   * Reset large response confirmation when response changes
+   */
+  @Monitor('response', 'responseBody')
+  onResponseChange(): void {
+    this.showLargeResponseConfirmed = false;
     this.detectContentType();
   }
 
@@ -427,7 +440,51 @@ export struct ResponseViewerComponent {
 
   @Builder
   buildContentViewer() {
-    if (!this.contentTypeInfo) {
+    // Check for large response that needs confirmation
+    if (this.isLargeResponse() && !this.showLargeResponseConfirmed) {
+      Column() {
+        Text('⚠️ Large Response')
+          .fontSize($r('app.float.font_size_lg'))
+          .fontColor($r('app.color.warning'))
+          .fontWeight(FontWeight.Bold)
+          .margin({ bottom: $r('app.float.spacing_md') })
+
+        Text(`Response size: ${this.formatSize(this.responseBody.length)}`)
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_secondary'))
+          .margin({ bottom: $r('app.float.spacing_sm') })
+
+        Text('Large responses may affect performance.')
+          .fontSize($r('app.float.font_size_sm'))
+          .fontColor($r('app.color.text_secondary'))
+          .margin({ bottom: $r('app.float.spacing_lg') })
+
+        Row() {
+          Button('Show Response')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.button_text'))
+            .backgroundColor($r('app.color.primary'))
+            .height(40)
+            .onClick(() => {
+              this.showLargeResponseConfirmed = true;
+            })
+
+          Button('Cancel')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.text_primary'))
+            .backgroundColor($r('app.color.surface_highlight'))
+            .height(40)
+            .margin({ left: $r('app.float.spacing_md') })
+            .onClick(() => {
+              // Stay on confirmation screen
+            })
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+    } else if (!this.contentTypeInfo) {
       Column() {
         Text('No content to display')
           .fontSize($r('app.float.font_size_md'))
@@ -487,6 +544,13 @@ export struct ResponseViewerComponent {
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
     }
+  }
+
+  /**
+   * Check if response is larger than threshold
+   */
+  private isLargeResponse(): boolean {
+    return this.responseBody.length > ResponseViewerComponent.LARGE_RESPONSE_THRESHOLD;
   }
 
   private getTextLanguage(): 'json' | 'xml' | 'html' | 'text' {
