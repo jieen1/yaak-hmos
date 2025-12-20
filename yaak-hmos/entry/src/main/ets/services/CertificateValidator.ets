@@ -197,50 +197,6 @@ export class CertificateValidator {
     }
     return null;
   }
-
-  /**
-   * Parse host and port from URL
-   * @param url The URL to parse
-   * @returns Object with host and port
-   */
-  parseHostPort(url: string): { host: string; port: number } {
-    try {
-      // Simple URL parsing
-      let host: string = '';
-      let port: number = 443; // Default HTTPS port
-
-      // Remove protocol
-      let urlWithoutProtocol: string = url;
-      if (url.startsWith('https://')) {
-        urlWithoutProtocol = url.substring(8);
-        port = 443;
-      } else if (url.startsWith('http://')) {
-        urlWithoutProtocol = url.substring(7);
-        port = 80;
-      }
-
-      // Extract host and port
-      const pathIndex: number = urlWithoutProtocol.indexOf('/');
-      const hostPart: string = pathIndex >= 0 ? urlWithoutProtocol.substring(0, pathIndex) : urlWithoutProtocol;
-
-      const portIndex: number = hostPart.indexOf(':');
-      if (portIndex >= 0) {
-        host = hostPart.substring(0, portIndex);
-        const portStr: string = hostPart.substring(portIndex + 1);
-        const parsedPort: number = parseInt(portStr, 10);
-        if (!isNaN(parsedPort)) {
-          port = parsedPort;
-        }
-      } else {
-        host = hostPart;
-      }
-
-      return { host, port };
-    } catch (error) {
-      console.error('[CertificateValidator] Failed to parse URL:', JSON.stringify(error));
-      return { host: '', port: 443 };
-    }
-  }
 }
 
 export type { CertificateException, ValidationResult };

@@ -8,6 +8,14 @@ import { BaseRepository } from './BaseRepository';
 import { HttpResponse, ResponseHeader } from '../model/HttpResponse';
 import { ResponseState } from '../model/Types';
 
+/**
+ * Plain header object for JSON serialization (without @Trace decorators)
+ */
+interface PlainHeader {
+  name: string;
+  value: string;
+}
+
 export class ResponseRepository extends BaseRepository {
   constructor() {
     super('http_responses');
@@ -83,6 +91,13 @@ export class ResponseRepository extends BaseRepository {
     response.id = response.id || this.generateId('res');
     response.created_at = this.getCurrentTimestamp();
 
+    // Convert headers to plain objects to avoid @Trace serialization issues
+    const plainHeaders: PlainHeader[] = [];
+    response.headers.forEach((h: ResponseHeader) => {
+      const plainHeader: PlainHeader = { name: h.name, value: h.value };
+      plainHeaders.push(plainHeader);
+    });
+
     const valueBucket: relationalStore.ValuesBucket = {
       id: response.id,
       model: response.model,
@@ -90,7 +105,7 @@ export class ResponseRepository extends BaseRepository {
       created_at: response.created_at,
       status_code: response.status_code,
       status_text: response.status_text,
-      headers: this.stringifyJson(response.headers),
+      headers: this.stringifyJson(plainHeaders),
       body_path: response.body_path,
       elapsed_time: response.elapsed_time,
       size: response.size,
@@ -179,7 +194,21 @@ export class ResponseRepository extends BaseRepository {
     response.status_text = resultSet.getString(resultSet.getColumnIndex('status_text'));
     
     const headersStr = resultSet.getString(resultSet.getColumnIndex('headers'));
-    response.headers = this.parseJson(headersStr, []);
+    console.info('[ResponseRepository] Loading headers from DB, raw string:', headersStr);
+    const parsedHeaders: ESObject[] = this.parseJson(headersStr, []);
+    console.info('[ResponseRepository] Parsed headers count:', parsedHeaders.length);
+    
+    // Ensure headers are properly typed ResponseHeader instances
+    // Handle both normal properties (name, value) and @Trace decorated properties (__ob_name, __ob_value)
+    response.headers = [];
+    parsedHeaders.forEach((h: ESObject) => {
+      const header: ResponseHeader = new ResponseHeader();
+      // Check for @Trace decorated property names first, then fall back to normal names
+      header.name = (h['__ob_name'] as string) || (h['name'] as string) || '';
+      header.value = (h['__ob_value'] as string) || (h['value'] as string) || '';
+      response.headers.push(header);
+    });
+    console.info('[ResponseRepository] Final headers count:', response.headers.length);
     
     response.body_path = resultSet.getString(resultSet.getColumnIndex('body_path'));
     response.elapsed_time = resultSet.getLong(resultSet.getColumnIndex('elapsed_time'));

@@ -4,9 +4,7 @@
  */
 
 import { HttpRequest } from '../model/HttpRequest';
-import { HttpMethod } from '../model/Types';
 import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
-import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
 import { QueryParamsEditor } from './QueryParamsEditor';
@@ -14,7 +12,31 @@ import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
 import { CurlImporter } from '../services/CurlImporter';
-import promptAction from '@ohos.promptAction';
+import { PromptAction } from '@ohos.arkui.UIContext';
+import { promptAction } from '@kit.ArkUI';
+
+/**
+ * Get color for HTTP method
+ */
+function getMethodColor(method: string): string {
+  const m: string = method.toUpperCase();
+  if (m === 'GET') {
+    return '#7c3aed'; // primary/purple
+  } else if (m === 'POST') {
+    return '#22c55e'; // success/green
+  } else if (m === 'PUT') {
+    return '#f59e0b'; // warning/amber
+  } else if (m === 'PATCH') {
+    return '#f97316'; // notice/orange
+  } else if (m === 'DELETE') {
+    return '#ef4444'; // danger/red
+  } else if (m === 'HEAD') {
+    return '#6b7280'; // subtle/gray
+  } else if (m === 'OPTIONS') {
+    return '#3b82f6'; // info/blue
+  }
+  return '#6b7280'; // default gray
+}
 
 @ComponentV2
 export struct RequestEditorComponent {
@@ -32,33 +54,39 @@ export struct RequestEditorComponent {
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
 
-  private methodOptions: SelectOption[] = [
-    { label: 'GET', value: 'GET' },
-    { label: 'POST', value: 'POST' },
-    { label: 'PUT', value: 'PUT' },
-    { label: 'DELETE', value: 'DELETE' },
-    { label: 'PATCH', value: 'PATCH' },
-    { label: 'HEAD', value: 'HEAD' },
-    { label: 'OPTIONS', value: 'OPTIONS' }
-  ];
+  aboutToAppear(): void {
+  }
+
+  /**
+   * Get current method color
+   */
+  private getCurrentMethodColor(): string {
+    return getMethodColor(this.request.method);
+  }
 
   build() {
     Column() {
       // Request line (Method, URL, Send button)
       Row() {
-        // Method selector
-        ThemedSelect({
-          options: this.methodOptions,
-          selectedValue: this.request.method,
-          onSelectChange: (value: string) => {
-            this.request.method = value as HttpMethod;
-            this.onChange(this.request);
-          },
-          selectSize: 'md'
+        // Method selector with colored text
+        Row() {
+          Text(this.request.method)
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor(this.getCurrentMethodColor())
+            .fontWeight(FontWeight.Bold)
+            .fontFamily('monospace')
+        }
+        .width(80)
+        .height(36)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor($r('app.color.surface'))
+        .borderRadius($r('app.float.border_radius_sm'))
+        .border({
+          width: 1,
+          color: $r('app.color.border')
         })
-          .width(100)
-          .flexShrink(0)
-          .margin({ right: $r('app.float.spacing_sm') })
+        .margin({ right: $r('app.float.spacing_sm') })
+        .bindMenu(this.buildMethodMenu())
 
         // URL input
         ThemedTextInput({
@@ -71,21 +99,6 @@ export struct RequestEditorComponent {
         })
           .layoutWeight(1)
           .margin({ right: $r('app.float.spacing_sm') })
-
-        // Copy as cURL button
-        Button() {
-          Text('📋')
-            .fontSize(18)
-        }
-        .type(ButtonType.Normal)
-        .backgroundColor($r('app.color.surface'))
-        .borderRadius($r('app.float.border_radius_sm'))
-        .width(36)
-        .height(36)
-        .margin({ right: $r('app.float.spacing_xs') })
-        .onClick(() => {
-          this.onCopyAsCurl();
-        })
 
         // Send/Cancel button
         if (this.isLoading) {
@@ -188,6 +201,57 @@ export struct RequestEditorComponent {
   }
 
   /**
+   * Build method menu items
+   */
+  @Builder
+  buildMethodMenu() {
+    Menu() {
+      MenuItem({ content: 'GET' })
+        .contentFontColor(getMethodColor('GET'))
+        .onClick(() => {
+          this.request.method = 'GET';
+          this.onChange(this.request);
+        })
+      MenuItem({ content: 'POST' })
+        .contentFontColor(getMethodColor('POST'))
+        .onClick(() => {
+          this.request.method = 'POST';
+          this.onChange(this.request);
+        })
+      MenuItem({ content: 'PUT' })
+        .contentFontColor(getMethodColor('PUT'))
+        .onClick(() => {
+          this.request.method = 'PUT';
+          this.onChange(this.request);
+        })
+      MenuItem({ content: 'DELETE' })
+        .contentFontColor(getMethodColor('DELETE'))
+        .onClick(() => {
+          this.request.method = 'DELETE';
+          this.onChange(this.request);
+        })
+      MenuItem({ content: 'PATCH' })
+        .contentFontColor(getMethodColor('PATCH'))
+        .onClick(() => {
+          this.request.method = 'PATCH';
+          this.onChange(this.request);
+        })
+      MenuItem({ content: 'HEAD' })
+        .contentFontColor(getMethodColor('HEAD'))
+        .onClick(() => {
+          this.request.method = 'HEAD';
+          this.onChange(this.request);
+        })
+      MenuItem({ content: 'OPTIONS' })
+        .contentFontColor(getMethodColor('OPTIONS'))
+        .onClick(() => {
+          this.request.method = 'OPTIONS';
+          this.onChange(this.request);
+        })
+    }
+  }
+
+  /**
    * Handle URL input change with cURL auto-detection
    */
   private handleUrlChange(value: string): void {
@@ -211,7 +275,7 @@ export struct RequestEditorComponent {
    */
   private showCurlImportConfirmation(curlCommand: string): void {
     try {
-      promptAction.showDialog({
+      new PromptAction().showDialog({
         title: 'cURL Detected',
         message: 'A cURL command was detected. Would you like to import it?',
         buttons: [
@@ -271,7 +335,7 @@ export struct RequestEditorComponent {
    */
   private showToast(message: string): void {
     try {
-      promptAction.showToast({
+      new PromptAction().showToast({
         message: message,
         duration: 2000
       });

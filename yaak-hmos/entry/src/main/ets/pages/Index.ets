@@ -345,7 +345,7 @@ struct Index {
     request.id = `req_${Date.now()}`;
     request.workspace_id = this.selectedWorkspace.id;
     request.name = 'New Request';
-    request.url = 'https://api.example.com';
+    request.url = '';
     request.method = 'GET';
     request.created_at = Date.now();
     request.updated_at = Date.now();

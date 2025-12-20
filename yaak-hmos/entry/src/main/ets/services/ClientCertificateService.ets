@@ -26,6 +26,11 @@ interface CertificateMatchResult {
   certificate: ClientCertificate | null;
 }
 
+interface HostPort {
+  host: string;
+  port: number;
+}
+
 export class ClientCertificateService {
   private static instance: ClientCertificateService | null = null;
   
@@ -229,7 +234,7 @@ export class ClientCertificateService {
    * @param url The URL to parse
    * @returns Object with host and port
    */
-  parseHostPort(url: string): { host: string; port: number } {
+  parseHostPort(url: string): HostPort {
     try {
       let host: string = '';
       let port: number = 443; // Default HTTPS port

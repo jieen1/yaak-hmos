@@ -4,6 +4,17 @@ import { ResponseHeader } from '../model';
 export struct ResponseHeadersTab {
   @Param headers: ResponseHeader[] = [];
 
+  aboutToAppear(): void {
+    console.info('[ResponseHeadersTab] aboutToAppear, headers count:', this.headers.length,
+      'headers:', JSON.stringify(this.headers));
+  }
+
+  @Monitor('headers')
+  onHeadersChange(): void {
+    console.info('[ResponseHeadersTab] headers changed, count:', this.headers.length,
+      'headers:', JSON.stringify(this.headers));
+  }
+
   // Helper methods to filter headers (non-UI logic)
   private getSetCookieHeaders(): ResponseHeader[] {
     const result: ResponseHeader[] = [];

@@ -9,9 +9,7 @@ import {
   ErrorCategory, 
   NetworkError, 
   DatabaseError, 
-  ValidationError,
   FileSystemError,
-  AuthenticationError
 } from './AppError';
 
 /**

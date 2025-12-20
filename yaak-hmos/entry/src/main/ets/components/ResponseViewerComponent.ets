@@ -40,6 +40,10 @@ export struct ResponseViewerComponent {
   onResponseChange(): void {
     this.showLargeResponseConfirmed = false;
     this.detectContentType();
+    // Debug log for headers
+    console.info('[ResponseViewer] Response changed, headers count:', 
+      this.response?.headers?.length || 0,
+      'headers:', JSON.stringify(this.response?.headers || []));
   }
 
   async loadPreferences(): Promise<void> {
