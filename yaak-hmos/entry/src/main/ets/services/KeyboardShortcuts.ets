@@ -236,24 +236,6 @@ export class KeyboardShortcuts {
   }
 
   /**
-   * Get all shortcuts formatted for display
-   */
-  getFormattedShortcuts(): Array<{ action: string; shortcut: string; description: string }> {
-    const result: Array<{ action: string; shortcut: string; description: string }> = [];
-    
-    this.shortcuts.forEach((s: ShortcutDefinition) => {
-      const item: { action: string; shortcut: string; description: string } = {
-        action: s.action,
-        shortcut: this.formatShortcut(s),
-        description: s.description
-      };
-      result.push(item);
-    });
-    
-    return result;
-  }
-
-  /**
    * Check if a key combination is a registered shortcut
    */
   isShortcut(key: string, ctrlKey: boolean, altKey: boolean, shiftKey: boolean): boolean {

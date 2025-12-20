@@ -30,7 +30,9 @@ export type CommandActionType =
   | 'toggle-response'
   | 'select-request'
   | 'select-workspace'
-  | 'select-environment';
+  | 'select-environment'
+  | 'workspace-settings'
+  ;
 
 /**
  * Command action payload

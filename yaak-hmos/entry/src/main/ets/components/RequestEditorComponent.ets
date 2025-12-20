@@ -5,6 +5,7 @@
 
 import { HttpRequest } from '../model/HttpRequest';
 import { HttpMethod } from '../model/Types';
+import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
@@ -12,17 +13,24 @@ import { QueryParamsEditor } from './QueryParamsEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
+import { CurlImporter } from '../services/CurlImporter';
+import promptAction from '@ohos.promptAction';
 
 @ComponentV2
 export struct RequestEditorComponent {
   @Param request: HttpRequest = new HttpRequest();
+  @Param inheritedHeaders: InheritedHeaderWithSource[] = [];
+  @Param inheritedAuth: InheritedAuthInfo | null = null;
   @Param onExecute: () => void = () => {};
   @Param onCancel: () => void = () => {};
   @Param onCopyAsCurl: () => void = () => {};
   @Param isLoading: boolean = false;
   @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
+  @Param onCurlImport: (request: HttpRequest) => void = () => {};
+  @Param onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
 
   @Local activeTab: number = 0;
+  @Local previousUrlLength: number = 0;
 
   private methodOptions: SelectOption[] = [
     { label: 'GET', value: 'GET' },
@@ -55,10 +63,9 @@ export struct RequestEditorComponent {
         // URL input
         ThemedTextInput({
           value: this.request.url,
-          placeholder: 'Enter request URL',
+          placeholder: 'Enter request URL or paste cURL',
           onValueChange: (value: string) => {
-            this.request.url = value;
-            this.onChange(this.request);
+            this.handleUrlChange(value);
           },
           inputSize: 'md'
         })
@@ -124,9 +131,13 @@ export struct RequestEditorComponent {
         TabContent() {
           HeadersEditor({
             headers: this.request.headers,
+            inheritedHeaders: this.inheritedHeaders,
             onChange: (headers) => {
               this.request.headers = headers;
               this.onChange(this.request);
+            },
+            onNavigateToSource: (sourceType: string, sourceId: string) => {
+              this.onNavigateToSource(sourceType, sourceId);
             }
           })
         }
@@ -151,9 +162,13 @@ export struct RequestEditorComponent {
         TabContent() {
           AuthEditor({
             auth: this.request.auth,
+            inheritedAuth: this.inheritedAuth,
             onChange: (auth) => {
               this.request.auth = auth;
               this.onChange(this.request);
+            },
+            onNavigateToSource: (sourceType: string, sourceId: string) => {
+              this.onNavigateToSource(sourceType, sourceId);
             }
           })
         }
@@ -170,5 +185,98 @@ export struct RequestEditorComponent {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.background'))
+  }
+
+  /**
+   * Handle URL input change with cURL auto-detection
+   */
+  private handleUrlChange(value: string): void {
+    // Detect if this looks like a paste operation (significant length increase)
+    const isPaste = value.length - this.previousUrlLength > 10;
+    this.previousUrlLength = value.length;
+
+    // Check if pasted content is a cURL command
+    if (isPaste && CurlImporter.isCurlCommand(value)) {
+      this.showCurlImportConfirmation(value);
+      return;
+    }
+
+    // Normal URL change
+    this.request.url = value;
+    this.onChange(this.request);
+  }
+
+  /**
+   * Show confirmation dialog for cURL import
+   */
+  private showCurlImportConfirmation(curlCommand: string): void {
+    try {
+      promptAction.showDialog({
+        title: 'cURL Detected',
+        message: 'A cURL command was detected. Would you like to import it?',
+        buttons: [
+          { text: 'Cancel', color: '#666666' },
+          { text: 'Import', color: '#007AFF' }
+        ]
+      }).then((result: promptAction.ShowDialogSuccessResponse) => {
+        if (result.index === 1) {
+          this.importCurlCommand(curlCommand);
+        } else {
+          // User cancelled, just set the URL as-is
+          this.request.url = curlCommand;
+          this.onChange(this.request);
+        }
+      }).catch((error: Error) => {
+        console.error('[RequestEditor] cURL import confirmation error:', error);
+        // On error, just set the URL
+        this.request.url = curlCommand;
+        this.onChange(this.request);
+      });
+    } catch (error) {
+      console.error('[RequestEditor] Failed to show cURL import confirmation:', error);
+      this.request.url = curlCommand;
+      this.onChange(this.request);
+    }
+  }
+
+  /**
+   * Import cURL command and populate request fields
+   */
+  private importCurlCommand(curlCommand: string): void {
+    const parseResult = CurlImporter.parse(curlCommand, this.request.workspace_id);
+
+    if (parseResult.success && parseResult.request) {
+      // Preserve the original request ID and workspace
+      const importedRequest = parseResult.request;
+      importedRequest.id = this.request.id;
+      importedRequest.workspace_id = this.request.workspace_id;
+      importedRequest.folder_id = this.request.folder_id;
+
+      // Notify parent to update the request
+      this.onCurlImport(importedRequest);
+
+      this.showToast('cURL imported successfully');
+    } else {
+      const errorMsg = parseResult.error || 'Unknown error';
+      this.showToast(`Failed to import cURL: ${errorMsg}`);
+
+      // Set the URL as-is on failure
+      this.request.url = curlCommand;
+      this.onChange(this.request);
+    }
+  }
+
+  /**
+   * Show toast message
+   */
+  private showToast(message: string): void {
+    try {
+      promptAction.showToast({
+        message: message,
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('[RequestEditor] Toast error:', error);
+    }
   }
 }

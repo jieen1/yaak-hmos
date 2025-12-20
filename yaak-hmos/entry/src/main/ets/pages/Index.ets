@@ -27,12 +27,16 @@ import { EmptyState } from '../components/EmptyState';
 import { SettingsDialog } from '../components/SettingsDialog';
 import { WorkspaceManagementDialog } from '../components/WorkspaceManagementDialog';
 import { EnvironmentManagementDialog } from '../components/EnvironmentManagementDialog';
+import { FolderSettingsDialog } from '../components/FolderSettingsDialog';
+import { WorkspaceSettingsDialog } from '../components/WorkspaceSettingsDialog';
 import { ResizeHandle, ResizeEvent } from '../components/ResizeHandle';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 import { CurlGenerator } from '../services/CurlGenerator';
 import { ExportDialog, WorkspaceDataResult } from '../components/ExportDialog';
 import { ExportResult } from '../services/ExportService';
 import { CommandPalette, CommandAction } from '../components/CommandPalette';
+import { InheritanceService } from '../services/InheritanceService';
+import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
 import common from '@ohos.app.ability.common';
 import pasteboard from '@ohos.pasteboard';
 
@@ -66,6 +70,9 @@ struct Index {
   @Local showEnvironmentManagementDialog: boolean = false;
   @Local showExportDialog: boolean = false;
   @Local showCommandPalette: boolean = false;
+  @Local showFolderSettingsDialog: boolean = false;
+  @Local showWorkspaceSettingsDialog: boolean = false;
+  @Local selectedFolderForSettings: Folder | null = null;
 
   // Persistent UI Settings
   @Local sidebarWidth: number = 250;
@@ -911,6 +918,34 @@ struct Index {
           }
         })
       }
+
+      // Folder Settings Dialog
+      if (this.showFolderSettingsDialog && this.selectedFolderForSettings !== null) {
+        FolderSettingsDialog({
+          visible: this.showFolderSettingsDialog,
+          folder: this.selectedFolderForSettings,
+          folders: this.folders,
+          workspace: this.selectedWorkspace,
+          onClose: () => {
+            this.showFolderSettingsDialog = false;
+            this.selectedFolderForSettings = null;
+          },
+          onSave: this.handleFolderSettingsSave,
+          onNavigateToSource: this.handleNavigateToSource
+        })
+      }
+
+      // Workspace Settings Dialog
+      if (this.showWorkspaceSettingsDialog && this.selectedWorkspace !== null) {
+        WorkspaceSettingsDialog({
+          visible: this.showWorkspaceSettingsDialog,
+          workspace: this.selectedWorkspace,
+          onClose: () => {
+            this.showWorkspaceSettingsDialog = false;
+          },
+          onSave: this.handleWorkspaceSettingsSave
+        })
+      }
     }
     .width('100%')
     .height('100%')
@@ -1003,11 +1038,15 @@ struct Index {
         if (this.selectedRequest) {
           RequestEditorComponent({
             request: this.selectedRequest,
+            inheritedHeaders: this.getInheritedHeadersForSelectedRequest(),
+            inheritedAuth: this.getInheritedAuthForSelectedRequest(),
             isLoading: this.isRequestLoading,
             onExecute: this.handleExecuteRequest,
             onCancel: this.handleCancelRequest,
             onCopyAsCurl: this.handleCurrentRequestCopyAsCurl,
-            onChange: this.handleRequestChangeCallback
+            onChange: this.handleRequestChangeCallback,
+            onCurlImport: this.handleCurlImport,
+            onNavigateToSource: this.handleNavigateToSource
           })
         } else {
           EmptyState({
@@ -1122,6 +1161,13 @@ struct Index {
 
   handleRequestChangeCallback = async (req: HttpRequest): Promise<void> => {
     await this.handleRequestChange(req);
+  }
+
+  handleCurlImport = async (importedRequest: HttpRequest): Promise<void> => {
+    // Update the selected request with imported data
+    this.selectedRequest = importedRequest;
+    await this.handleRequestChange(importedRequest);
+    console.info('[Index] cURL imported successfully');
   }
 
   // Response history handlers
@@ -1439,8 +1485,82 @@ struct Index {
   }
 
   handleFolderSettings = (folderId: string): void => {
-    // TODO: Implement folder settings dialog
-    console.info('[Index] Folder settings requested:', folderId);
+    const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === folderId);
+    if (folder) {
+      this.selectedFolderForSettings = folder;
+      this.showFolderSettingsDialog = true;
+      console.info('[Index] Opening folder settings:', folderId);
+    } else {
+      console.error('[Index] Folder not found for settings:', folderId);
+    }
+  }
+
+  // Folder Settings Save Handler
+  handleFolderSettingsSave = async (folder: Folder): Promise<void> => {
+    try {
+      await this.folderRepo.updateFolder(folder);
+      await this.loadFolders();
+      this.rebuildSidebar();
+      console.info('[Index] Folder settings saved:', folder.id);
+    } catch (error) {
+      console.error('[Index] Failed to save folder settings:', JSON.stringify(error));
+    }
+  }
+
+  // Workspace Settings Save Handler
+  handleWorkspaceSettingsSave = async (workspace: Workspace): Promise<void> => {
+    try {
+      await this.workspaceRepo.updateWorkspace(workspace);
+      await this.loadWorkspaces();
+      
+      // Update selected workspace if it's the one being edited
+      if (this.selectedWorkspace && this.selectedWorkspace.id === workspace.id) {
+        this.selectedWorkspace = workspace;
+      }
+      
+      console.info('[Index] Workspace settings saved:', workspace.id);
+    } catch (error) {
+      console.error('[Index] Failed to save workspace settings:', JSON.stringify(error));
+    }
+  }
+
+  // Navigate to Source Handler (for inherited headers/auth)
+  handleNavigateToSource = (sourceType: string, sourceId: string): void => {
+    console.info('[Index] Navigate to source:', sourceType, sourceId);
+    
+    if (sourceType === 'folder') {
+      const folder: Folder | undefined = this.folders.find((f: Folder) => f.id === sourceId);
+      if (folder) {
+        this.selectedFolderForSettings = folder;
+        this.showFolderSettingsDialog = true;
+      }
+    } else if (sourceType === 'workspace') {
+      this.showWorkspaceSettingsDialog = true;
+    }
+  }
+
+  // Get inherited headers for selected request
+  private getInheritedHeadersForSelectedRequest(): InheritedHeaderWithSource[] {
+    if (!this.selectedRequest) {
+      return [];
+    }
+    return InheritanceService.getInheritedHeadersForRequest(
+      this.selectedRequest,
+      this.folders,
+      this.selectedWorkspace
+    );
+  }
+
+  // Get inherited auth for selected request
+  private getInheritedAuthForSelectedRequest(): InheritedAuthInfo | null {
+    if (!this.selectedRequest) {
+      return null;
+    }
+    return InheritanceService.getInheritedAuthForRequest(
+      this.selectedRequest,
+      this.folders,
+      this.selectedWorkspace
+    );
   }
 
   // Drag and Drop Handler
@@ -1622,6 +1742,9 @@ struct Index {
         break;
       case 'settings':
         this.showSettingsDialog = true;
+        break;
+      case 'workspace-settings':
+        this.showWorkspaceSettingsDialog = true;
         break;
       case 'send-request':
         this.executeRequest();

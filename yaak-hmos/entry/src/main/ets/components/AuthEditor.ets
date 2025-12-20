@@ -1,22 +1,26 @@
 /**
  * Auth Editor Component
- * Edits authentication configuration for requests
+ * Edits authentication configuration for requests with inheritance support
  */
 
 import { AuthConfig } from '../model/HttpRequest';
 import type { AuthType } from '../model/Types';
+import type { InheritedAuthInfo } from '../services/InheritanceService';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { ThemedTextInput } from './ThemedTextInput';
 
 @ComponentV2
 export struct AuthEditor {
   @Param auth: AuthConfig = new AuthConfig();
+  @Param inheritedAuth: InheritedAuthInfo | null = null;
   @Param onChange: (auth: AuthConfig) => void = () => {};
+  @Param onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
 
   // Local state to track auth type for reactive updates
   @Local currentAuthType: AuthType = 'none';
 
   private authTypeOptions: SelectOption[] = [
+    { label: 'Inherit from Parent', value: 'inherit' },
     { label: 'No Auth', value: 'none' },
     { label: 'Basic Auth', value: 'basic' },
     { label: 'Bearer Token', value: 'bearer' },
@@ -30,7 +34,21 @@ export struct AuthEditor {
   ];
 
   aboutToAppear(): void {
-    this.currentAuthType = this.auth.type;
+    // If auth type is 'none' and there's inherited auth, show as 'inherit'
+    if ((this.auth.type === 'none' || this.auth.type === null) && this.inheritedAuth !== null) {
+      this.currentAuthType = 'inherit' as AuthType;
+    } else {
+      this.currentAuthType = this.auth.type || 'none';
+    }
+  }
+
+  @Monitor('auth')
+  onAuthChange(): void {
+    if ((this.auth.type === 'none' || this.auth.type === null) && this.inheritedAuth !== null) {
+      this.currentAuthType = 'inherit' as AuthType;
+    } else {
+      this.currentAuthType = this.auth.type || 'none';
+    }
   }
 
   build() {
@@ -47,9 +65,7 @@ export struct AuthEditor {
           options: this.authTypeOptions,
           selectedValue: this.currentAuthType,
           onSelectChange: (value: string) => {
-            this.currentAuthType = value as AuthType;
-            this.auth.type = value as AuthType;
-            this.onChange(this.auth);
+            this.handleAuthTypeChange(value);
           },
           selectSize: 'md'
         })
@@ -62,7 +78,9 @@ export struct AuthEditor {
       // Auth fields based on type (wrapped in Scroll)
       Scroll() {
         Column() {
-          if (this.currentAuthType === 'none') {
+          if (this.currentAuthType === 'inherit') {
+            this.buildInheritedAuthDisplay()
+          } else if (this.currentAuthType === 'none') {
             this.buildNoAuthEditor()
           } else if (this.currentAuthType === 'basic') {
             this.buildBasicAuthEditor()
@@ -86,6 +104,104 @@ export struct AuthEditor {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.background'))
+  }
+
+  /**
+   * Handle auth type change
+   */
+  private handleAuthTypeChange(value: string): void {
+    if (value === 'inherit') {
+      // Set to 'none' to inherit from parent
+      this.currentAuthType = 'inherit' as AuthType;
+      this.auth.type = 'none';
+      this.onChange(this.auth);
+    } else {
+      this.currentAuthType = value as AuthType;
+      this.auth.type = value as AuthType;
+      this.onChange(this.auth);
+    }
+  }
+
+  @Builder
+  buildInheritedAuthDisplay() {
+    Column() {
+      if (this.inheritedAuth !== null) {
+        // Show inherited auth info
+        Column() {
+          Text('Inherited from')
+            .fontSize($r('app.float.font_size_md'))
+            .fontColor($r('app.color.text_secondary'))
+            .margin({ bottom: $r('app.float.spacing_xs') })
+
+          // Source name (tappable)
+          Text(this.getSourceDisplayName())
+            .fontSize($r('app.float.font_size_lg'))
+            .fontColor($r('app.color.primary'))
+            .fontWeight(FontWeight.Medium)
+            .onClick(() => {
+              if (this.inheritedAuth !== null) {
+                this.onNavigateToSource(this.inheritedAuth.sourceType, this.inheritedAuth.sourceId);
+              }
+            })
+
+          // Auth type info
+          Text(`(${this.getAuthTypeDisplayName(this.inheritedAuth.auth.type)})`)
+            .fontSize($r('app.float.font_size_sm'))
+            .fontColor($r('app.color.text_secondary'))
+            .margin({ top: $r('app.float.spacing_sm') })
+
+          // Click to edit hint
+          Text('Click to edit')
+            .fontSize($r('app.float.font_size_xs'))
+            .fontColor($r('app.color.text_secondary'))
+            .margin({ top: $r('app.float.spacing_md') })
+        }
+        .width('100%')
+        .padding($r('app.float.spacing_2xl'))
+        .alignItems(HorizontalAlign.Center)
+      } else {
+        // No inherited auth available
+        Text('No authentication')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .padding($r('app.float.spacing_2xl'))
+      }
+    }
+    .width('100%')
+    .layoutWeight(1)
+  }
+
+  /**
+   * Get display name for source
+   */
+  private getSourceDisplayName(): string {
+    if (this.inheritedAuth === null) {
+      return '';
+    }
+    if (this.inheritedAuth.sourceType === 'workspace') {
+      return 'Workspace';
+    }
+    return this.inheritedAuth.sourceName;
+  }
+
+  /**
+   * Get display name for auth type
+   */
+  private getAuthTypeDisplayName(authType: AuthType): string {
+    switch (authType) {
+      case 'basic':
+        return 'Basic Auth';
+      case 'bearer':
+        return 'Bearer Token';
+      case 'api-key':
+        return 'API Key';
+      case 'oauth2':
+        return 'OAuth 2.0';
+      default:
+        return 'No Auth';
+    }
   }
 
   @Builder

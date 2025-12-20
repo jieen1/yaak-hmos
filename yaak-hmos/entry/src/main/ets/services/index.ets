@@ -11,6 +11,7 @@ export { ResponseStorageService } from './ResponseStorageService';
 export { RequestExecutor, RequestExecutionResult } from './RequestExecutor';
 export { BodyTypeHandlers, FormDataField } from './BodyTypeHandlers';
 export { InheritanceService } from './InheritanceService';
+export type { InheritedHeaderWithSource, InheritedAuthInfo } from './InheritanceService';
 export { EncryptionService } from './EncryptionService';
 export { SecureDataService } from './SecureDataService';
 export { CertificateValidator } from './CertificateValidator';

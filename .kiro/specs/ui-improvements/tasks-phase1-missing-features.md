@@ -178,7 +178,7 @@ This implementation plan covers the Phase 1 high-priority missing features:
 
 ### 10. Implement cURL Auto-Detection in URL Field
 
-- [ ] 10.1 Add cURL detection to URL input
+- [x] 10.1 Add cURL detection to URL input
   - Detect paste event in URL TextInput
   - Check if pasted content is cURL command
   - Show confirmation dialog if cURL detected

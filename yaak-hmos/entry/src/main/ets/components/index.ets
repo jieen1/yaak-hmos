@@ -23,3 +23,5 @@ export { SettingsDialog } from './SettingsDialog';
 export { EmptyState } from './EmptyState';
 export { ExportDialog, WorkspaceDataResult } from './ExportDialog';
 export { CommandPalette, CommandAction, CommandActionType } from './CommandPalette';
+export { FolderSettingsDialog } from './FolderSettingsDialog';
+export { WorkspaceSettingsDialog } from './WorkspaceSettingsDialog';

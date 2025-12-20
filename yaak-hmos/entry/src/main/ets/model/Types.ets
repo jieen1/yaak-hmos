@@ -9,7 +9,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 
 export type BodyType = 'none' | 'json' | 'xml' | 'form-data' | 'form-urlencoded' | 'binary' | 'graphql' | 'text';
 
 // Authentication types
-export type AuthType = 'none' | 'basic' | 'bearer' | 'api-key' | 'oauth2';
+export type AuthType = 'none' | 'basic' | 'bearer' | 'api-key' | 'oauth2' | 'inherit';
 
 // Response state
 export type ResponseState = 'pending' | 'success' | 'error' | 'cancelled';

@@ -8,7 +8,7 @@ export struct ResponseHeadersTab {
   private getSetCookieHeaders(): ResponseHeader[] {
     const result: ResponseHeader[] = [];
     this.headers.forEach((h: ResponseHeader) => {
-      if (h.name.toLowerCase() === 'set-cookie') {
+      if (h.name?.toLowerCase() === 'set-cookie') {
         result.push(h);
       }
     });
@@ -18,7 +18,7 @@ export struct ResponseHeadersTab {
   private getRegularHeaders(): ResponseHeader[] {
     const result: ResponseHeader[] = [];
     this.headers.forEach((h: ResponseHeader) => {
-      if (h.name.toLowerCase() !== 'set-cookie') {
+      if (h.name?.toLowerCase() !== 'set-cookie') {
         result.push(h);
       }
     });

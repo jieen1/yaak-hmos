@@ -36,6 +36,11 @@ interface CurlParseResult {
   error: string | null;
 }
 
+interface ParseUrlResult {
+  baseUrl: string;
+  queryParams: QueryParam[];
+}
+
 export class CurlImporter {
   /**
    * Check if a string is a cURL command
@@ -62,7 +67,7 @@ export class CurlImporter {
     }
 
     const trimmed = curlCommand.trim();
-    if (!this.isCurlCommand(trimmed)) {
+    if (!CurlImporter.isCurlCommand(trimmed)) {
       const result: CurlParseResult = {
         success: false,
         request: null,
@@ -72,8 +77,8 @@ export class CurlImporter {
     }
 
     try {
-      const flags = this.parseFlags(trimmed);
-      const request = this.flagsToRequest(flags, workspaceId);
+      const flags = CurlImporter.parseFlags(trimmed);
+      const request = CurlImporter.flagsToRequest(flags, workspaceId);
       const result: CurlParseResult = {
         success: true,
         request: request,
@@ -107,7 +112,7 @@ export class CurlImporter {
     };
 
     // Tokenize the command, handling quoted strings
-    const tokens = this.tokenize(curlCommand);
+    const tokens = CurlImporter.tokenize(curlCommand);
 
     let i = 0;
     while (i < tokens.length) {
@@ -283,7 +288,7 @@ export class CurlImporter {
     request.updated_at = Date.now();
 
     // Set URL and extract query parameters
-    const urlParts = this.parseUrl(flags.url);
+    const urlParts = CurlImporter.parseUrl(flags.url);
     request.url = urlParts.baseUrl;
     request.query_params = urlParts.queryParams;
 
@@ -291,7 +296,7 @@ export class CurlImporter {
     request.method = flags.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
 
     // Set name from URL path
-    request.name = this.generateNameFromUrl(flags.url);
+    request.name = CurlImporter.generateNameFromUrl(flags.url);
 
     // Set headers
     const headers: HttpHeader[] = [];
@@ -309,7 +314,7 @@ export class CurlImporter {
     if (flags.data) {
       request.body = flags.data;
       // Detect body type from Content-Type header or content
-      request.body_type = this.detectBodyType(flags.data, flags.headers);
+      request.body_type = CurlImporter.detectBodyType(flags.data, flags.headers);
     }
 
     // Set authentication
@@ -335,11 +340,11 @@ export class CurlImporter {
   /**
    * Parse URL and extract query parameters
    */
-  private static parseUrl(url: string): { baseUrl: string; queryParams: QueryParam[] } {
+  private static parseUrl(url: string): ParseUrlResult {
     const queryParams: QueryParam[] = [];
 
     if (!url) {
-      const result: { baseUrl: string; queryParams: QueryParam[] } = {
+      const result: ParseUrlResult = {
         baseUrl: '',
         queryParams: queryParams
       };
@@ -348,7 +353,7 @@ export class CurlImporter {
 
     const questionIndex = url.indexOf('?');
     if (questionIndex === -1) {
-      const result: { baseUrl: string; queryParams: QueryParam[] } = {
+      const result: ParseUrlResult = {
         baseUrl: url,
         queryParams: queryParams
       };
@@ -378,7 +383,7 @@ export class CurlImporter {
       }
     }
 
-    const result: { baseUrl: string; queryParams: QueryParam[] } = {
+    const result: ParseUrlResult = {
       baseUrl: baseUrl,
       queryParams: queryParams
     };

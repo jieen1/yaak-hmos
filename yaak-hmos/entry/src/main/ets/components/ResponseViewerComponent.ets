@@ -17,7 +17,7 @@ export struct ResponseViewerComponent {
   @Param onSelectResponse: (response: HttpResponse) => void = () => {};
   @Param onClearHistory: () => void = () => {};
 
-  @Local activeTab: string = 'body';
+  @Local activeTab: number = 0;
   @Local viewMode: string = 'pretty'; // 'pretty' or 'raw'
   @Local contentTypeInfo: ContentTypeInfo | null = null;
   @Local showHistory: boolean = false;
@@ -52,7 +52,15 @@ export struct ResponseViewerComponent {
 
       // Load active tab preference
       const activeTabKey: string = PreferenceKeys.getActiveTabKey(this.response.request_id);
-      this.activeTab = await this.preferencesService.getString(activeTabKey, 'body');
+      const savedTab: string = await this.preferencesService.getString(activeTabKey, 'body');
+      // Convert string to index
+      if (savedTab === 'headers') {
+        this.activeTab = 1;
+      } else if (savedTab === 'info') {
+        this.activeTab = 2;
+      } else {
+        this.activeTab = 0;
+      }
 
       console.info('[ResponseViewer] Loaded preferences:', {
         viewMode: this.viewMode,
@@ -69,7 +77,7 @@ export struct ResponseViewerComponent {
     // Get Content-Type header
     const headers: ResponseHeader[] = this.response.headers || [];
     const contentTypeHeader: ResponseHeader | undefined = headers.find(
-      (h: ResponseHeader) => h.name.toLowerCase() === 'content-type'
+      (h: ResponseHeader) => h.name?.toLowerCase() === 'content-type'
     );
 
     const contentTypeValue: string | null = contentTypeHeader ? contentTypeHeader.value : null;
@@ -95,7 +103,14 @@ export struct ResponseViewerComponent {
 
       // Save active tab
       const activeTabKey: string = PreferenceKeys.getActiveTabKey(this.response.request_id);
-      await this.preferencesService.setString(activeTabKey, this.activeTab);
+      // Convert index to string
+      let tabName: string = 'body';
+      if (this.activeTab === 1) {
+        tabName = 'headers';
+      } else if (this.activeTab === 2) {
+        tabName = 'info';
+      }
+      await this.preferencesService.setString(activeTabKey, tabName);
 
       console.info('[ResponseViewer] Saved preferences');
     } catch (error) {
@@ -166,11 +181,31 @@ export struct ResponseViewerComponent {
         this.buildHistoryPanel();
       }
 
-      // Tabs
-      this.buildTabs();
+      // Tabs using Tabs component (consistent with RequestEditorComponent)
+      Tabs({ index: this.activeTab }) {
+        TabContent() {
+          this.buildBodyTab()
+        }
+        .tabBar('Body')
 
-      // Tab Content
-      this.buildTabContent();
+        TabContent() {
+          ResponseHeadersTab({ headers: this.response?.headers || [] })
+        }
+        .tabBar('Headers')
+
+        TabContent() {
+          ResponseInfoTab({ response: this.response })
+        }
+        .tabBar('Info')
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .barMode(BarMode.Fixed)
+      .barPosition(BarPosition.Start)
+      .onChange((index: number) => {
+        this.activeTab = index;
+        this.savePreferences();
+      })
     }
     .width('100%')
     .height('100%')
@@ -324,77 +359,6 @@ export struct ResponseViewerComponent {
     .onClick(() => {
       this.onSelectResponse(historyResponse);
     })
-  }
-
-  @Builder
-  buildTabs() {
-    Row() {
-      // Body Tab
-      Button('Body')
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor(this.activeTab === 'body' ? $r('app.color.tab_active') : $r('app.color.tab_inactive'))
-        .backgroundColor(Color.Transparent)
-        .border({
-          width: { bottom: this.activeTab === 'body' ? 2 : 0 },
-          color: $r('app.color.tab_active')
-        })
-        .onClick(() => {
-          this.activeTab = 'body';
-          this.savePreferences();
-        })
-
-      // Headers Tab
-      Button('Headers')
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor(this.activeTab === 'headers' ? $r('app.color.tab_active') : $r('app.color.tab_inactive'))
-        .backgroundColor(Color.Transparent)
-        .border({
-          width: { bottom: this.activeTab === 'headers' ? 2 : 0 },
-          color: $r('app.color.tab_active')
-        })
-        .margin({ left: $r('app.float.spacing_md') })
-        .onClick(() => {
-          this.activeTab = 'headers';
-          this.savePreferences();
-        })
-
-      // Info Tab
-      Button('Info')
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor(this.activeTab === 'info' ? $r('app.color.tab_active') : $r('app.color.tab_inactive'))
-        .backgroundColor(Color.Transparent)
-        .border({
-          width: { bottom: this.activeTab === 'info' ? 2 : 0 },
-          color: $r('app.color.tab_active')
-        })
-        .margin({ left: $r('app.float.spacing_md') })
-        .onClick(() => {
-          this.activeTab = 'info';
-          this.savePreferences();
-        })
-    }
-    .width('100%')
-    .height(40)
-    .padding({
-      left: $r('app.float.spacing_md'),
-      right: $r('app.float.spacing_md')
-    })
-    .backgroundColor($r('app.color.surface'))
-    .border({
-      width: { bottom: 1 },
-      color: $r('app.color.divider')
-    })
-  }
-
-  @Builder
-  buildTabContent() {
-    if (this.activeTab === 'body') {
-      this.buildBodyTab();
-    } else if (this.activeTab === 'headers') {
-      ResponseHeadersTab({ headers: this.response?.headers || [] });
-    } else if (this.activeTab === 'info') {
-      ResponseInfoTab({ response: this.response });
-    }
   }
 
   @Builder
