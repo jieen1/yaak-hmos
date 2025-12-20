@@ -33,3 +33,7 @@ export { OpenAPIImporter } from './OpenAPIImporter';
 export { PostmanImporter } from './PostmanImporter';
 export { InsomniaImporter } from './InsomniaImporter';
 export { SwaggerImporter } from './SwaggerImporter';
+export { ExportService } from './ExportService';
+export type { ExportOptions, ExportResult, WorkspaceExportInput } from './ExportService';
+export { CommandService } from './CommandService';
+export type { Command, CommandResult, CommandCategory, SearchContext } from './CommandService';

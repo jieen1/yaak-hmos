@@ -50,12 +50,25 @@ export class CurlGenerator {
     variables: Map<string, string>,
     options?: CurlGeneratorOptions
   ): string {
-    const opts = options ? { ...this.DEFAULT_OPTIONS, ...options } : this.DEFAULT_OPTIONS;
-    const resolved = this.resolveVariables(request, variables);
-    const parts = this.buildCommandParts(resolved, opts);
+    let opts: CurlGeneratorOptions;
+    if (options) {
+      opts = {
+        multiLine: options.multiLine !== undefined ? options.multiLine : CurlGenerator.DEFAULT_OPTIONS.multiLine,
+        includeComments: options.includeComments !== undefined ? options.includeComments : CurlGenerator.DEFAULT_OPTIONS.includeComments,
+        shellType: options.shellType !== undefined ? options.shellType : CurlGenerator.DEFAULT_OPTIONS.shellType
+      };
+    } else {
+      opts = {
+        multiLine: CurlGenerator.DEFAULT_OPTIONS.multiLine,
+        includeComments: CurlGenerator.DEFAULT_OPTIONS.includeComments,
+        shellType: CurlGenerator.DEFAULT_OPTIONS.shellType
+      };
+    }
+    const resolved = CurlGenerator.resolveVariables(request, variables);
+    const parts = CurlGenerator.buildCommandParts(resolved, opts);
 
     if (opts.multiLine) {
-      return this.formatMultiLine(parts, opts.shellType);
+      return CurlGenerator.formatMultiLine(parts, opts.shellType);
     }
     return parts.join(' ');
   }
@@ -101,7 +114,7 @@ export class CurlGenerator {
     // Generate auth header
     let authHeader: string | null = null;
     if (request.auth && request.auth.type !== 'none') {
-      authHeader = this.generateAuthHeader(request.auth, variables);
+      authHeader = CurlGenerator.generateAuthHeader(request.auth, variables);
     }
 
     const result: ResolvedRequest = {
@@ -158,12 +171,12 @@ export class CurlGenerator {
     }
 
     // Add URL
-    parts.push(this.escapeShell(resolved.url, options.shellType));
+    parts.push(CurlGenerator.escapeShell(resolved.url, options.shellType));
 
     // Add headers
     resolved.headers.forEach((value: string, name: string) => {
       parts.push('-H');
-      parts.push(this.escapeShell(`${name}: ${value}`, options.shellType));
+      parts.push(CurlGenerator.escapeShell(`${name}: ${value}`, options.shellType));
     });
 
     // Add auth
@@ -171,17 +184,17 @@ export class CurlGenerator {
       // Check if it's Basic auth (contains colon) or Bearer token
       if (resolved.authHeader.startsWith('Bearer ')) {
         parts.push('-H');
-        parts.push(this.escapeShell(`Authorization: ${resolved.authHeader}`, options.shellType));
+        parts.push(CurlGenerator.escapeShell(`Authorization: ${resolved.authHeader}`, options.shellType));
       } else {
         parts.push('-u');
-        parts.push(this.escapeShell(resolved.authHeader, options.shellType));
+        parts.push(CurlGenerator.escapeShell(resolved.authHeader, options.shellType));
       }
     }
 
     // Add body
     if (resolved.body) {
       parts.push('-d');
-      parts.push(this.escapeShell(resolved.body, options.shellType));
+      parts.push(CurlGenerator.escapeShell(resolved.body, options.shellType));
     }
 
     return parts;

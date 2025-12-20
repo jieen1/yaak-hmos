@@ -377,31 +377,6 @@ export class RequestRepository extends BaseRepository {
   }
 
   /**
-   * Batch update sort priorities
-   * @param updates Array of {id, sortPriority} pairs
-   */
-  async batchUpdateSortPriorities(updates: Array<{ id: string; sortPriority: number }>): Promise<void> {
-    const now = this.getCurrentTimestamp();
-
-    await this.executeInTransaction(async () => {
-      for (let i = 0; i < updates.length; i++) {
-        const update: { id: string; sortPriority: number } | undefined = updates[i];
-        if (update) {
-          const valueBucket: relationalStore.ValuesBucket = {
-            sort_priority: update.sortPriority,
-            updated_at: now
-          };
-
-          const predicates = this.createPredicates();
-          predicates.equalTo('id', update.id);
-
-          await this.update(valueBucket, predicates);
-        }
-      }
-    });
-  }
-
-  /**
    * Batch delete multiple requests (soft delete)
    * @param ids Array of request IDs to delete
    */

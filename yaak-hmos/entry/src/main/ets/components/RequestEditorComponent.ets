@@ -12,7 +12,6 @@ import { QueryParamsEditor } from './QueryParamsEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
-import { SymbolGlyphModifier } from '@kit.ArkUI';
 
 @ComponentV2
 export struct RequestEditorComponent {
@@ -68,9 +67,8 @@ export struct RequestEditorComponent {
 
         // Copy as cURL button
         Button() {
-          SymbolGlyph($r('sys.symbol.doc.on.doc'))
+          Text('📋')
             .fontSize(18)
-            .fontColor([$r('app.color.text_secondary')])
         }
         .type(ButtonType.Normal)
         .backgroundColor($r('app.color.surface'))

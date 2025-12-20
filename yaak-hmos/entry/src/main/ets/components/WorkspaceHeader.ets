@@ -21,6 +21,8 @@ export struct WorkspaceHeader {
   @Param onManageWorkspaces: () => void = () => {};
   @Param onManageEnvironments: () => void = () => {};
   @Param onToggleResponseViewer: () => void = () => {};
+  @Param onExport: () => void = () => {};
+  @Param onToggleCommandPalette: () => void = () => {};
 
   build() {
     Row() {
@@ -86,6 +88,42 @@ export struct WorkspaceHeader {
       }
 
       Blank()
+
+      // Import Button
+      ThemedButton({
+        symbolIcon: $r('sys.symbol.download'),
+        onButtonClick: () => {
+          // TODO
+        },
+        buttonType: 'ghost',
+        buttonSize: 'md',
+        isCircle: true
+      })
+        .margin({ right: $r('app.float.spacing_xs') })
+
+      // Export Button
+      ThemedButton({
+        symbolIcon: $r('sys.symbol.upload'),
+        onButtonClick: () => {
+          this.onExport();
+        },
+        buttonType: 'ghost',
+        buttonSize: 'md',
+        isCircle: true
+      })
+        .margin({ right: $r('app.float.spacing_sm') })
+
+      // Command Palette Button
+      ThemedButton({
+        symbolIcon: $r('sys.symbol.search_things'),
+        onButtonClick: () => {
+          this.onToggleCommandPalette();
+        },
+        buttonType: 'ghost',
+        buttonSize: 'md',
+        isCircle: true
+      })
+        .margin({ right: $r('app.float.spacing_sm') })
 
       // Response Viewer Toggle Button
       ThemedButton({

@@ -30,6 +30,9 @@ import { EnvironmentManagementDialog } from '../components/EnvironmentManagement
 import { ResizeHandle, ResizeEvent } from '../components/ResizeHandle';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 import { CurlGenerator } from '../services/CurlGenerator';
+import { ExportDialog, WorkspaceDataResult } from '../components/ExportDialog';
+import { ExportResult } from '../services/ExportService';
+import { CommandPalette, CommandAction } from '../components/CommandPalette';
 import common from '@ohos.app.ability.common';
 import pasteboard from '@ohos.pasteboard';
 
@@ -61,6 +64,8 @@ struct Index {
   @Local showSettingsDialog: boolean = false;
   @Local showWorkspaceManagementDialog: boolean = false;
   @Local showEnvironmentManagementDialog: boolean = false;
+  @Local showExportDialog: boolean = false;
+  @Local showCommandPalette: boolean = false;
 
   // Persistent UI Settings
   @Local sidebarWidth: number = 250;
@@ -801,6 +806,12 @@ struct Index {
           this.responseViewerHidden = !this.responseViewerHidden;
           // Save to persistent storage
           this.saveResponseViewerHidden(this.responseViewerHidden);
+        },
+        onExport: () => {
+          this.showExportDialog = true;
+        },
+        onToggleCommandPalette: () => {
+          this.showCommandPalette = !this.showCommandPalette;
         }
       })
 
@@ -864,6 +875,39 @@ struct Index {
           onDelete: async (environmentId: string) => {
             await this.environmentRepo.deleteEnvironment(environmentId);
             await this.loadEnvironments();
+          }
+        })
+      }
+
+      // Export Dialog
+      if (this.showExportDialog) {
+        ExportDialog({
+          isVisible: this.showExportDialog,
+          workspaces: this.workspaces,
+          currentWorkspace: this.selectedWorkspace,
+          onClose: () => {
+            this.showExportDialog = false;
+          },
+          onExportComplete: (result: ExportResult) => {
+            console.info('[Index] Export completed:', result.workspacesExported, 'workspaces');
+          },
+          getWorkspaceData: this.getWorkspaceDataForExport
+        })
+      }
+
+      // Command Palette
+      if (this.showCommandPalette) {
+        CommandPalette({
+          isVisible: this.showCommandPalette,
+          workspaces: this.workspaces,
+          requests: this.requests,
+          environments: this.environments,
+          currentWorkspaceId: this.selectedWorkspace?.id || '',
+          onClose: () => {
+            this.showCommandPalette = false;
+          },
+          onAction: (action: CommandAction) => {
+            this.handleCommandAction(action);
           }
         })
       }
@@ -968,7 +1012,9 @@ struct Index {
         } else {
           EmptyState({
             onNewRequest: this.handleRequestCreate,
-            onImport: this.handleImport
+            onImport: () => {
+              // TODO
+            }
           })
         }
       }
@@ -1027,10 +1073,6 @@ struct Index {
 
   handleFolderToggle = (folderId: string): void => {
     // Handle folder toggle if needed
-  }
-
-  handleImport = (): void => {
-    // TODO: Implement import functionality
   }
 
   // Callback handler for request execution
@@ -1537,6 +1579,88 @@ struct Index {
           }
         }
       }
+    }
+  }
+
+  // Get workspace data for export
+  getWorkspaceDataForExport = (workspaceId: string): WorkspaceDataResult => {
+    // For current workspace, return loaded data
+    if (this.selectedWorkspace && this.selectedWorkspace.id === workspaceId) {
+      const result: WorkspaceDataResult = {
+        requests: this.requests,
+        folders: this.folders,
+        environments: this.environments
+      };
+      return result;
+    }
+
+    // For other workspaces, return empty (would need async loading)
+    const emptyResult: WorkspaceDataResult = {
+      requests: [],
+      folders: [],
+      environments: []
+    };
+    return emptyResult;
+  }
+
+  // Command Palette Action Handler
+  handleCommandAction = (action: CommandAction): void => {
+    console.info('[Index] Command action:', action.type, action.id);
+
+    switch (action.type) {
+      case 'new-request':
+        this.createRequest();
+        break;
+      case 'new-folder':
+        this.createFolder();
+        break;
+      case 'new-workspace':
+        this.showWorkspaceManagementDialog = true;
+        break;
+      case 'export':
+        this.showExportDialog = true;
+        break;
+      case 'settings':
+        this.showSettingsDialog = true;
+        break;
+      case 'send-request':
+        this.executeRequest();
+        break;
+      case 'duplicate-request':
+        if (this.selectedRequest) {
+          this.duplicateRequest(this.selectedRequest);
+        }
+        break;
+      case 'toggle-sidebar':
+        this.sidebarHidden = !this.sidebarHidden;
+        this.saveSidebarHidden(this.sidebarHidden);
+        break;
+      case 'toggle-response':
+        this.responseViewerHidden = !this.responseViewerHidden;
+        this.saveResponseViewerHidden(this.responseViewerHidden);
+        break;
+      case 'copy-as-curl':
+        if (this.selectedRequest) {
+          this.handleRequestCopyAsCurl(this.selectedRequest.id);
+        }
+        break;
+      case 'select-request':
+        this.handleRequestSelectById(action.id);
+        break;
+      case 'select-workspace':
+        const workspace: Workspace | undefined = this.workspaces.find((ws: Workspace) => ws.id === action.id);
+        if (workspace) {
+          this.handleWorkspaceSelect(workspace);
+        }
+        break;
+      case 'select-environment':
+        const env: Environment | undefined = this.environments.find((e: Environment) => e.id === action.id);
+        if (env) {
+          this.handleEnvironmentSelect(env);
+        }
+        break;
+      default:
+        console.warn('[Index] Unknown command action:', action.type);
     }
   }
 }

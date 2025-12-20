@@ -63,8 +63,7 @@ export class EncryptionService {
       const options: huks.HuksOptions = {
         properties: []
       };
-      const result: huks.HuksReturnResult = await huks.isKeyItemExist(KEY_ALIAS, options);
-      return result.errorCode === huks.HuksErrorCode.HUKS_SUCCESS;
+      return await huks.isKeyItemExist(KEY_ALIAS, options);
     } catch (error) {
       console.info('[EncryptionService] Key does not exist, will create new one');
       return false;

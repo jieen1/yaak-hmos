@@ -21,3 +21,5 @@ export { ResponseInfoTab } from './ResponseInfoTab';
 export { WorkspaceHeader } from './WorkspaceHeader';
 export { SettingsDialog } from './SettingsDialog';
 export { EmptyState } from './EmptyState';
+export { ExportDialog, WorkspaceDataResult } from './ExportDialog';
+export { CommandPalette, CommandAction, CommandActionType } from './CommandPalette';

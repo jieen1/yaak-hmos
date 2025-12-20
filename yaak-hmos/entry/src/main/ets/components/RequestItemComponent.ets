@@ -7,7 +7,6 @@
 
 import { HttpRequest } from '../model/HttpRequest';
 import promptAction from '@ohos.promptAction';
-import { SymbolGlyphModifier } from '@kit.ArkUI';
 
 @ComponentV2
 export struct RequestItemComponent {
@@ -34,28 +33,28 @@ export struct RequestItemComponent {
   @Builder
   buildContextMenu() {
     Menu() {
-      MenuItem({ content: 'Send', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.cheers')) })
+      MenuItem({ content: 'Send' })
         .onClick(() => {
           this.onSelect();
           this.onSend();
         })
 
-      MenuItem({ content: 'Rename', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.rename')) })
+      MenuItem({ content: 'Rename' })
         .onClick(() => {
           this.startRename();
         })
 
-      MenuItem({ content: 'Duplicate', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.notepad')) })
+      MenuItem({ content: 'Duplicate' })
         .onClick(() => {
           this.onDuplicate();
         })
 
-      MenuItem({ content: 'Copy as cURL', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.doc.on.doc')) })
+      MenuItem({ content: 'Copy as cURL' })
         .onClick(() => {
           this.onCopyAsCurl();
         })
 
-      MenuItem({ content: 'Delete', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.trash')) })
+      MenuItem({ content: 'Delete' })
         .onClick(() => {
           this.showDeleteConfirmation();
         })
