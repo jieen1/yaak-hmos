@@ -20,6 +20,7 @@ export struct RequestItemComponent {
   @Param onDelete: () => void = () => {};
   @Param onDuplicate: () => void = () => {};
   @Param onSend: () => void = () => {};
+  @Param onCopyAsCurl: () => void = () => {};
   @Param onStartEdit: () => void = () => {};
   @Param onEndEdit: () => void = () => {};
 
@@ -47,6 +48,11 @@ export struct RequestItemComponent {
       MenuItem({ content: 'Duplicate', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.notepad')) })
         .onClick(() => {
           this.onDuplicate();
+        })
+
+      MenuItem({ content: 'Copy as cURL', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.doc.on.doc')) })
+        .onClick(() => {
+          this.onCopyAsCurl();
         })
 
       MenuItem({ content: 'Delete', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.trash')) })

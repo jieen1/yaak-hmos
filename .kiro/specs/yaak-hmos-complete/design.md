@@ -2535,3 +2535,891 @@ This design document provides a comprehensive architecture for the Yaak HarmonyO
 
 The design ensures a professional-grade API testing tool that leverages HarmonyOS capabilities while maintaining code quality and user experience.
 
+
+
+---
+
+## 新增功能设计 (Requirements 41-76)
+
+以下是针对新增需求的设计补充，涵盖命令面板、导入导出、插件系统、gRPC/WebSocket 增强等功能。
+
+### 命令面板 (Command Palette) - Requirement 41
+
+命令面板提供快速访问所有功能的入口，支持模糊搜索。
+
+#### 数据模型
+
+```typescript
+@ObservedV2
+export class CommandItem {
+  @Trace id: string = '';
+  @Trace category: CommandCategory = 'action';
+  @Trace label: string = '';
+  @Trace description: string = '';
+  @Trace shortcut: string = '';
+  @Trace icon: string = '';
+  @Trace action: () => void = () => {};
+}
+
+type CommandCategory = 'action' | 'request' | 'environment' | 'workspace' | 'navigation';
+
+@ObservedV2
+export class CommandPaletteState {
+  @Trace isOpen: boolean = false;
+  @Trace searchQuery: string = '';
+  @Trace selectedIndex: number = 0;
+  @Trace filteredCommands: CommandItem[] = [];
+}
+```
+
+#### 服务设计
+
+```typescript
+export class CommandPaletteService {
+  private static commands: CommandItem[] = [];
+  
+  static registerCommand(command: CommandItem): void {
+    this.commands.push(command);
+  }
+  
+  static search(query: string): CommandItem[] {
+    if (!query.trim()) {
+      return this.commands.slice(0, 20);
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    return this.commands
+      .filter(cmd => 
+        cmd.label.toLowerCase().includes(lowerQuery) ||
+        cmd.description.toLowerCase().includes(lowerQuery)
+      )
+      .sort((a, b) => {
+        // 优先显示标签匹配的结果
+        const aLabelMatch = a.label.toLowerCase().startsWith(lowerQuery);
+        const bLabelMatch = b.label.toLowerCase().startsWith(lowerQuery);
+        if (aLabelMatch && !bLabelMatch) return -1;
+        if (!aLabelMatch && bLabelMatch) return 1;
+        return 0;
+      })
+      .slice(0, 20);
+  }
+  
+  static getDefaultCommands(): CommandItem[] {
+    return [
+      { id: 'new-request', category: 'action', label: '新建请求', shortcut: 'Ctrl+N', icon: 'add', action: () => {} },
+      { id: 'send-request', category: 'action', label: '发送请求', shortcut: 'Ctrl+Enter', icon: 'send', action: () => {} },
+      { id: 'duplicate', category: 'action', label: '复制请求', shortcut: 'Ctrl+D', icon: 'copy', action: () => {} },
+      { id: 'search', category: 'action', label: '搜索', shortcut: 'Ctrl+F', icon: 'search', action: () => {} },
+      { id: 'settings', category: 'navigation', label: '设置', shortcut: 'Ctrl+,', icon: 'settings', action: () => {} },
+    ];
+  }
+}
+```
+
+
+### cURL 导出服务 - Requirement 42
+
+将请求转换为 cURL 命令格式。
+
+```typescript
+export class CurlExportService {
+  static generateCurl(
+    request: HttpRequest,
+    variables: Map<string, string>
+  ): string {
+    const parts: string[] = ['curl'];
+    
+    // 方法
+    if (request.method !== 'GET') {
+      parts.push(`-X ${request.method}`);
+    }
+    
+    // URL
+    const resolvedUrl = TemplateEngine.resolve(request.url, variables);
+    parts.push(`'${this.escapeShell(resolvedUrl)}'`);
+    
+    // Headers
+    request.headers
+      .filter(h => h.enabled)
+      .forEach(header => {
+        const name = TemplateEngine.resolve(header.name, variables);
+        const value = TemplateEngine.resolve(header.value, variables);
+        parts.push(`-H '${this.escapeShell(name)}: ${this.escapeShell(value)}'`);
+      });
+    
+    // Body
+    if (request.body && request.body_type !== 'none') {
+      const resolvedBody = TemplateEngine.resolve(request.body, variables);
+      if (request.body_type === 'binary') {
+        parts.push(`--data-binary '@${resolvedBody}'`);
+      } else {
+        parts.push(`-d '${this.escapeShell(resolvedBody)}'`);
+      }
+    }
+    
+    return parts.join(' \\\n  ');
+  }
+  
+  private static escapeShell(str: string): string {
+    return str.replace(/'/g, "'\\''");
+  }
+}
+```
+
+### 响应保存服务 - Requirement 43-44
+
+```typescript
+export class ResponseExportService {
+  static async saveToFile(
+    response: HttpResponse,
+    filePath: string,
+    context: common.UIAbilityContext
+  ): Promise<void> {
+    const body = await ResponseStorageService.loadResponseBody(response.body_path);
+    await fs.writeText(filePath, body);
+  }
+  
+  static async copyToClipboard(
+    response: HttpResponse,
+    formatted: boolean = true
+  ): Promise<void> {
+    let content = await ResponseStorageService.loadResponseBody(response.body_path);
+    
+    if (formatted && this.isJson(content)) {
+      try {
+        content = JSON.stringify(JSON.parse(content), null, 2);
+      } catch (e) {
+        // 保持原样
+      }
+    }
+    
+    const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, content);
+    const systemPasteboard = pasteboard.getSystemPasteboard();
+    await systemPasteboard.setData(pasteData);
+  }
+  
+  private static isJson(content: string): boolean {
+    try {
+      JSON.parse(content);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+```
+
+
+### SSE (Server-Sent Events) 支持 - Requirement 45
+
+```typescript
+@ObservedV2
+export class SSEEvent {
+  @Trace id: string = '';
+  @Trace eventType: string = 'message';
+  @Trace data: string = '';
+  @Trace eventId: string = '';
+  @Trace retry: number | null = null;
+  @Trace timestamp: number = 0;
+}
+
+export class SSEParser {
+  static parse(content: string): SSEEvent[] {
+    const events: SSEEvent[] = [];
+    const lines = content.split('\n');
+    let currentEvent: Partial<SSEEvent> = {};
+    let dataLines: string[] = [];
+    
+    for (const line of lines) {
+      if (line === '') {
+        // 空行表示事件结束
+        if (dataLines.length > 0 || currentEvent.eventType) {
+          events.push({
+            id: this.generateId(),
+            eventType: currentEvent.eventType || 'message',
+            data: dataLines.join('\n'),
+            eventId: currentEvent.eventId || '',
+            retry: currentEvent.retry || null,
+            timestamp: Date.now()
+          } as SSEEvent);
+        }
+        currentEvent = {};
+        dataLines = [];
+        continue;
+      }
+      
+      if (line.startsWith('event:')) {
+        currentEvent.eventType = line.substring(6).trim();
+      } else if (line.startsWith('data:')) {
+        dataLines.push(line.substring(5).trim());
+      } else if (line.startsWith('id:')) {
+        currentEvent.eventId = line.substring(3).trim();
+      } else if (line.startsWith('retry:')) {
+        currentEvent.retry = parseInt(line.substring(6).trim(), 10);
+      }
+    }
+    
+    return events;
+  }
+  
+  private static generateId(): string {
+    return `sse_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+}
+```
+
+### 响应过滤器 (JSONPath/XPath) - Requirement 46
+
+```typescript
+export class ResponseFilterService {
+  static filterJson(content: string, jsonPath: string): string {
+    try {
+      const data = JSON.parse(content);
+      const result = this.evaluateJsonPath(data, jsonPath);
+      return JSON.stringify(result, null, 2);
+    } catch (error) {
+      throw new Error(`JSONPath 过滤失败: ${error.message}`);
+    }
+  }
+  
+  static filterXml(content: string, xpath: string): string {
+    // XPath 过滤实现
+    // 注意：HarmonyOS 可能需要使用第三方库或自定义实现
+    throw new Error('XPath 过滤暂未实现');
+  }
+  
+  private static evaluateJsonPath(data: any, path: string): any {
+    // 简化的 JSONPath 实现
+    const parts = path.replace(/^\$\.?/, '').split('.');
+    let result = data;
+    
+    for (const part of parts) {
+      if (part === '') continue;
+      
+      // 处理数组索引 [0] 或 [*]
+      const arrayMatch = part.match(/^(\w+)\[(\d+|\*)\]$/);
+      if (arrayMatch) {
+        const [, key, index] = arrayMatch;
+        result = result[key];
+        if (index === '*') {
+          // 返回所有元素
+        } else {
+          result = result[parseInt(index, 10)];
+        }
+      } else {
+        result = result[part];
+      }
+      
+      if (result === undefined) {
+        return null;
+      }
+    }
+    
+    return result;
+  }
+}
+```
+
+
+### 批量发送请求 - Requirement 47
+
+```typescript
+@ObservedV2
+export class BatchRequestResult {
+  @Trace requestId: string = '';
+  @Trace requestName: string = '';
+  @Trace status: 'pending' | 'running' | 'success' | 'error' = 'pending';
+  @Trace statusCode: number = 0;
+  @Trace elapsedTime: number = 0;
+  @Trace error: string = '';
+}
+
+export class BatchRequestService {
+  static async sendFolderRequests(
+    folderId: string,
+    environmentId: string | null,
+    cookieJarId: string | null,
+    onProgress: (result: BatchRequestResult) => void
+  ): Promise<BatchRequestResult[]> {
+    const results: BatchRequestResult[] = [];
+    
+    // 递归获取文件夹中的所有请求
+    const requests = await this.getRequestsRecursively(folderId);
+    
+    // 获取环境变量
+    const variables = environmentId 
+      ? await EnvironmentService.getVariables(environmentId)
+      : new Map<string, string>();
+    
+    for (const request of requests) {
+      const result: BatchRequestResult = {
+        requestId: request.id,
+        requestName: request.name,
+        status: 'running',
+        statusCode: 0,
+        elapsedTime: 0,
+        error: ''
+      };
+      
+      onProgress(result);
+      
+      try {
+        const startTime = Date.now();
+        const response = await RequestExecutor.execute(request, variables);
+        
+        result.status = 'success';
+        result.statusCode = response.responseCode;
+        result.elapsedTime = Date.now() - startTime;
+      } catch (error) {
+        result.status = 'error';
+        result.error = error.message;
+      }
+      
+      results.push(result);
+      onProgress(result);
+    }
+    
+    return results;
+  }
+  
+  private static async getRequestsRecursively(folderId: string): Promise<HttpRequest[]> {
+    const requests: HttpRequest[] = [];
+    
+    // 获取当前文件夹的请求
+    const folderRequests = await HttpRequestRepository.getByFolderId(folderId);
+    requests.push(...folderRequests);
+    
+    // 获取子文件夹
+    const subFolders = await FolderRepository.getByParentId(folderId);
+    for (const subFolder of subFolders) {
+      const subRequests = await this.getRequestsRecursively(subFolder.id);
+      requests.push(...subRequests);
+    }
+    
+    return requests;
+  }
+}
+```
+
+### 环境颜色标识 - Requirement 48
+
+```typescript
+@ObservedV2
+export class Environment {
+  // ... 现有字段
+  @Trace color: string | null = null; // 颜色值，如 '#FF5733'
+}
+
+export class EnvironmentColorService {
+  static readonly PRESET_COLORS: string[] = [
+    '#EF4444', // Red
+    '#F97316', // Orange
+    '#EAB308', // Yellow
+    '#22C55E', // Green
+    '#06B6D4', // Cyan
+    '#3B82F6', // Blue
+    '#8B5CF6', // Purple
+    '#EC4899', // Pink
+  ];
+  
+  static getColorForEnvironment(environment: Environment): string {
+    return environment.color || '#6B7280'; // 默认灰色
+  }
+  
+  static getContrastColor(backgroundColor: string): string {
+    // 计算对比色（黑或白）
+    const hex = backgroundColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  }
+}
+```
+
+
+### 插件系统 - Requirement 49, 53-54
+
+```typescript
+@ObservedV2
+export class Plugin {
+  @Trace id: string = '';
+  @Trace name: string = '';
+  @Trace displayName: string = '';
+  @Trace version: string = '';
+  @Trace description: string = '';
+  @Trace directory: string = '';
+  @Trace url: string | null = null;
+  @Trace enabled: boolean = true;
+}
+
+@ObservedV2
+export class PluginCapabilities {
+  @Trace templateFunctions: TemplateFunctionDef[] = [];
+  @Trace authHandlers: AuthHandlerDef[] = [];
+  @Trace importers: ImporterDef[] = [];
+  @Trace requestActions: RequestActionDef[] = [];
+  @Trace themes: ThemeDef[] = [];
+}
+
+interface TemplateFunctionDef {
+  name: string;
+  description: string;
+  args: TemplateFunctionArg[];
+}
+
+interface TemplateFunctionArg {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+  required: boolean;
+  defaultValue?: any;
+}
+
+export class PluginManager {
+  private static plugins: Map<string, Plugin> = new Map();
+  private static capabilities: Map<string, PluginCapabilities> = new Map();
+  
+  static async loadPlugin(directory: string): Promise<Plugin> {
+    // 加载插件配置
+    const configPath = `${directory}/plugin.json`;
+    const config = await this.loadPluginConfig(configPath);
+    
+    const plugin: Plugin = {
+      id: config.name,
+      name: config.name,
+      displayName: config.displayName || config.name,
+      version: config.version,
+      description: config.description || '',
+      directory: directory,
+      url: config.url || null,
+      enabled: true
+    };
+    
+    this.plugins.set(plugin.id, plugin);
+    
+    // 加载插件能力
+    const capabilities = await this.loadPluginCapabilities(directory, config);
+    this.capabilities.set(plugin.id, capabilities);
+    
+    return plugin;
+  }
+  
+  static async unloadPlugin(pluginId: string): Promise<void> {
+    this.plugins.delete(pluginId);
+    this.capabilities.delete(pluginId);
+  }
+  
+  static getTemplateFunctions(): TemplateFunctionDef[] {
+    const functions: TemplateFunctionDef[] = [];
+    this.capabilities.forEach(cap => {
+      functions.push(...cap.templateFunctions);
+    });
+    return functions;
+  }
+  
+  static getAuthHandlers(): AuthHandlerDef[] {
+    const handlers: AuthHandlerDef[] = [];
+    this.capabilities.forEach(cap => {
+      handlers.push(...cap.authHandlers);
+    });
+    return handlers;
+  }
+  
+  private static async loadPluginConfig(configPath: string): Promise<any> {
+    const content = await fs.readText(configPath);
+    return JSON.parse(content);
+  }
+  
+  private static async loadPluginCapabilities(
+    directory: string,
+    config: any
+  ): Promise<PluginCapabilities> {
+    // 根据配置加载各种能力
+    return new PluginCapabilities();
+  }
+}
+```
+
+
+### 数据导入服务 - Requirement 69-71
+
+```typescript
+export interface ImportResult {
+  workspaces: number;
+  folders: number;
+  httpRequests: number;
+  grpcRequests: number;
+  websocketRequests: number;
+  environments: number;
+  errors: string[];
+}
+
+export class ImportService {
+  static async importFile(filePath: string): Promise<ImportResult> {
+    const content = await fs.readText(filePath);
+    
+    // 检测文件格式
+    const format = this.detectFormat(content);
+    
+    switch (format) {
+      case 'yaak':
+        return this.importYaak(content);
+      case 'postman':
+        return this.importPostman(content);
+      case 'insomnia':
+        return this.importInsomnia(content);
+      case 'openapi':
+        return this.importOpenAPI(content);
+      case 'curl':
+        return this.importCurl(content);
+      default:
+        throw new Error('不支持的导入格式');
+    }
+  }
+  
+  private static detectFormat(content: string): string {
+    try {
+      const data = JSON.parse(content);
+      
+      if (data._type === 'export' && data.__export_format) {
+        return 'insomnia';
+      }
+      if (data.info && data.info._postman_id) {
+        return 'postman';
+      }
+      if (data.openapi || data.swagger) {
+        return 'openapi';
+      }
+      if (data.model === 'workspace' || data.workspaces) {
+        return 'yaak';
+      }
+    } catch {
+      // 可能是 cURL 命令
+      if (content.trim().startsWith('curl ')) {
+        return 'curl';
+      }
+    }
+    
+    return 'unknown';
+  }
+  
+  private static async importYaak(content: string): Promise<ImportResult> {
+    const data = JSON.parse(content);
+    const result: ImportResult = {
+      workspaces: 0, folders: 0, httpRequests: 0,
+      grpcRequests: 0, websocketRequests: 0, environments: 0, errors: []
+    };
+    
+    // 导入工作区
+    if (data.workspaces) {
+      for (const ws of data.workspaces) {
+        await WorkspaceRepository.create(ws);
+        result.workspaces++;
+      }
+    }
+    
+    // 导入文件夹
+    if (data.folders) {
+      for (const folder of data.folders) {
+        await FolderRepository.create(folder);
+        result.folders++;
+      }
+    }
+    
+    // 导入请求
+    if (data.http_requests) {
+      for (const req of data.http_requests) {
+        await HttpRequestRepository.create(req);
+        result.httpRequests++;
+      }
+    }
+    
+    // 导入环境
+    if (data.environments) {
+      for (const env of data.environments) {
+        await EnvironmentRepository.create(env);
+        result.environments++;
+      }
+    }
+    
+    return result;
+  }
+  
+  private static async importPostman(content: string): Promise<ImportResult> {
+    const data = JSON.parse(content);
+    const result: ImportResult = {
+      workspaces: 0, folders: 0, httpRequests: 0,
+      grpcRequests: 0, websocketRequests: 0, environments: 0, errors: []
+    };
+    
+    // 创建工作区
+    const workspace = await WorkspaceRepository.create({
+      name: data.info.name,
+      description: data.info.description || ''
+    });
+    result.workspaces++;
+    
+    // 递归导入 items
+    await this.importPostmanItems(data.item, workspace.id, null, result);
+    
+    return result;
+  }
+  
+  private static async importPostmanItems(
+    items: any[],
+    workspaceId: string,
+    folderId: string | null,
+    result: ImportResult
+  ): Promise<void> {
+    for (const item of items) {
+      if (item.item) {
+        // 这是一个文件夹
+        const folder = await FolderRepository.create({
+          workspace_id: workspaceId,
+          folder_id: folderId,
+          name: item.name
+        });
+        result.folders++;
+        
+        await this.importPostmanItems(item.item, workspaceId, folder.id, result);
+      } else if (item.request) {
+        // 这是一个请求
+        const request = this.convertPostmanRequest(item, workspaceId, folderId);
+        await HttpRequestRepository.create(request);
+        result.httpRequests++;
+      }
+    }
+  }
+  
+  private static convertPostmanRequest(
+    item: any,
+    workspaceId: string,
+    folderId: string | null
+  ): Partial<HttpRequest> {
+    const req = item.request;
+    return {
+      workspace_id: workspaceId,
+      folder_id: folderId,
+      name: item.name,
+      method: req.method || 'GET',
+      url: typeof req.url === 'string' ? req.url : req.url?.raw || '',
+      headers: (req.header || []).map((h: any) => ({
+        name: h.key,
+        value: h.value,
+        enabled: !h.disabled
+      })),
+      body: req.body?.raw || null,
+      body_type: this.mapPostmanBodyType(req.body?.mode)
+    };
+  }
+  
+  private static mapPostmanBodyType(mode: string): BodyType {
+    switch (mode) {
+      case 'raw': return 'json';
+      case 'formdata': return 'form-data';
+      case 'urlencoded': return 'form-urlencoded';
+      case 'file': return 'binary';
+      default: return 'none';
+    }
+  }
+  
+  private static async importInsomnia(content: string): Promise<ImportResult> {
+    // Insomnia 导入实现
+    const data = JSON.parse(content);
+    const result: ImportResult = {
+      workspaces: 0, folders: 0, httpRequests: 0,
+      grpcRequests: 0, websocketRequests: 0, environments: 0, errors: []
+    };
+    
+    // 处理 Insomnia 资源
+    const resources = data.resources || [];
+    
+    for (const resource of resources) {
+      switch (resource._type) {
+        case 'workspace':
+          await WorkspaceRepository.create({
+            name: resource.name,
+            description: resource.description || ''
+          });
+          result.workspaces++;
+          break;
+        case 'request':
+          // 转换并创建请求
+          result.httpRequests++;
+          break;
+        case 'request_group':
+          // 转换为文件夹
+          result.folders++;
+          break;
+        case 'environment':
+          result.environments++;
+          break;
+      }
+    }
+    
+    return result;
+  }
+  
+  private static async importOpenAPI(content: string): Promise<ImportResult> {
+    const spec = JSON.parse(content);
+    const result: ImportResult = {
+      workspaces: 0, folders: 0, httpRequests: 0,
+      grpcRequests: 0, websocketRequests: 0, environments: 0, errors: []
+    };
+    
+    // 创建工作区
+    const workspace = await WorkspaceRepository.create({
+      name: spec.info?.title || 'OpenAPI Import',
+      description: spec.info?.description || ''
+    });
+    result.workspaces++;
+    
+    // 获取基础 URL
+    const baseUrl = spec.servers?.[0]?.url || '';
+    
+    // 遍历路径
+    const paths = spec.paths || {};
+    for (const [path, methods] of Object.entries(paths)) {
+      for (const [method, operation] of Object.entries(methods as any)) {
+        if (['get', 'post', 'put', 'delete', 'patch', 'head', 'options'].includes(method)) {
+          await HttpRequestRepository.create({
+            workspace_id: workspace.id,
+            name: (operation as any).summary || `${method.toUpperCase()} ${path}`,
+            method: method.toUpperCase(),
+            url: `${baseUrl}${path}`,
+            headers: []
+          });
+          result.httpRequests++;
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  private static async importCurl(content: string): Promise<ImportResult> {
+    const request = CurlParser.parse(content);
+    await HttpRequestRepository.create(request);
+    
+    return {
+      workspaces: 0, folders: 0, httpRequests: 1,
+      grpcRequests: 0, websocketRequests: 0, environments: 0, errors: []
+    };
+  }
+}
+```
+
+
+### 数据导出服务 - Requirement 72
+
+```typescript
+export interface ExportOptions {
+  workspaceIds: string[];
+  includePrivateEnvironments: boolean;
+  format: 'yaak' | 'json';
+}
+
+export class ExportService {
+  static async exportWorkspaces(options: ExportOptions): Promise<string> {
+    const exportData: any = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      workspaces: [],
+      folders: [],
+      http_requests: [],
+      grpc_requests: [],
+      websocket_requests: [],
+      environments: [],
+      cookie_jars: []
+    };
+    
+    for (const workspaceId of options.workspaceIds) {
+      // 导出工作区
+      const workspace = await WorkspaceRepository.getById(workspaceId);
+      if (workspace) {
+        exportData.workspaces.push(workspace);
+      }
+      
+      // 导出文件夹
+      const folders = await FolderRepository.getByWorkspaceId(workspaceId);
+      exportData.folders.push(...folders);
+      
+      // 导出 HTTP 请求
+      const httpRequests = await HttpRequestRepository.getByWorkspaceId(workspaceId);
+      exportData.http_requests.push(...httpRequests);
+      
+      // 导出 gRPC 请求
+      const grpcRequests = await GrpcRequestRepository.getByWorkspaceId(workspaceId);
+      exportData.grpc_requests.push(...grpcRequests);
+      
+      // 导出 WebSocket 请求
+      const wsRequests = await WebsocketRequestRepository.getByWorkspaceId(workspaceId);
+      exportData.websocket_requests.push(...wsRequests);
+      
+      // 导出环境
+      const environments = await EnvironmentRepository.getByWorkspaceId(workspaceId);
+      if (options.includePrivateEnvironments) {
+        exportData.environments.push(...environments);
+      } else {
+        exportData.environments.push(...environments.filter(e => e.public));
+      }
+      
+      // 导出 Cookie Jar
+      const cookieJars = await CookieJarRepository.getByWorkspaceId(workspaceId);
+      exportData.cookie_jars.push(...cookieJars);
+    }
+    
+    return JSON.stringify(exportData, null, 2);
+  }
+  
+  static async saveToFile(
+    content: string,
+    filePath: string
+  ): Promise<void> {
+    await fs.writeText(filePath, content);
+  }
+}
+```
+
+### gRPC 反射服务 - Requirement 65
+
+```typescript
+@ObservedV2
+export class GrpcServiceDefinition {
+  @Trace name: string = '';
+  @Trace methods: GrpcMethodDefinition[] = [];
+}
+
+@ObservedV2
+export class GrpcMethodDefinition {
+  @Trace name: string = '';
+  @Trace inputType: string = '';
+  @Trace outputType: string = '';
+  @Trace clientStreaming: boolean = false;
+  @Trace serverStreaming: boolean = false;
+}
+
+export class GrpcReflectionService {
+  static async discoverServices(url: string): Promise<GrpcServiceDefinition[]> {
+    // 使用 gRPC 反射协议发现服务
+    // 注意：HarmonyOS 可能需要特殊的 gRPC 实现
+    
+    const services: GrpcServiceDefinition[] = [];
+    
+    // 发送反射请求
+    // ServerReflection.ServerReflectionInfo
+    
+    return services;
+  }
+  
+  static async getMethodSchema(
+    url: string,
+    serviceName: string,
+    methodName: string
+  ): Promise<any> {
+    // 获取方法的输入/输出消息 schema
+    return {};
+  }
+}
+```

@@ -12,12 +12,14 @@ import { QueryParamsEditor } from './QueryParamsEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
+import { SymbolGlyphModifier } from '@kit.ArkUI';
 
 @ComponentV2
 export struct RequestEditorComponent {
   @Param request: HttpRequest = new HttpRequest();
   @Param onExecute: () => void = () => {};
   @Param onCancel: () => void = () => {};
+  @Param onCopyAsCurl: () => void = () => {};
   @Param isLoading: boolean = false;
   @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
 
@@ -63,6 +65,22 @@ export struct RequestEditorComponent {
         })
           .layoutWeight(1)
           .margin({ right: $r('app.float.spacing_sm') })
+
+        // Copy as cURL button
+        Button() {
+          SymbolGlyph($r('sys.symbol.doc.on.doc'))
+            .fontSize(18)
+            .fontColor([$r('app.color.text_secondary')])
+        }
+        .type(ButtonType.Normal)
+        .backgroundColor($r('app.color.surface'))
+        .borderRadius($r('app.float.border_radius_sm'))
+        .width(36)
+        .height(36)
+        .margin({ right: $r('app.float.spacing_xs') })
+        .onClick(() => {
+          this.onCopyAsCurl();
+        })
 
         // Send/Cancel button
         if (this.isLoading) {

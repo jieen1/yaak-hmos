@@ -524,3 +524,533 @@ This document specifies the requirements for developing a complete HarmonyOS nat
 4. WHEN a user selects multiple items, THE System SHALL show bulk actions
 5. WHEN a user clicks outside the menu, THE System SHALL close it
 
+
+
+### Requirement 41: 命令面板 (Command Palette)
+
+**User Story:** As a user, I want a quick command palette, so that I can rapidly access any feature or request without using the mouse.
+
+#### Acceptance Criteria
+
+1. WHEN a user presses Ctrl+K, THE System SHALL open the command palette dialog
+2. WHEN the palette is open, THE System SHALL display a search input with focus
+3. WHEN a user types in the search input, THE System SHALL fuzzy-search across all commands, requests, and workspaces
+4. WHEN results are shown, THE System SHALL group them by category (Actions, Requests, Environments, Workspaces)
+5. WHEN a user selects a result, THE System SHALL execute the corresponding action
+6. WHEN navigating results, THE System SHALL support arrow keys and Enter to select
+7. WHEN a user presses Escape, THE System SHALL close the palette
+8. WHEN showing actions, THE System SHALL display associated keyboard shortcuts
+
+### Requirement 42: 复制为 cURL
+
+**User Story:** As a user, I want to copy requests as cURL commands, so that I can share or debug them in terminal.
+
+#### Acceptance Criteria
+
+1. WHEN a user selects "Copy as cURL" from context menu, THE System SHALL generate a valid cURL command
+2. WHEN generating cURL, THE System SHALL include all headers, body, and authentication
+3. WHEN generating cURL, THE System SHALL resolve template variables using current environment
+4. WHEN copied successfully, THE System SHALL show a success toast notification
+5. WHEN a request has binary body, THE System SHALL include --data-binary flag in cURL
+
+### Requirement 43: 保存响应到文件
+
+**User Story:** As a user, I want to save response bodies to files, so that I can use them for further analysis.
+
+#### Acceptance Criteria
+
+1. WHEN viewing a response, THE System SHALL provide a "Save Response" button
+2. WHEN a user clicks save, THE System SHALL open a file picker dialog
+3. WHEN saving, THE System SHALL preserve the original content type
+4. WHEN saving binary content, THE System SHALL write raw bytes without encoding
+5. WHEN save completes, THE System SHALL show a success notification
+
+### Requirement 44: 复制响应内容
+
+**User Story:** As a user, I want to copy response content, so that I can use it in other applications.
+
+#### Acceptance Criteria
+
+1. WHEN viewing a response, THE System SHALL provide a "Copy Response" button
+2. WHEN copying in Pretty mode, THE System SHALL copy the formatted content
+3. WHEN copying in Raw mode, THE System SHALL copy the raw content
+4. WHEN copied successfully, THE System SHALL show a success toast notification
+
+
+### Requirement 45: SSE (Server-Sent Events) 支持
+
+**User Story:** As a user, I want to view Server-Sent Events responses, so that I can test SSE endpoints.
+
+#### Acceptance Criteria
+
+1. WHEN a response has Content-Type "text/event-stream", THE System SHALL parse it as SSE
+2. WHEN displaying SSE events, THE System SHALL show event type, data, id, and retry fields
+3. WHEN events are received, THE System SHALL display them in chronological order
+4. WHEN viewing SSE response, THE System SHALL provide both parsed and raw views
+5. WHEN an event has multiple data lines, THE System SHALL concatenate them properly
+
+### Requirement 46: 响应过滤器 (JSONPath/XPath)
+
+**User Story:** As a user, I want to filter response data using JSONPath or XPath, so that I can extract specific values.
+
+#### Acceptance Criteria
+
+1. WHEN viewing a JSON response, THE System SHALL provide a JSONPath filter input
+2. WHEN viewing an XML response, THE System SHALL provide an XPath filter input
+3. WHEN a user enters a filter expression, THE System SHALL apply it and show filtered results
+4. WHEN the filter expression is invalid, THE System SHALL display an error message
+5. WHEN the filter matches no results, THE System SHALL display "No matches" message
+
+### Requirement 47: 发送文件夹中所有请求
+
+**User Story:** As a user, I want to send all requests in a folder, so that I can batch test related endpoints.
+
+#### Acceptance Criteria
+
+1. WHEN a user right-clicks a folder, THE System SHALL show "Send All Requests" option
+2. WHEN sending all requests, THE System SHALL execute them recursively including nested folders
+3. WHEN sending all requests, THE System SHALL use the current environment and cookie jar
+4. WHEN requests are executing, THE System SHALL show progress for each request
+5. WHEN all requests complete, THE System SHALL display a summary of results
+
+### Requirement 48: 环境颜色标识
+
+**User Story:** As a user, I want to assign colors to environments, so that I can quickly identify which environment is active.
+
+#### Acceptance Criteria
+
+1. WHEN editing an environment, THE System SHALL provide a color picker
+2. WHEN a color is selected, THE System SHALL display a color indicator in the environment selector
+3. WHEN an environment is active, THE System SHALL show the color prominently in the header
+4. WHEN switching environments, THE System SHALL update the color indicator immediately
+5. WHEN no color is set, THE System SHALL use a default neutral color
+
+
+### Requirement 49: 插件系统
+
+**User Story:** As a user, I want to extend Yaak with plugins, so that I can add custom functionality.
+
+#### Acceptance Criteria
+
+1. WHEN viewing settings, THE System SHALL show installed plugins list
+2. WHEN a user searches plugins, THE System SHALL query the plugin registry
+3. WHEN a user installs a plugin, THE System SHALL download and load its functionality
+4. WHEN a plugin provides template functions, THE System SHALL make them available in {{ }} syntax
+5. WHEN a plugin provides importers, THE System SHALL add them to import options
+6. WHEN a plugin provides auth handlers, THE System SHALL add them to authentication options
+7. WHEN a user uninstalls a plugin, THE System SHALL remove it and its functionality
+
+### Requirement 50: 主题系统
+
+**User Story:** As a user, I want to use custom themes, so that I can personalize the application appearance.
+
+#### Acceptance Criteria
+
+1. WHEN viewing settings, THE System SHALL show available themes
+2. WHEN a user selects a theme, THE System SHALL apply it immediately
+3. WHEN plugins provide themes, THE System SHALL include them in the theme list
+4. WHEN appearance is set to "auto", THE System SHALL follow system dark/light mode
+5. WHEN a theme is selected, THE System SHALL persist the preference
+
+### Requirement 51: Git 同步
+
+**User Story:** As a user, I want to sync my workspaces with Git, so that I can version control and collaborate on API collections.
+
+#### Acceptance Criteria
+
+1. WHEN configuring a workspace, THE System SHALL allow setting a sync directory
+2. WHEN sync is enabled, THE System SHALL export workspace data to the directory as JSON files
+3. WHEN changes are made to requests or environments, THE System SHALL update the sync files
+4. WHEN viewing workspace settings, THE System SHALL show sync status
+5. WHEN sync directory contains changes, THE System SHALL allow importing them
+
+### Requirement 52: 多窗口支持
+
+**User Story:** As a user, I want to open multiple windows, so that I can work on different workspaces simultaneously.
+
+#### Acceptance Criteria
+
+1. WHEN a user opens a workspace, THE System SHALL allow choosing to open in new window
+2. WHEN opening in new window, THE System SHALL create an independent window instance
+3. WHEN multiple windows are open, THE System SHALL maintain separate state for each
+4. WHEN a window is closed, THE System SHALL save its state for restoration
+5. WHEN the application starts, THE System SHALL restore previous window states
+
+
+### Requirement 53: 请求动作插件
+
+**User Story:** As a user, I want to execute custom actions on requests, so that I can extend request functionality.
+
+#### Acceptance Criteria
+
+1. WHEN plugins provide HTTP request actions, THE System SHALL show them in the request context menu
+2. WHEN a user selects a request action, THE System SHALL execute the plugin's action handler
+3. WHEN the action requires input, THE System SHALL display the plugin's configuration UI
+4. WHEN the action completes, THE System SHALL show the result or error
+5. WHEN plugins provide gRPC request actions, THE System SHALL show them for gRPC requests
+
+### Requirement 54: 模板函数配置
+
+**User Story:** As a user, I want to configure template functions, so that I can customize their behavior.
+
+#### Acceptance Criteria
+
+1. WHEN a user types {{ in an input field, THE System SHALL show autocomplete for template functions
+2. WHEN a template function has configuration options, THE System SHALL display a configuration dialog
+3. WHEN configuring a function, THE System SHALL show the function's description and parameters
+4. WHEN a user saves configuration, THE System SHALL update the template syntax
+5. WHEN previewing a template, THE System SHALL show the rendered result
+
+### Requirement 55: 认证动作
+
+**User Story:** As a user, I want to execute authentication actions, so that I can refresh tokens or perform OAuth flows.
+
+#### Acceptance Criteria
+
+1. WHEN an authentication type has actions, THE System SHALL display action buttons
+2. WHEN a user clicks an auth action, THE System SHALL execute the plugin's action handler
+3. WHEN OAuth2 requires token refresh, THE System SHALL provide a refresh action
+4. WHEN an action requires user input, THE System SHALL display the appropriate dialog
+5. WHEN the action completes, THE System SHALL update the authentication values
+
+### Requirement 56: 深度链接支持
+
+**User Story:** As a user, I want to open Yaak via deep links, so that I can quickly access specific resources.
+
+#### Acceptance Criteria
+
+1. WHEN the application receives a yaak:// URL, THE System SHALL parse and handle it
+2. WHEN the deep link specifies a workspace, THE System SHALL open that workspace
+3. WHEN the deep link specifies a request, THE System SHALL navigate to that request
+4. WHEN the deep link is invalid, THE System SHALL display an error message
+5. WHEN the application is not running, THE System SHALL start and then handle the deep link
+
+
+### Requirement 57: 通知系统
+
+**User Story:** As a user, I want to receive in-app notifications, so that I can stay informed about important updates.
+
+#### Acceptance Criteria
+
+1. WHEN the application starts, THE System SHALL check for notifications from the server
+2. WHEN a notification is available, THE System SHALL display it in the UI
+3. WHEN a user dismisses a notification, THE System SHALL mark it as seen
+4. WHEN a notification has an action, THE System SHALL make it clickable
+5. WHEN notifications are disabled in settings, THE System SHALL not check for them
+
+### Requirement 58: 应用元数据
+
+**User Story:** As a user, I want to view application information, so that I can troubleshoot issues and check versions.
+
+#### Acceptance Criteria
+
+1. WHEN viewing settings, THE System SHALL display the application version
+2. WHEN viewing settings, THE System SHALL display the data directory path
+3. WHEN viewing settings, THE System SHALL display the logs directory path
+4. WHEN a user clicks the directory path, THE System SHALL open it in file explorer
+5. WHEN the application is in development mode, THE System SHALL indicate it
+
+### Requirement 59: 清除发送历史
+
+**User Story:** As a user, I want to clear send history, so that I can free up storage and remove old data.
+
+#### Acceptance Criteria
+
+1. WHEN viewing workspace settings, THE System SHALL provide "Clear Send History" option
+2. WHEN a user clicks clear history, THE System SHALL prompt for confirmation
+3. WHEN confirmed, THE System SHALL delete all HTTP responses for the workspace
+4. WHEN confirmed, THE System SHALL delete all gRPC connections for the workspace
+5. WHEN confirmed, THE System SHALL delete all WebSocket connections for the workspace
+
+### Requirement 60: JSON 格式化
+
+**User Story:** As a user, I want to format JSON content, so that I can read and edit it more easily.
+
+#### Acceptance Criteria
+
+1. WHEN viewing JSON response, THE System SHALL provide a "Format" button
+2. WHEN a user clicks format, THE System SHALL pretty-print the JSON with indentation
+3. WHEN the JSON is invalid, THE System SHALL display an error message
+4. WHEN editing JSON body, THE System SHALL provide auto-formatting option
+5. WHEN formatting, THE System SHALL use consistent 2-space indentation
+
+
+### Requirement 61: 响应编码处理
+
+**User Story:** As a user, I want response bodies decoded correctly, so that I can view content in different character encodings.
+
+#### Acceptance Criteria
+
+1. WHEN a response has charset in Content-Type, THE System SHALL use that charset for decoding
+2. WHEN no charset is specified, THE System SHALL default to UTF-8
+3. WHEN the charset is not supported, THE System SHALL fall back to UTF-8 with lossy conversion
+4. WHEN displaying binary content, THE System SHALL show a hex dump view
+5. WHEN the response is large, THE System SHALL handle it without memory issues
+
+### Requirement 62: 启动历史追踪
+
+**User Story:** As a developer, I want to track application launch history, so that I can understand usage patterns.
+
+#### Acceptance Criteria
+
+1. WHEN the application starts, THE System SHALL increment the launch counter
+2. WHEN the application version changes, THE System SHALL record the update
+3. WHEN tracking launches, THE System SHALL store the previous version
+4. WHEN tracking launches, THE System SHALL store the version since date
+5. WHEN tracking launches, THE System SHALL store the user since date
+
+### Requirement 63: 工作区元数据
+
+**User Story:** As a user, I want workspace metadata stored separately, so that sensitive data can be managed independently.
+
+#### Acceptance Criteria
+
+1. WHEN a workspace is created, THE System SHALL create associated metadata
+2. WHEN encryption is enabled, THE System SHALL store the encrypted key in metadata
+3. WHEN sync is configured, THE System SHALL store the sync directory in metadata
+4. WHEN exporting workspace, THE System SHALL not include metadata
+5. WHEN deleting workspace, THE System SHALL delete associated metadata
+
+### Requirement 64: 临时请求发送
+
+**User Story:** As a user, I want to send ephemeral requests, so that I can test without saving to history.
+
+#### Acceptance Criteria
+
+1. WHEN sending an ephemeral request, THE System SHALL not persist the response to database
+2. WHEN sending an ephemeral request, THE System SHALL still apply environment variables
+3. WHEN sending an ephemeral request, THE System SHALL still use cookie jar if specified
+4. WHEN the ephemeral request is cancelled, THE System SHALL abort the network operation
+5. WHEN the ephemeral request completes, THE System SHALL return the response without saving
+
+
+### Requirement 65: gRPC 反射
+
+**User Story:** As a user, I want gRPC server reflection, so that I can discover services without proto files.
+
+#### Acceptance Criteria
+
+1. WHEN a gRPC server supports reflection, THE System SHALL auto-discover available services
+2. WHEN reflection is used, THE System SHALL display all service methods
+3. WHEN a user selects a method, THE System SHALL show the message schema
+4. WHEN reflection fails, THE System SHALL fall back to proto file import
+5. WHEN caching reflection data, THE System SHALL allow manual refresh
+
+### Requirement 66: gRPC 流式传输
+
+**User Story:** As a user, I want to test gRPC streaming, so that I can work with streaming APIs.
+
+#### Acceptance Criteria
+
+1. WHEN a method is client streaming, THE System SHALL allow sending multiple messages
+2. WHEN a method is server streaming, THE System SHALL display messages as they arrive
+3. WHEN a method is bidirectional streaming, THE System SHALL support both directions
+4. WHEN streaming, THE System SHALL display connection status
+5. WHEN a user commits the stream, THE System SHALL signal end of client messages
+
+### Requirement 67: WebSocket 连接管理
+
+**User Story:** As a user, I want to manage WebSocket connections, so that I can test real-time APIs effectively.
+
+#### Acceptance Criteria
+
+1. WHEN creating a WebSocket request, THE System SHALL support ws:// and wss:// protocols
+2. WHEN connecting, THE System SHALL display connection state (connecting, connected, closing, closed)
+3. WHEN connected, THE System SHALL allow sending text messages
+4. WHEN messages are received, THE System SHALL display them with timestamps
+5. WHEN disconnecting, THE System SHALL close the connection gracefully
+6. WHEN connection errors occur, THE System SHALL display error details
+7. WHEN viewing history, THE System SHALL show all sent and received messages
+
+### Requirement 68: WebSocket 认证
+
+**User Story:** As a user, I want to authenticate WebSocket connections, so that I can access protected endpoints.
+
+#### Acceptance Criteria
+
+1. WHEN configuring WebSocket request, THE System SHALL support authentication options
+2. WHEN authentication is configured, THE System SHALL apply it during connection
+3. WHEN using headers for auth, THE System SHALL include them in the upgrade request
+4. WHEN authentication fails, THE System SHALL display the error
+5. WHEN inheriting auth from folder, THE System SHALL apply folder authentication
+
+
+### Requirement 69: 导入 Insomnia 数据
+
+**User Story:** As a user, I want to import Insomnia collections, so that I can migrate from Insomnia to Yaak.
+
+#### Acceptance Criteria
+
+1. WHEN importing Insomnia v4+ export, THE System SHALL parse the JSON format
+2. WHEN importing, THE System SHALL convert requests to native format
+3. WHEN importing, THE System SHALL preserve folder structure
+4. WHEN importing, THE System SHALL convert environments and variables
+5. WHEN import completes, THE System SHALL show summary of imported items
+
+### Requirement 70: 导入 Swagger/OpenAPI
+
+**User Story:** As a user, I want to import OpenAPI specifications, so that I can generate requests from API documentation.
+
+#### Acceptance Criteria
+
+1. WHEN importing OpenAPI 3.0/3.1, THE System SHALL parse the specification
+2. WHEN importing Swagger 2.0, THE System SHALL convert it to OpenAPI format
+3. WHEN importing, THE System SHALL create requests for all endpoints
+4. WHEN importing, THE System SHALL preserve path parameters and query parameters
+5. WHEN importing, THE System SHALL create folders based on tags or paths
+
+### Requirement 71: 导入 Yaak 数据
+
+**User Story:** As a user, I want to import Yaak exports, so that I can restore backups or share collections.
+
+#### Acceptance Criteria
+
+1. WHEN importing Yaak export, THE System SHALL parse the JSON format
+2. WHEN importing, THE System SHALL preserve all request configurations
+3. WHEN importing, THE System SHALL preserve folder hierarchy
+4. WHEN importing, THE System SHALL handle ID conflicts by generating new IDs
+5. WHEN import completes, THE System SHALL show summary of imported items
+
+### Requirement 72: 导出工作区数据
+
+**User Story:** As a user, I want to export workspace data, so that I can backup or share my API collections.
+
+#### Acceptance Criteria
+
+1. WHEN exporting, THE System SHALL allow selecting specific workspaces
+2. WHEN exporting, THE System SHALL provide option to include/exclude private environments
+3. WHEN exporting, THE System SHALL preserve all request configurations
+4. WHEN exporting, THE System SHALL include folder hierarchy
+5. WHEN export completes, THE System SHALL save to a JSON file
+6. WHEN exporting, THE System SHALL use pretty-printed JSON format
+
+
+### Requirement 73: 界面设置
+
+**User Story:** As a user, I want to customize the interface, so that I can personalize my experience.
+
+#### Acceptance Criteria
+
+1. WHEN viewing settings, THE System SHALL provide interface font selection
+2. WHEN viewing settings, THE System SHALL provide interface font size slider (8-30)
+3. WHEN viewing settings, THE System SHALL provide interface scale slider
+4. WHEN viewing settings, THE System SHALL provide colored methods toggle
+5. WHEN viewing settings, THE System SHALL provide native title bar toggle
+6. WHEN viewing settings, THE System SHALL provide hide window controls toggle
+7. WHEN settings change, THE System SHALL apply them immediately
+
+### Requirement 74: 编辑器设置
+
+**User Story:** As a user, I want to customize the code editor, so that I can work more comfortably.
+
+#### Acceptance Criteria
+
+1. WHEN viewing settings, THE System SHALL provide editor font selection
+2. WHEN viewing settings, THE System SHALL provide editor font size slider (8-30)
+3. WHEN viewing settings, THE System SHALL provide keymap selection (Default, Vim, VSCode, Emacs)
+4. WHEN viewing settings, THE System SHALL provide soft wrap toggle
+5. WHEN settings change, THE System SHALL apply them immediately to all editors
+
+### Requirement 75: 更新设置
+
+**User Story:** As a user, I want to configure update behavior, so that I can control how the app updates.
+
+#### Acceptance Criteria
+
+1. WHEN viewing settings, THE System SHALL provide update channel selection (Stable, Beta)
+2. WHEN viewing settings, THE System SHALL provide automatic update toggle
+3. WHEN viewing settings, THE System SHALL provide auto-download updates toggle
+4. WHEN viewing settings, THE System SHALL provide check for notifications toggle
+5. WHEN a user clicks check for updates, THE System SHALL manually check for updates
+
+### Requirement 76: 工作区打开行为
+
+**User Story:** As a user, I want to configure workspace opening behavior, so that I can control window management.
+
+#### Acceptance Criteria
+
+1. WHEN opening a workspace, THE System SHALL respect the configured behavior
+2. WHEN behavior is "Always ask", THE System SHALL prompt the user
+3. WHEN behavior is "Open in current window", THE System SHALL replace current workspace
+4. WHEN behavior is "Open in new window", THE System SHALL create a new window
+5. WHEN settings change, THE System SHALL apply them to subsequent workspace opens
+
+
+---
+
+## 功能完整性说明
+
+本需求文档基于对 Yaak Tauri 桌面应用源代码的全面分析，涵盖了以下核心模块：
+
+### 已涵盖的功能模块
+
+1. **HTTP 请求管理** (Requirement 2, 4, 21-29)
+   - 完整的 HTTP 方法支持
+   - 多种请求体格式
+   - 模板变量替换
+   - 响应处理和存储
+
+2. **gRPC 支持** (Requirement 18, 65-66)
+   - Proto 文件导入
+   - 服务器反射
+   - 流式传输支持
+
+3. **WebSocket 支持** (Requirement 17, 67-68)
+   - 连接管理
+   - 消息收发
+   - 认证支持
+
+4. **数据导入导出** (Requirement 14, 42, 69-72)
+   - cURL 导入/导出
+   - Postman 导入
+   - Insomnia 导入
+   - OpenAPI/Swagger 导入
+   - Yaak 格式导入导出
+
+5. **认证系统** (Requirement 6, 55)
+   - Basic Auth
+   - Bearer Token
+   - API Key
+   - OAuth 2.0
+   - 插件扩展认证
+
+6. **环境和变量** (Requirement 5, 21, 48)
+   - 环境管理
+   - 变量替换
+   - 模板函数
+   - 环境颜色标识
+
+7. **Cookie 管理** (Requirement 13)
+   - 自动存储
+   - 手动管理
+   - 域名匹配
+
+8. **代理和证书** (Requirement 34-35)
+   - HTTP/HTTPS 代理
+   - 代理认证
+   - 客户端证书
+
+9. **插件系统** (Requirement 49, 53-54)
+   - 插件安装/卸载
+   - 模板函数扩展
+   - 认证扩展
+   - 导入器扩展
+
+10. **设置管理** (Requirement 33, 73-76)
+    - 界面设置
+    - 编辑器设置
+    - 更新设置
+    - 工作区设置
+
+11. **UI 功能** (Requirement 8, 10, 38-41)
+    - 侧边栏导航
+    - 命令面板
+    - 拖拽排序
+    - 上下文菜单
+
+12. **其他功能** (Requirement 45-46, 56-64)
+    - SSE 支持
+    - 响应过滤
+    - 深度链接
+    - 通知系统
+    - 历史追踪

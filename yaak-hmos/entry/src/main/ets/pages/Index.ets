@@ -29,7 +29,9 @@ import { WorkspaceManagementDialog } from '../components/WorkspaceManagementDial
 import { EnvironmentManagementDialog } from '../components/EnvironmentManagementDialog';
 import { ResizeHandle, ResizeEvent } from '../components/ResizeHandle';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
+import { CurlGenerator } from '../services/CurlGenerator';
 import common from '@ohos.app.ability.common';
+import pasteboard from '@ohos.pasteboard';
 
 @Entry
 @ComponentV2
@@ -926,6 +928,7 @@ struct Index {
             onRequestDelete: this.handleRequestDelete,
             onRequestDuplicate: this.handleRequestDuplicate,
             onRequestSend: this.handleRequestSend,
+            onRequestCopyAsCurl: this.handleRequestCopyAsCurl,
             onFolderRename: this.handleFolderRename,
             onFolderDelete: this.handleFolderDelete,
             onFolderDuplicate: this.handleFolderDuplicate,
@@ -959,6 +962,7 @@ struct Index {
             isLoading: this.isRequestLoading,
             onExecute: this.handleExecuteRequest,
             onCancel: this.handleCancelRequest,
+            onCopyAsCurl: this.handleCurrentRequestCopyAsCurl,
             onChange: this.handleRequestChangeCallback
           })
         } else {
@@ -1037,6 +1041,15 @@ struct Index {
   // Cancel request handler
   handleCancelRequest = (): void => {
     this.cancelRequest();
+  }
+
+  // Copy current request as cURL handler
+  handleCurrentRequestCopyAsCurl = async (): Promise<void> => {
+    if (!this.selectedRequest) {
+      console.warn('[Index] No request selected to copy as cURL');
+      return;
+    }
+    await this.handleRequestCopyAsCurl(this.selectedRequest.id);
   }
 
   cancelRequest(): void {
@@ -1246,6 +1259,38 @@ struct Index {
       console.info('[Index] Request sent from context menu:', requestId);
     } catch (error) {
       console.error('[Index] Failed to send request:', JSON.stringify(error));
+    }
+  }
+
+  handleRequestCopyAsCurl = async (requestId: string): Promise<void> => {
+    try {
+      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+      if (!request) {
+        console.error('[Index] Request not found for copy as cURL:', requestId);
+        return;
+      }
+
+      // Merge environment variables
+      const envs: Environment[] = this.selectedEnvironment ? [this.selectedEnvironment] : [];
+      const variables: Map<string, string> = EnvironmentService.mergeVariables(envs);
+
+      // Generate cURL command
+      const curlCommand: string = CurlGenerator.generate(request, variables, {
+        multiLine: true,
+        includeComments: false,
+        shellType: 'bash'
+      });
+
+      // Copy to clipboard
+      const pasteboardData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, curlCommand);
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      await systemPasteboard.setData(pasteboardData);
+
+      this.showToast('Copied as cURL');
+      console.info('[Index] Request copied as cURL:', requestId);
+    } catch (error) {
+      console.error('[Index] Failed to copy as cURL:', JSON.stringify(error));
+      this.showToast('Failed to copy as cURL');
     }
   }
 
