@@ -1,16 +1,21 @@
 /**
  * Request Repository
  * Handles CRUD operations for HTTP requests
+ * Supports encryption of auth credentials
  */
 
 import relationalStore from '@ohos.data.relationalStore';
 import { BaseRepository } from './BaseRepository';
 import { HttpRequest, HttpHeader, QueryParam, AuthConfig } from '../model/HttpRequest';
 import { HttpMethod, BodyType } from '../model/Types';
+import { SecureDataService } from '../services/SecureDataService';
 
 export class RequestRepository extends BaseRepository {
+  private secureDataService: SecureDataService;
+
   constructor() {
     super('http_requests');
+    this.secureDataService = SecureDataService.getInstance();
   }
 
   /**
@@ -28,6 +33,8 @@ export class RequestRepository extends BaseRepository {
     try {
       while (resultSet.goToNextRow()) {
         const request = this.mapResultSetToRequest(resultSet);
+        // Decrypt auth credentials
+        request.auth = await this.secureDataService.decryptAuthConfig(request.auth);
         requests.push(request);
       }
     } finally {
@@ -49,7 +56,10 @@ export class RequestRepository extends BaseRepository {
 
     try {
       if (resultSet.goToFirstRow()) {
-        return this.mapResultSetToRequest(resultSet);
+        const request = this.mapResultSetToRequest(resultSet);
+        // Decrypt auth credentials
+        request.auth = await this.secureDataService.decryptAuthConfig(request.auth);
+        return request;
       }
       return null;
     } finally {
@@ -72,6 +82,8 @@ export class RequestRepository extends BaseRepository {
     try {
       while (resultSet.goToNextRow()) {
         const request = this.mapResultSetToRequest(resultSet);
+        // Decrypt auth credentials
+        request.auth = await this.secureDataService.decryptAuthConfig(request.auth);
         requests.push(request);
       }
     } finally {
@@ -90,6 +102,9 @@ export class RequestRepository extends BaseRepository {
     request.created_at = now;
     request.updated_at = now;
 
+    // Encrypt auth credentials before saving
+    const encryptedAuth: AuthConfig = await this.secureDataService.encryptAuthConfig(request.auth);
+
     const valueBucket: relationalStore.ValuesBucket = {
       id: request.id,
       model: request.model,
@@ -105,7 +120,7 @@ export class RequestRepository extends BaseRepository {
       query_params: this.stringifyJson(request.query_params),
       body: request.body,
       body_type: request.body_type,
-      auth: this.stringifyJson(request.auth),
+      auth: this.stringifyJson(encryptedAuth),
       sort_priority: request.sort_priority
     };
 
@@ -119,6 +134,9 @@ export class RequestRepository extends BaseRepository {
   async updateRequest(request: HttpRequest): Promise<void> {
     request.updated_at = this.getCurrentTimestamp();
 
+    // Encrypt auth credentials before saving
+    const encryptedAuth: AuthConfig = await this.secureDataService.encryptAuthConfig(request.auth);
+
     const valueBucket: relationalStore.ValuesBucket = {
       updated_at: request.updated_at,
       folder_id: request.folder_id,
@@ -129,7 +147,7 @@ export class RequestRepository extends BaseRepository {
       query_params: this.stringifyJson(request.query_params),
       body: request.body,
       body_type: request.body_type,
-      auth: this.stringifyJson(request.auth),
+      auth: this.stringifyJson(encryptedAuth),
       sort_priority: request.sort_priority
     };
 
@@ -218,5 +236,192 @@ export class RequestRepository extends BaseRepository {
     request.sort_priority = resultSet.getDouble(resultSet.getColumnIndex('sort_priority'));
 
     return request;
+  }
+
+  /**
+   * Get requests by workspace ID with pagination
+   * @param workspaceId The workspace ID
+   * @param offset The offset for pagination
+   * @param limit The maximum number of results
+   * @returns Paginated list of requests
+   */
+  async getRequestsByWorkspaceIdPaginated(
+    workspaceId: string,
+    offset: number,
+    limit: number
+  ): Promise<HttpRequest[]> {
+    const predicates = this.createPredicates();
+    predicates.equalTo('workspace_id', workspaceId);
+    predicates.isNull('deleted_at');
+    predicates.orderByAsc('sort_priority');
+    predicates.offsetAs(offset);
+    predicates.limitAs(limit);
+
+    const resultSet = await this.query(predicates);
+    const requests: HttpRequest[] = [];
+
+    try {
+      while (resultSet.goToNextRow()) {
+        const request = this.mapResultSetToRequest(resultSet);
+        request.auth = await this.secureDataService.decryptAuthConfig(request.auth);
+        requests.push(request);
+      }
+    } finally {
+      resultSet.close();
+    }
+
+    return requests;
+  }
+
+  /**
+   * Get total count of requests in a workspace
+   * @param workspaceId The workspace ID
+   * @returns Total count
+   */
+  async getRequestCountByWorkspaceId(workspaceId: string): Promise<number> {
+    const predicates = this.createPredicates();
+    predicates.equalTo('workspace_id', workspaceId);
+    predicates.isNull('deleted_at');
+
+    const resultSet = await this.query(predicates);
+    try {
+      return resultSet.rowCount;
+    } finally {
+      resultSet.close();
+    }
+  }
+
+  /**
+   * Batch create multiple requests
+   * @param requests Array of requests to create
+   * @returns Array of created request IDs
+   */
+  async batchCreateRequests(requests: HttpRequest[]): Promise<string[]> {
+    const ids: string[] = [];
+    const now = this.getCurrentTimestamp();
+
+    await this.executeInTransaction(async () => {
+      for (let i = 0; i < requests.length; i++) {
+        const request: HttpRequest | undefined = requests[i];
+        if (request) {
+          request.id = request.id || this.generateId('rq');
+          request.created_at = now;
+          request.updated_at = now;
+
+          const encryptedAuth: AuthConfig = await this.secureDataService.encryptAuthConfig(request.auth);
+
+          const valueBucket: relationalStore.ValuesBucket = {
+            id: request.id,
+            model: request.model,
+            workspace_id: request.workspace_id,
+            folder_id: request.folder_id,
+            created_at: request.created_at,
+            updated_at: request.updated_at,
+            deleted_at: request.deleted_at,
+            name: request.name,
+            url: request.url,
+            method: request.method,
+            headers: this.stringifyJson(request.headers),
+            query_params: this.stringifyJson(request.query_params),
+            body: request.body,
+            body_type: request.body_type,
+            auth: this.stringifyJson(encryptedAuth),
+            sort_priority: request.sort_priority
+          };
+
+          await this.insert(valueBucket);
+          ids.push(request.id);
+        }
+      }
+    });
+
+    return ids;
+  }
+
+  /**
+   * Batch update multiple requests
+   * @param requests Array of requests to update
+   */
+  async batchUpdateRequests(requests: HttpRequest[]): Promise<void> {
+    const now = this.getCurrentTimestamp();
+
+    await this.executeInTransaction(async () => {
+      for (let i = 0; i < requests.length; i++) {
+        const request: HttpRequest | undefined = requests[i];
+        if (request) {
+          request.updated_at = now;
+
+          const encryptedAuth: AuthConfig = await this.secureDataService.encryptAuthConfig(request.auth);
+
+          const valueBucket: relationalStore.ValuesBucket = {
+            updated_at: request.updated_at,
+            folder_id: request.folder_id,
+            name: request.name,
+            url: request.url,
+            method: request.method,
+            headers: this.stringifyJson(request.headers),
+            query_params: this.stringifyJson(request.query_params),
+            body: request.body,
+            body_type: request.body_type,
+            auth: this.stringifyJson(encryptedAuth),
+            sort_priority: request.sort_priority
+          };
+
+          const predicates = this.createPredicates();
+          predicates.equalTo('id', request.id);
+
+          await this.update(valueBucket, predicates);
+        }
+      }
+    });
+  }
+
+  /**
+   * Batch update sort priorities
+   * @param updates Array of {id, sortPriority} pairs
+   */
+  async batchUpdateSortPriorities(updates: Array<{ id: string; sortPriority: number }>): Promise<void> {
+    const now = this.getCurrentTimestamp();
+
+    await this.executeInTransaction(async () => {
+      for (let i = 0; i < updates.length; i++) {
+        const update: { id: string; sortPriority: number } | undefined = updates[i];
+        if (update) {
+          const valueBucket: relationalStore.ValuesBucket = {
+            sort_priority: update.sortPriority,
+            updated_at: now
+          };
+
+          const predicates = this.createPredicates();
+          predicates.equalTo('id', update.id);
+
+          await this.update(valueBucket, predicates);
+        }
+      }
+    });
+  }
+
+  /**
+   * Batch delete multiple requests (soft delete)
+   * @param ids Array of request IDs to delete
+   */
+  async batchDeleteRequests(ids: string[]): Promise<void> {
+    const now = this.getCurrentTimestamp();
+
+    await this.executeInTransaction(async () => {
+      for (let i = 0; i < ids.length; i++) {
+        const id: string | undefined = ids[i];
+        if (id) {
+          const valueBucket: relationalStore.ValuesBucket = {
+            deleted_at: now
+          };
+
+          const predicates = this.createPredicates();
+          predicates.equalTo('id', id);
+
+          await this.update(valueBucket, predicates);
+        }
+      }
+    });
   }
 }

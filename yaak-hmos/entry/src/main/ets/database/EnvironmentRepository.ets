@@ -1,15 +1,20 @@
 /**
  * Environment Repository
  * Handles CRUD operations for environments
+ * Supports encryption of secret variables
  */
 
 import relationalStore from '@ohos.data.relationalStore';
 import { BaseRepository } from './BaseRepository';
 import { Environment, EnvironmentVariable } from '../model/Environment';
+import { SecureDataService } from '../services/SecureDataService';
 
 export class EnvironmentRepository extends BaseRepository {
+  private secureDataService: SecureDataService;
+
   constructor() {
     super('environments');
+    this.secureDataService = SecureDataService.getInstance();
   }
 
   /**
@@ -27,7 +32,9 @@ export class EnvironmentRepository extends BaseRepository {
     try {
       while (resultSet.goToNextRow()) {
         const environment = this.mapResultSetToEnvironment(resultSet);
-        environments.push(environment);
+        // Decrypt secret variables
+        const decryptedEnv: Environment = await this.secureDataService.decryptEnvironment(environment);
+        environments.push(decryptedEnv);
       }
     } finally {
       resultSet.close();
@@ -48,7 +55,9 @@ export class EnvironmentRepository extends BaseRepository {
 
     try {
       if (resultSet.goToFirstRow()) {
-        return this.mapResultSetToEnvironment(resultSet);
+        const environment = this.mapResultSetToEnvironment(resultSet);
+        // Decrypt secret variables
+        return await this.secureDataService.decryptEnvironment(environment);
       }
       return null;
     } finally {
@@ -65,15 +74,18 @@ export class EnvironmentRepository extends BaseRepository {
     environment.created_at = now;
     environment.updated_at = now;
 
+    // Encrypt secret variables before saving
+    const encryptedEnv: Environment = await this.secureDataService.encryptEnvironment(environment);
+
     const valueBucket: relationalStore.ValuesBucket = {
-      id: environment.id,
-      model: environment.model,
-      workspace_id: environment.workspace_id,
-      created_at: environment.created_at,
-      updated_at: environment.updated_at,
-      deleted_at: environment.deleted_at,
-      name: environment.name,
-      variables: this.stringifyJson(environment.variables)
+      id: encryptedEnv.id,
+      model: encryptedEnv.model,
+      workspace_id: encryptedEnv.workspace_id,
+      created_at: encryptedEnv.created_at,
+      updated_at: encryptedEnv.updated_at,
+      deleted_at: encryptedEnv.deleted_at,
+      name: encryptedEnv.name,
+      variables: this.stringifyJson(encryptedEnv.variables)
     };
 
     await this.insert(valueBucket);
@@ -86,10 +98,13 @@ export class EnvironmentRepository extends BaseRepository {
   async updateEnvironment(environment: Environment): Promise<void> {
     environment.updated_at = this.getCurrentTimestamp();
 
+    // Encrypt secret variables before saving
+    const encryptedEnv: Environment = await this.secureDataService.encryptEnvironment(environment);
+
     const valueBucket: relationalStore.ValuesBucket = {
-      updated_at: environment.updated_at,
-      name: environment.name,
-      variables: this.stringifyJson(environment.variables)
+      updated_at: encryptedEnv.updated_at,
+      name: encryptedEnv.name,
+      variables: this.stringifyJson(encryptedEnv.variables)
     };
 
     const predicates = this.createPredicates();

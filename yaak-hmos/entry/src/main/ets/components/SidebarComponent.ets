@@ -2,6 +2,8 @@
  * Sidebar Component
  * Main sidebar with search, action buttons, and tree view
  * Enhanced with drag and drop reordering support
+ * 
+ * 使用扁平化列表 + @Monitor + ForEach 模式实现列表刷新
  */
 
 import { SidebarItem } from '../viewmodel/SidebarItem';
@@ -24,6 +26,17 @@ interface DropTargetInfo {
   targetFolderId: string | null;
 }
 
+// 扁平化列表项类型
+type FlatItemType = 'folder' | 'request';
+
+// 扁平化列表项接口
+interface FlatListItem {
+  id: string;
+  type: FlatItemType;
+  data: SidebarItem;
+  level: number;
+}
+
 @ComponentV2
 export struct SidebarComponent {
   @Param items: SidebarItem[] = [];
@@ -43,11 +56,53 @@ export struct SidebarComponent {
   @Param onItemMove: (itemId: string, itemType: string, newFolderId: string | null, newSortPriority: number) => void = () => {};
 
   @Local filterText: string = '';
+  
+  // 展开的文件夹集合
   @Local expandedFolders: Set<string> = new Set();
+  
+  // 扁平化列表 - 核心数据源
+  @Local flatList: FlatListItem[] = [];
 
-  // Computed property for filtered items - automatically updates when items or filterText changes
-  @Computed
-  get filteredItems(): SidebarItem[] {
+  // Drag and drop state
+  @Local isDragging: boolean = false;
+  @Local draggedItemId: string = '';
+  @Local draggedItemType: string = '';
+  @Local dropTargetId: string = '';
+  @Local dropPosition: DropPosition = 'after';
+
+  // Edit state - track which item is being edited
+  @Local editingItemId: string = '';
+  @Local editingItemType: string = '';
+
+  aboutToAppear(): void {
+    this.rebuildFlatList();
+  }
+
+  // 监听 items 和 filterText 变化，自动重建扁平列表
+  @Monitor('items', 'filterText')
+  onDataChange(): void {
+    console.info('[SidebarComponent] Data changed, rebuilding flat list');
+    this.rebuildFlatList();
+  }
+
+  // 重建扁平化列表
+  private rebuildFlatList(): void {
+    const newFlatList: FlatListItem[] = [];
+    
+    // 过滤后的根级项目
+    const filteredRootItems: SidebarItem[] = this.getFilteredItems();
+    
+    // 递归扁平化，根级项目从 level 0 开始
+    filteredRootItems.forEach((item: SidebarItem) => {
+      this.flattenItem(item, 0, newFlatList);
+    });
+    
+    this.flatList = newFlatList;
+    console.info('[SidebarComponent] Flat list rebuilt with', this.flatList.length, 'items');
+  }
+
+  // 获取过滤后的项目
+  private getFilteredItems(): SidebarItem[] {
     if (!this.filterText || this.filterText.trim() === '') {
       return this.items;
     }
@@ -58,16 +113,13 @@ export struct SidebarComponent {
     const filterItem = (item: SidebarItem): boolean => {
       const nameMatch: boolean = item.getName().toLowerCase().includes(searchText);
 
-      // For requests, also check URL
       if (item.isRequest()) {
         const request: HttpRequest | null = item.getRequest();
         const urlMatch: boolean = request ? request.url.toLowerCase().includes(searchText) : false;
         return nameMatch || urlMatch;
       }
 
-      // For folders, check if any children match
       const childrenMatch: boolean = item.children.some((child: SidebarItem) => filterItem(child));
-
       return nameMatch || childrenMatch;
     };
 
@@ -80,16 +132,35 @@ export struct SidebarComponent {
     return filtered;
   }
 
-  // Drag and drop state
-  @Local isDragging: boolean = false;
-  @Local draggedItemId: string = '';
-  @Local draggedItemType: string = '';
-  @Local dropTargetId: string = '';
-  @Local dropPosition: DropPosition = 'after';
+  // 递归扁平化项目
+  private flattenItem(item: SidebarItem, level: number, list: FlatListItem[]): void {
+    const flatItem: FlatListItem = {
+      id: item.getId(),
+      type: item.type,
+      data: item,
+      level: level
+    };
+    list.push(flatItem);
 
-  // Edit state - track which item is being edited
-  @Local editingItemId: string = '';
-  @Local editingItemType: string = '';
+    // 如果是文件夹且已展开，添加子项
+    if (item.isFolder() && this.expandedFolders.has(item.getId())) {
+      item.children.forEach((child: SidebarItem) => {
+        this.flattenItem(child, level + 1, list);
+      });
+    }
+  }
+
+  // 切换文件夹展开状态
+  private toggleFolder(folderId: string): void {
+    const newSet: Set<string> = new Set(this.expandedFolders);
+    if (newSet.has(folderId)) {
+      newSet.delete(folderId);
+    } else {
+      newSet.add(folderId);
+    }
+    this.expandedFolders = newSet;
+    this.rebuildFlatList();
+  }
 
   build() {
     Column() {
@@ -140,15 +211,17 @@ export struct SidebarComponent {
 
       ThemedDivider({})
 
-      // Tree view with root-level drop zone
+      // 使用 ForEach + 扁平化列表，而不是 Repeat + 嵌套树
       List() {
-        Repeat<SidebarItem>(this.filteredItems)
-          .each((obj: RepeatItem<SidebarItem>) => {
-            ListItem() {
-              this.buildTreeItem(obj.item, obj.index)
+        ForEach(this.flatList, (flatItem: FlatListItem) => {
+          ListItem() {
+            if (flatItem.type === 'folder') {
+              this.buildFolderItem(flatItem.data, flatItem.level)
+            } else {
+              this.buildRequestItem(flatItem.data, flatItem.level)
             }
-          })
-          .key((item: SidebarItem) => item.getId())
+          }
+        }, (flatItem: FlatListItem) => flatItem.id + '_' + flatItem.type + '_' + flatItem.level + '_' + this.expandedFolders.has(flatItem.id))
 
         // Root level drop zone at the end of the list
         ListItem() {
@@ -165,7 +238,6 @@ export struct SidebarComponent {
                 })
                 .borderRadius($r('app.float.border_radius_sm'))
             } else if (this.isDragging) {
-              // Show a hint area when dragging
               Row() {
                 Text('Drop here to move to root')
                   .fontSize($r('app.float.font_size_sm'))
@@ -214,7 +286,6 @@ export struct SidebarComponent {
       })
       .scrollBar(BarState.Auto)
       .onClick(() => {
-        // Click on empty area clears editing state
         this.clearEditingState();
       })
     }
@@ -223,152 +294,134 @@ export struct SidebarComponent {
     .backgroundColor($r('app.color.sidebar_background'))
   }
 
-  /**
-   * Build tree item (folder or request) with drag and drop support
-   */
+  // 构建文件夹项
   @Builder
-  buildTreeItem(item: SidebarItem, index: number) {
+  buildFolderItem(item: SidebarItem, level: number) {
     Column() {
-      // Main item content
-      if (item.isFolder()) {
-        Column() {
-          // Folder item - use border for drop highlight instead of Stack
-          FolderItemComponent({
-            folder: item.getFolder()!,
-            level: item.level,
-            isExpanded: item.isExpanded,
-            isEditing: this.editingItemId === item.getId() && this.editingItemType === 'folder',
-            onToggle: () => {
-              this.clearEditingState();
-              item.toggleExpanded();
-              this.onFolderToggle(item.getId());
-            },
-            onSelect: () => {
-              this.clearEditingState();
-              item.toggleExpanded();
-            },
-            onRename: (newName: string) => {
-              this.onFolderRename(item.getId(), newName);
-            },
-            onDelete: () => {
-              this.onFolderDelete(item.getId());
-            },
-            onDuplicate: () => {
-              this.onFolderDuplicate(item.getId());
-            },
-            onSettings: () => {
-              this.onFolderSettings(item.getId());
-            },
-            onStartEdit: () => {
-              this.startEditing(item.getId(), 'folder');
-            },
-            onEndEdit: () => {
-              this.clearEditingState();
-            }
-          })
-
-          // Show children if expanded - children are stored in item.children
-          if (item.isExpanded && item.children.length > 0) {
-            Column() {
-              Repeat<SidebarItem>(item.children)
-                .each((childObj: RepeatItem<SidebarItem>) => {
-                  this.buildTreeItem(childObj.item, childObj.index)
-                })
-                .key((child: SidebarItem) => child.getId())
-            }
-            .width('100%')
-          }
+      FolderItemComponent({
+        folder: item.getFolder()!,
+        level: level,
+        isExpanded: this.expandedFolders.has(item.getId()),
+        isEditing: this.editingItemId === item.getId() && this.editingItemType === 'folder',
+        onToggle: () => {
+          this.clearEditingState();
+          this.toggleFolder(item.getId());
+          this.onFolderToggle(item.getId());
+        },
+        onSelect: () => {
+          this.clearEditingState();
+          this.toggleFolder(item.getId());
+        },
+        onRename: (newName: string) => {
+          this.onFolderRename(item.getId(), newName);
+        },
+        onDelete: () => {
+          this.onFolderDelete(item.getId());
+        },
+        onDuplicate: () => {
+          this.onFolderDuplicate(item.getId());
+        },
+        onSettings: () => {
+          this.onFolderSettings(item.getId());
+        },
+        onStartEdit: () => {
+          this.startEditing(item.getId(), 'folder');
+        },
+        onEndEdit: () => {
+          this.clearEditingState();
         }
-        .width('100%')
-        .opacity(this.isDragging && this.draggedItemId === item.getId() ? 0.5 : 1.0)
-        .backgroundColor(this.isDropTarget(item) ? $r('app.color.sidebar_item_selected') : Color.Transparent)
-        .border({
-          width: this.isDropTarget(item) ? 2 : 0,
-          color: $r('app.color.primary'),
-          style: BorderStyle.Dashed
-        })
-        .borderRadius($r('app.float.border_radius_sm'))
-        .draggable(true)
-        .onDragStart(() => {
-          this.startDrag(item);
-          console.info('[Sidebar] Drag start folder:', item.getId());
-          return undefined;
-        })
-        .onDragEnd(() => {
-          console.info('[Sidebar] Drag end folder:', item.getId());
-          this.resetDragState();
-        })
-        .allowDrop([uniformTypeDescriptor.UniformDataType.TEXT])
-        .onDrop((event: DragEvent) => {
-          console.info('[Sidebar] Drop on folder:', item.getId());
-          if (this.isDragging && this.draggedItemId !== item.getId()) {
-            this.dropTargetId = item.getId();
-            this.dropPosition = 'inside';
-            this.handleDrop();
-          }
-        })
-        .onDragEnter(() => {
-          if (this.isDragging && this.draggedItemId !== item.getId()) {
-            // Check if dragging into a descendant (prevent)
-            if (!this.isDescendant(this.draggedItemId, item.getId())) {
-              this.dropTargetId = item.getId();
-              this.dropPosition = 'inside';
-              console.info('[Sidebar] Drag enter folder:', item.getId());
-            }
-          }
-        })
-        .onDragLeave(() => {
-          if (this.dropTargetId === item.getId()) {
-            this.dropTargetId = '';
-            console.info('[Sidebar] Drag leave folder:', item.getId());
-          }
-        })
-      } else if (item.isRequest()) {
-        Column() {
-          RequestItemComponent({
-            request: item.getRequest()!,
-            level: item.level,
-            isSelected: item.getId() === this.selectedRequestId,
-            isEditing: this.editingItemId === item.getId() && this.editingItemType === 'request',
-            onSelect: () => {
-              this.clearEditingState();
-              this.onRequestSelect(item.getId());
-            },
-            onRename: (newName: string) => {
-              this.onRequestRename(item.getId(), newName);
-            },
-            onDelete: () => {
-              this.onRequestDelete(item.getId());
-            },
-            onDuplicate: () => {
-              this.onRequestDuplicate(item.getId());
-            },
-            onSend: () => {
-              this.onRequestSend(item.getId());
-            },
-            onStartEdit: () => {
-              this.startEditing(item.getId(), 'request');
-            },
-            onEndEdit: () => {
-              this.clearEditingState();
-            }
-          })
-        }
-        .width('100%')
-        .opacity(this.isDragging && this.draggedItemId === item.getId() ? 0.5 : 1.0)
-        .draggable(true)
-        .onDragStart(() => {
-          this.startDrag(item);
-          console.info('[Sidebar] Drag start request:', item.getId());
-          return undefined;
-        })
-        .onDragEnd(() => {
-          console.info('[Sidebar] Drag end request:', item.getId());
-          this.resetDragState();
-        })
-      }
+      })
     }
     .width('100%')
+    .opacity(this.isDragging && this.draggedItemId === item.getId() ? 0.5 : 1.0)
+    .backgroundColor(this.isDropTarget(item) ? $r('app.color.sidebar_item_selected') : Color.Transparent)
+    .border({
+      width: this.isDropTarget(item) ? 2 : 0,
+      color: $r('app.color.primary'),
+      style: BorderStyle.Dashed
+    })
+    .borderRadius($r('app.float.border_radius_sm'))
+    .draggable(true)
+    .onDragStart(() => {
+      this.startDrag(item);
+      console.info('[Sidebar] Drag start folder:', item.getId());
+      return undefined;
+    })
+    .onDragEnd(() => {
+      console.info('[Sidebar] Drag end folder:', item.getId());
+      this.resetDragState();
+    })
+    .allowDrop([uniformTypeDescriptor.UniformDataType.TEXT])
+    .onDrop((event: DragEvent) => {
+      console.info('[Sidebar] Drop on folder:', item.getId());
+      if (this.isDragging && this.draggedItemId !== item.getId()) {
+        this.dropTargetId = item.getId();
+        this.dropPosition = 'inside';
+        this.handleDrop();
+      }
+    })
+    .onDragEnter(() => {
+      if (this.isDragging && this.draggedItemId !== item.getId()) {
+        if (!this.isDescendant(this.draggedItemId, item.getId())) {
+          this.dropTargetId = item.getId();
+          this.dropPosition = 'inside';
+          console.info('[Sidebar] Drag enter folder:', item.getId());
+        }
+      }
+    })
+    .onDragLeave(() => {
+      if (this.dropTargetId === item.getId()) {
+        this.dropTargetId = '';
+        console.info('[Sidebar] Drag leave folder:', item.getId());
+      }
+    })
+  }
+
+  // 构建请求项
+  @Builder
+  buildRequestItem(item: SidebarItem, level: number) {
+    Column() {
+      RequestItemComponent({
+        request: item.getRequest()!,
+        level: level,
+        isSelected: item.getId() === this.selectedRequestId,
+        isEditing: this.editingItemId === item.getId() && this.editingItemType === 'request',
+        onSelect: () => {
+          this.clearEditingState();
+          this.onRequestSelect(item.getId());
+        },
+        onRename: (newName: string) => {
+          this.onRequestRename(item.getId(), newName);
+        },
+        onDelete: () => {
+          this.onRequestDelete(item.getId());
+        },
+        onDuplicate: () => {
+          this.onRequestDuplicate(item.getId());
+        },
+        onSend: () => {
+          this.onRequestSend(item.getId());
+        },
+        onStartEdit: () => {
+          this.startEditing(item.getId(), 'request');
+        },
+        onEndEdit: () => {
+          this.clearEditingState();
+        }
+      })
+    }
+    .width('100%')
+    .opacity(this.isDragging && this.draggedItemId === item.getId() ? 0.5 : 1.0)
+    .draggable(true)
+    .onDragStart(() => {
+      this.startDrag(item);
+      console.info('[Sidebar] Drag start request:', item.getId());
+      return undefined;
+    })
+    .onDragEnd(() => {
+      console.info('[Sidebar] Drag end request:', item.getId());
+      this.resetDragState();
+    })
   }
 
   /**
