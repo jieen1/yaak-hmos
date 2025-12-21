@@ -154,7 +154,7 @@ export struct EnvironmentManagementDialog {
 
       Row() {
         ThemedButton({
-          text: 'Edit',
+          text: '编辑',
           onButtonClick: () => {
             this.editingEnvironment = environment;
             this.newEnvironmentName = environment.name;

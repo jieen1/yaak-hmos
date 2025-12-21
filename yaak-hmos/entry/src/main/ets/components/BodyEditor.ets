@@ -28,7 +28,7 @@ export struct BodyEditor {
     Column() {
       // Body type selector
       Row() {
-        Text('Body Type:')
+        Text('请求体类型:')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_primary'))
           .margin({ right: $r('app.float.spacing_md') })
@@ -73,7 +73,7 @@ export struct BodyEditor {
   @Builder
   buildNoneEditor() {
     Column() {
-      Text('No body')
+      Text('没有请求体')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -116,7 +116,7 @@ export struct BodyEditor {
 
   @Builder
   buildTextEditor() {
-    TextArea({ text: this.body, placeholder: 'Enter plain text...' })
+    TextArea({ text: this.body, placeholder: '输入内容...' })
       .width('100%')
       .layoutWeight(1)
       .backgroundColor($r('app.color.input_background'))
@@ -131,7 +131,7 @@ export struct BodyEditor {
   @Builder
   buildGraphQLEditor() {
     Column() {
-      Text('GraphQL Query')
+      Text('GraphQL查询')
         .fontSize($r('app.float.font_size_sm'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')

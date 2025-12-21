@@ -21,14 +21,14 @@ export struct HeadersEditor {
     Column() {
       // Header
       Row() {
-        Text('Headers')
+        Text('请求头')
           .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.text_primary'))
           .fontWeight(FontWeight.Medium)
           .flexGrow(1)
 
         ThemedButton({
-          text: 'Add',
+          text: '添加',
           onButtonClick: () => {
             this.addHeader();
           },
@@ -45,7 +45,7 @@ export struct HeadersEditor {
 
       // Editable headers list
       if (this.headers.length === 0 && this.inheritedHeaders.length === 0) {
-        Text('No headers')
+        Text('没有请求头')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -83,7 +83,7 @@ export struct HeadersEditor {
           .fontColor($r('app.color.text_secondary'))
           .margin({ right: $r('app.float.spacing_xs') })
 
-        Text('Inherited')
+        Text('继承')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .fontWeight(FontWeight.Medium)
@@ -198,7 +198,7 @@ export struct HeadersEditor {
       // Name input - fixed width
       ThemedTextInput({
         value: header.name,
-        placeholder: 'Header Name',
+        placeholder: '请求头名称',
         onValueChange: (value: string) => {
           header.name = value;
           this.onChange(this.headers);
@@ -212,7 +212,7 @@ export struct HeadersEditor {
       // Value input - takes remaining space
       ThemedTextInput({
         value: header.value,
-        placeholder: 'Header Value',
+        placeholder: '请求头值',
         onValueChange: (value: string) => {
           header.value = value;
           this.onChange(this.headers);

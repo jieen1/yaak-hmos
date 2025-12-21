@@ -55,7 +55,7 @@ export struct AuthEditor {
     Column() {
       // Auth type selector
       Row() {
-        Text('Auth Type')
+        Text('认证类型')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width(100)
@@ -128,7 +128,7 @@ export struct AuthEditor {
       if (this.inheritedAuth !== null) {
         // Show inherited auth info
         Column() {
-          Text('Inherited from')
+          Text('继承于')
             .fontSize($r('app.float.font_size_md'))
             .fontColor($r('app.color.text_secondary'))
             .margin({ bottom: $r('app.float.spacing_xs') })
@@ -151,7 +151,7 @@ export struct AuthEditor {
             .margin({ top: $r('app.float.spacing_sm') })
 
           // Click to edit hint
-          Text('Click to edit')
+          Text('点击触发编辑')
             .fontSize($r('app.float.font_size_xs'))
             .fontColor($r('app.color.text_secondary'))
             .margin({ top: $r('app.float.spacing_md') })
@@ -161,7 +161,7 @@ export struct AuthEditor {
         .alignItems(HorizontalAlign.Center)
       } else {
         // No inherited auth available
-        Text('No authentication')
+        Text('没有认证信息')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -207,7 +207,7 @@ export struct AuthEditor {
   @Builder
   buildNoAuthEditor() {
     Column() {
-      Text('No authentication')
+      Text('没有认证信息')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -223,7 +223,7 @@ export struct AuthEditor {
     Column() {
       // Username Field
       Column() {
-        Text('Username')
+        Text('用户名')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -231,7 +231,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.basic_username,
-          placeholder: 'Enter username',
+          placeholder: '输入用户名',
           onValueChange: (value: string) => {
             this.auth.basic_username = value;
             this.onChange(this.auth);
@@ -244,7 +244,7 @@ export struct AuthEditor {
 
       // Password Field
       Column() {
-        Text('Password')
+        Text('密码')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -252,7 +252,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.basic_password,
-          placeholder: 'Enter password',
+          placeholder: '输入密码',
           inputType: InputType.Password,
           onValueChange: (value: string) => {
             this.auth.basic_password = value;
@@ -279,7 +279,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.bearer_token,
-          placeholder: 'Enter bearer token',
+          placeholder: '输入bearer token',
           onValueChange: (value: string) => {
             this.auth.bearer_token = value;
             this.onChange(this.auth);
@@ -298,7 +298,7 @@ export struct AuthEditor {
     Column() {
       // Key Name Field
       Column() {
-        Text('Key Name')
+        Text('ApiKey名称')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -306,7 +306,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.api_key_name,
-          placeholder: 'e.g., X-API-Key',
+          placeholder: '例如：X-API-Key',
           onValueChange: (value: string) => {
             this.auth.api_key_name = value;
             this.onChange(this.auth);
@@ -319,7 +319,7 @@ export struct AuthEditor {
 
       // Key Value Field
       Column() {
-        Text('Key Value')
+        Text('ApiKey')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -327,7 +327,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.api_key_value,
-          placeholder: 'Enter API key',
+          placeholder: '输入ApiKey',
           onValueChange: (value: string) => {
             this.auth.api_key_value = value;
             this.onChange(this.auth);
@@ -340,7 +340,7 @@ export struct AuthEditor {
 
       // Add To Field
       Column() {
-        Text('Add To')
+        Text('添加到')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -375,7 +375,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.oauth2_access_token,
-          placeholder: 'Enter access token',
+          placeholder: '输入access token',
           onValueChange: (value: string) => {
             this.auth.oauth2_access_token = value;
             this.onChange(this.auth);
@@ -388,7 +388,7 @@ export struct AuthEditor {
 
       // Refresh Token Field
       Column() {
-        Text('Refresh Token (Optional)')
+        Text('Refresh Token (可选)')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -396,7 +396,7 @@ export struct AuthEditor {
 
         ThemedTextInput({
           value: this.auth.oauth2_refresh_token,
-          placeholder: 'Enter refresh token',
+          placeholder: '输入refresh token',
           onValueChange: (value: string) => {
             this.auth.oauth2_refresh_token = value;
             this.onChange(this.auth);

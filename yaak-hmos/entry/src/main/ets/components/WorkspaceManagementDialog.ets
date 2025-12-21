@@ -155,7 +155,7 @@ export struct WorkspaceManagementDialog {
 
       Row() {
         ThemedButton({
-          text: 'Edit',
+          text: '编辑',
           onButtonClick: () => {
             this.editingWorkspace = workspace;
             this.newWorkspaceName = workspace.name;

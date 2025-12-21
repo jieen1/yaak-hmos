@@ -17,14 +17,14 @@ export struct QueryParamsEditor {
     Column() {
       // Header
       Row() {
-        Text('Query Parameters')
+        Text('请求参数')
           .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.text_primary'))
           .fontWeight(FontWeight.Medium)
           .flexGrow(1)
 
         ThemedButton({
-          text: 'Add',
+          text: '添加',
           onButtonClick: () => {
             this.addQueryParam();
           },
@@ -36,7 +36,7 @@ export struct QueryParamsEditor {
 
       // Query Parameters list
       if (this.queryParams.length === 0) {
-        Text('No query parameters')
+        Text('没有请求参数')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -80,7 +80,7 @@ export struct QueryParamsEditor {
       // Name input - fixed width
       ThemedTextInput({
         value: param.name,
-        placeholder: 'Parameter Name',
+        placeholder: '参数名称',
         onValueChange: (value: string) => {
           param.name = value;
           this.onChange(this.queryParams);
@@ -94,7 +94,7 @@ export struct QueryParamsEditor {
       // Value input - takes remaining space
       ThemedTextInput({
         value: param.value,
-        placeholder: 'Parameter Value',
+        placeholder: '参数值',
         onValueChange: (value: string) => {
           param.value = value;
           this.onChange(this.queryParams);
