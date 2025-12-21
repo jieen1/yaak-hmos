@@ -6,7 +6,7 @@
 
 @ComponentV2
 export struct ThemedButton {
-  @Param text: string = '';
+  @Param text: ResourceStr = '';
   @Param symbolIcon: Resource | null = null;
   @Param onButtonClick: () => void = () => {};
   @Param buttonType: 'primary' | 'secondary' | 'danger' | 'ghost' = 'primary';

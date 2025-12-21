@@ -34,22 +34,22 @@ export struct FolderItemComponent {
   @Builder
   buildContextMenu() {
     Menu() {
-      MenuItem({ content: 'Rename', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.rename')) })
+      MenuItem({ content: '重命名', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.rename')) })
         .onClick(() => {
           this.startRename();
         })
 
-      MenuItem({ content: 'Duplicate', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.notepad')) })
+      MenuItem({ content: '复制', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.notepad')) })
         .onClick(() => {
           this.onDuplicate();
         })
 
-      MenuItem({ content: 'Folder Settings', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.gearshape')) })
+      MenuItem({ content: '文件夹设置', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.gearshape')) })
         .onClick(() => {
           this.onSettings();
         })
 
-      MenuItem({ content: 'Delete', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.trash')) })
+      MenuItem({ content: '删除', symbolStartIcon: new SymbolGlyphModifier($r('sys.symbol.trash')) })
         .onClick(() => {
           this.showDeleteConfirmation();
         })
@@ -204,16 +204,16 @@ export struct FolderItemComponent {
   private showDeleteConfirmation(): void {
     try {
       promptAction.showDialog({
-        title: 'Delete Folder',
-        message: `Are you sure you want to delete "${this.folder.name}" and all its contents?`,
+        title: '删除文件夹',
+        message: `确定要删除 "${this.folder.name}" 及其所有内容吗？`,
         buttons: [
-          { text: 'Cancel', color: '#000000' },
-          { text: 'Delete', color: '#ff4d4f' }
+          { text: '取消', color: '#000000' },
+          { text: '删除', color: '#ff4d4f' }
         ]
       }).then((result: promptAction.ShowDialogSuccessResponse) => {
         if (result.index === 1) {
           this.onDelete();
-          this.showToast('Folder deleted');
+          this.showToast('文件夹已删除');
         }
       }).catch((error: Error) => {
         console.error('[FolderItem] Delete confirmation error:', error);

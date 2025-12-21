@@ -37,7 +37,7 @@ export struct WorkspaceManagementDialog {
         Column() {
           // Dialog Header
           Row() {
-            Text('Workspace Management')
+            Text('工作区管理')
               .fontSize($r('app.float.font_size_xl'))
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -87,7 +87,7 @@ export struct WorkspaceManagementDialog {
       // Add Button
       Row() {
         ThemedButton({
-          text: '+ New Workspace',
+          text: '+ 新建工作区',
           onButtonClick: () => {
             this.showCreateForm = true;
             this.newWorkspaceName = '';
@@ -167,7 +167,7 @@ export struct WorkspaceManagementDialog {
           .margin({ right: $r('app.float.spacing_xs') })
 
         ThemedButton({
-          text: 'Delete',
+          text: '删除',
           onButtonClick: () => {
             this.handleDelete(workspace.id);
           },
@@ -206,7 +206,7 @@ export struct WorkspaceManagementDialog {
         })
           .margin({ right: $r('app.float.spacing_sm') })
 
-        Text(this.editingWorkspace ? 'Edit Workspace' : 'Create Workspace')
+        Text(this.editingWorkspace ? '编辑工作区' : '创建工作区')
           .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.text_primary'))
           .fontWeight(FontWeight.Medium)
@@ -225,7 +225,7 @@ export struct WorkspaceManagementDialog {
         Column() {
           // Name Field
           Column() {
-            Text('Name')
+            Text('名称')
               .fontSize($r('app.float.font_size_sm'))
               .fontColor($r('app.color.text_secondary'))
               .width('100%')
@@ -233,7 +233,7 @@ export struct WorkspaceManagementDialog {
 
             ThemedTextInput({
               value: this.newWorkspaceName,
-              placeholder: 'Enter workspace name',
+              placeholder: '输入工作区名称',
               onValueChange: (value: string) => {
                 this.newWorkspaceName = value;
               },
@@ -245,7 +245,7 @@ export struct WorkspaceManagementDialog {
 
           // Description Field
           Column() {
-            Text('Description (Optional)')
+            Text('描述（可选）')
               .fontSize($r('app.float.font_size_sm'))
               .fontColor($r('app.color.text_secondary'))
               .width('100%')
@@ -253,7 +253,7 @@ export struct WorkspaceManagementDialog {
 
             ThemedTextInput({
               value: this.newWorkspaceDescription,
-              placeholder: 'Enter workspace description',
+              placeholder: '输入工作区描述',
               onValueChange: (value: string) => {
                 this.newWorkspaceDescription = value;
               },
@@ -275,7 +275,7 @@ export struct WorkspaceManagementDialog {
       // Form Actions
       Row() {
         ThemedButton({
-          text: 'Cancel',
+          text: '取消',
           onButtonClick: () => {
             this.showCreateForm = false;
             this.editingWorkspace = null;
@@ -287,7 +287,7 @@ export struct WorkspaceManagementDialog {
           .margin({ right: $r('app.float.spacing_sm') })
 
         ThemedButton({
-          text: this.editingWorkspace ? 'Update' : 'Create',
+          text: this.editingWorkspace ? '更新' : '创建',
           onButtonClick: () => {
             this.handleSave();
           },

@@ -169,7 +169,7 @@ export struct SidebarComponent {
       // Search/Filter input
       ThemedTextInput({
         value: this.filterText,
-        placeholder: 'Search requests...',
+        placeholder: $r('app.string.search_requests'),
         onValueChange: (value: string) => {
           this.filterText = value;
         }
@@ -184,7 +184,7 @@ export struct SidebarComponent {
       // Action buttons
       Row() {
         ThemedButton({
-          text: 'New Request',
+          text: $r('app.string.new_request'),
           onButtonClick: () => {
             this.onRequestCreate();
           },
@@ -194,7 +194,7 @@ export struct SidebarComponent {
           .margin({ right: $r('app.float.spacing_xs') })
 
         ThemedButton({
-          text: 'New Folder',
+          text: $r('app.string.new_folder'),
           onButtonClick: () => {
             this.onFolderCreate();
           },
@@ -241,7 +241,7 @@ export struct SidebarComponent {
                 .borderRadius($r('app.float.border_radius_sm'))
             } else if (this.isDragging) {
               Row() {
-                Text('Drop here to move to root')
+                Text($r('app.string.drop_here_to_root'))
                   .fontSize($r('app.float.font_size_sm'))
                   .fontColor($r('app.color.text_secondary'))
               }

@@ -117,7 +117,7 @@ export struct CommandPalette {
         .fontSize(18)
         .margin({ right: $r('app.float.spacing_sm') })
 
-      TextInput({ text: this.query, placeholder: 'Type a command or search...' })
+      TextInput({ text: this.query, placeholder: '输入命令或搜索...' })
         .layoutWeight(1)
         .height($r('app.float.input_height_md'))
         .fontSize($r('app.float.font_size_md'))
@@ -140,7 +140,7 @@ export struct CommandPalette {
   buildResultsList() {
     if (this.results.length === 0) {
       Column() {
-        Text('No results found')
+        Text('未找到结果')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
       }
@@ -221,9 +221,9 @@ export struct CommandPalette {
   @Builder
   buildKeyboardHints() {
     Row() {
-      this.buildHintItem('↑↓', 'Navigate')
-      this.buildHintItem('Enter', 'Select')
-      this.buildHintItem('Esc', 'Close')
+      this.buildHintItem('↑↓', '导航')
+      this.buildHintItem('Enter', '选择')
+      this.buildHintItem('Esc', '关闭')
     }
     .width('100%')
     .justifyContent(FlexAlign.Center)
@@ -251,15 +251,15 @@ export struct CommandPalette {
   private getCategoryLabel(category: CommandCategory): string {
     switch (category) {
       case 'action':
-        return 'Action';
+        return '操作';
       case 'request':
-        return 'Request';
+        return '请求';
       case 'workspace':
-        return 'Workspace';
+        return '工作区';
       case 'environment':
-        return 'Environment';
+        return '环境';
       case 'navigation':
-        return 'Navigation';
+        return '导航';
       default:
         return '';
     }

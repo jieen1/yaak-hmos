@@ -18,14 +18,14 @@ export struct EmptyState {
         .margin({ bottom: $r('app.float.spacing_lg') })
 
       // Welcome Message
-      Text('Welcome to Flare')
+      Text($r('app.string.welcome_to_flare'))
         .fontSize($r('app.float.font_size_2xl'))
         .fontColor($r('app.color.text_primary'))
         .fontWeight(FontWeight.Bold)
         .margin({ bottom: $r('app.float.spacing_sm') })
 
       // Instructions
-      Text('Select a request from the sidebar or create a new one to get started')
+      Text($r('app.string.welcome_instruction'))
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .textAlign(TextAlign.Center)
@@ -36,7 +36,7 @@ export struct EmptyState {
       // Action Buttons
       Row() {
         ThemedButton({
-          text: 'New Request',
+          text: $r('app.string.new_request'),
           onButtonClick: () => {
             this.onNewRequest();
           },
@@ -46,7 +46,7 @@ export struct EmptyState {
           .margin({ right: $r('app.float.spacing_md') })
 
         ThemedButton({
-          text: 'Import',
+          text: $r('app.string.import'),
           onButtonClick: () => {
             this.onImport();
           },

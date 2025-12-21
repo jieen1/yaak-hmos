@@ -87,7 +87,7 @@ export class CommandService {
 
     const newRequest: BuiltInCommandDef = {
       id: 'new-request',
-      label: 'New HTTP Request',
+      label: '新建 HTTP 请求',
       category: 'action',
       shortcut: 'Ctrl+N',
       icon: '📄'
@@ -96,7 +96,7 @@ export class CommandService {
 
     const newFolder: BuiltInCommandDef = {
       id: 'new-folder',
-      label: 'New Folder',
+      label: '新建文件夹',
       category: 'action',
       shortcut: '',
       icon: '📁'
@@ -105,7 +105,7 @@ export class CommandService {
 
     const newWorkspace: BuiltInCommandDef = {
       id: 'new-workspace',
-      label: 'New Workspace',
+      label: '新建工作区',
       category: 'action',
       shortcut: '',
       icon: '🗂️'
@@ -114,7 +114,7 @@ export class CommandService {
 
     const importCmd: BuiltInCommandDef = {
       id: 'import',
-      label: 'Import...',
+      label: '导入...',
       category: 'action',
       shortcut: 'Ctrl+I',
       icon: '📥'
@@ -123,7 +123,7 @@ export class CommandService {
 
     const exportCmd: BuiltInCommandDef = {
       id: 'export',
-      label: 'Export...',
+      label: '导出...',
       category: 'action',
       shortcut: 'Ctrl+E',
       icon: '📤'
@@ -132,7 +132,7 @@ export class CommandService {
 
     const settings: BuiltInCommandDef = {
       id: 'settings',
-      label: 'Settings',
+      label: '设置',
       category: 'action',
       shortcut: 'Ctrl+,',
       icon: '⚙️'
@@ -141,7 +141,7 @@ export class CommandService {
 
     const sendRequest: BuiltInCommandDef = {
       id: 'send-request',
-      label: 'Send Request',
+      label: '发送请求',
       category: 'action',
       shortcut: 'Ctrl+Enter',
       icon: '▶️'
@@ -150,7 +150,7 @@ export class CommandService {
 
     const duplicateRequest: BuiltInCommandDef = {
       id: 'duplicate-request',
-      label: 'Duplicate Request',
+      label: '复制请求',
       category: 'action',
       shortcut: 'Ctrl+D',
       icon: '📋'
@@ -159,7 +159,7 @@ export class CommandService {
 
     const toggleSidebar: BuiltInCommandDef = {
       id: 'toggle-sidebar',
-      label: 'Toggle Sidebar',
+      label: '切换侧边栏',
       category: 'navigation',
       shortcut: 'Ctrl+B',
       icon: '📊'
@@ -168,7 +168,7 @@ export class CommandService {
 
     const focusUrl: BuiltInCommandDef = {
       id: 'focus-url',
-      label: 'Focus URL Bar',
+      label: '聚焦 URL 栏',
       category: 'navigation',
       shortcut: 'Ctrl+L',
       icon: '🔗'
@@ -177,7 +177,7 @@ export class CommandService {
 
     const copyAsCurl: BuiltInCommandDef = {
       id: 'copy-as-curl',
-      label: 'Copy as cURL',
+      label: '复制为 cURL',
       category: 'action',
       shortcut: '',
       icon: '📋'
@@ -186,7 +186,7 @@ export class CommandService {
 
     const toggleResponse: BuiltInCommandDef = {
       id: 'toggle-response',
-      label: 'Toggle Response Panel',
+      label: '切换响应面板',
       category: 'navigation',
       shortcut: '',
       icon: '📊'
@@ -293,7 +293,7 @@ export class CommandService {
           type: 'environment',
           id: env.id,
           label: env.name,
-          description: `${env.variables.length} variables`,
+          description: `${env.variables.length} 个变量`,
           shortcut: '',
           icon: '🔧',
           score: match.score

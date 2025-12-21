@@ -113,7 +113,7 @@ export struct ExportDialog {
   @Builder
   buildHeader() {
     Row() {
-      Text('Export')
+      Text('导出')
         .fontSize($r('app.float.font_size_lg'))
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.text_primary'))
@@ -137,7 +137,7 @@ export struct ExportDialog {
   buildContent() {
     Column() {
       // Workspace Selection
-      Text('Select workspaces to export:')
+      Text('选择要导出的工作区:')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -145,7 +145,7 @@ export struct ExportDialog {
 
       // Select All / Deselect All
       Row() {
-        Text('Select All')
+        Text('全选')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.primary'))
           .onClick(() => {
@@ -156,7 +156,7 @@ export struct ExportDialog {
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
 
-        Text('Deselect All')
+        Text('取消全选')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.primary'))
           .onClick(() => {
@@ -182,7 +182,7 @@ export struct ExportDialog {
 
       // Options
       Column() {
-        Text('Options:')
+        Text('选项:')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
           .width('100%')
@@ -195,7 +195,7 @@ export struct ExportDialog {
               this.includePrivateEnvs = value;
             })
 
-          Text('Include private environments')
+          Text('包含私有环境')
             .fontSize($r('app.float.font_size_sm'))
             .fontColor($r('app.color.text_primary'))
             .margin({ left: $r('app.float.spacing_sm') })
@@ -210,7 +210,7 @@ export struct ExportDialog {
               this.prettifyJson = value;
             })
 
-          Text('Prettify JSON output')
+          Text('格式化 JSON 输出')
             .fontSize($r('app.float.font_size_sm'))
             .fontColor($r('app.color.text_primary'))
             .margin({ left: $r('app.float.spacing_sm') })
@@ -248,7 +248,7 @@ export struct ExportDialog {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Text(`${item.requestCount} requests, ${item.folderCount} folders`)
+        Text(`${item.requestCount} 个请求, ${item.folderCount} 个文件夹`)
           .fontSize($r('app.float.font_size_xs'))
           .fontColor($r('app.color.text_secondary'))
       }
@@ -269,7 +269,7 @@ export struct ExportDialog {
   @Builder
   buildFooter() {
     Row() {
-      Button('Cancel')
+      Button('取消')
         .type(ButtonType.Normal)
         .backgroundColor($r('app.color.button_background'))
         .fontColor($r('app.color.text_primary'))
@@ -282,7 +282,7 @@ export struct ExportDialog {
 
       Blank()
 
-      Button(this.isExporting ? 'Exporting...' : 'Copy to Clipboard')
+      Button(this.isExporting ? '导出中...' : '复制到剪贴板')
         .type(ButtonType.Normal)
         .backgroundColor($r('app.color.primary'))
         .fontColor(Color.White)
@@ -355,7 +355,7 @@ export struct ExportDialog {
     });
 
     if (selectedWorkspaces.length === 0) {
-      this.errorMessage = 'Please select at least one workspace';
+      this.errorMessage = '请至少选择一个工作区';
       return;
     }
 
@@ -395,16 +395,16 @@ export struct ExportDialog {
         const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
         await systemPasteboard.setData(pasteboardData);
 
-        const message: string = `Exported ${result.workspacesExported} workspaces, ${result.requestsExported} requests`;
+        const message: string = `已导出 ${result.workspacesExported} 个工作区, ${result.requestsExported} 个请求`;
         this.showToast(message);
         this.onExportComplete(result);
         this.handleClose();
       } else {
-        this.errorMessage = result.error || 'Export failed';
+        this.errorMessage = result.error || '导出失败';
       }
     } catch (error) {
       const errorMessage: string = error instanceof Error ? error.message : String(error);
-      this.errorMessage = `Export failed: ${errorMessage}`;
+      this.errorMessage = `导出失败: ${errorMessage}`;
     } finally {
       this.isExporting = false;
     }

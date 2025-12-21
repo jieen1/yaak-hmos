@@ -57,7 +57,7 @@ export struct WorkspaceHeader {
         ThemedSelect({
           options: this.buildWorkspaceOptions(),
           selectedValue: this.activeWorkspace?.id || '',
-          placeholder: 'Select Workspace',
+          placeholder: '选择工作区',
           onSelectChange: (value: string) => {
             const workspace: Workspace | undefined = this.workspaces.find((ws: Workspace) => ws.id === value);
             if (workspace) {
@@ -86,7 +86,7 @@ export struct WorkspaceHeader {
         ThemedSelect({
           options: this.buildEnvironmentOptions(),
           selectedValue: this.activeEnvironment?.id || 'none',
-          placeholder: 'No Environment',
+          placeholder: '无环境',
           onSelectChange: (value: string) => {
             if (value === 'none') {
               this.onEnvironmentSelect(null);
@@ -228,7 +228,7 @@ export struct WorkspaceHeader {
     
     // Add "No Environment" option
     const noneOption: SelectOption = {
-      label: 'No Environment',
+      label: '无环境',
       value: 'none'
     };
     options.push(noneOption);

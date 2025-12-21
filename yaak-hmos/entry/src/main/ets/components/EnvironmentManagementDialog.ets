@@ -38,7 +38,7 @@ export struct EnvironmentManagementDialog {
         Column() {
           // Dialog Header
           Row() {
-            Text('Environment Management')
+            Text('环境管理')
               .fontSize($r('app.float.font_size_xl'))
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -88,7 +88,7 @@ export struct EnvironmentManagementDialog {
       // Add Button
       Row() {
         ThemedButton({
-          text: '+ New Environment',
+          text: '+ 新建环境',
           onButtonClick: () => {
             this.showCreateForm = true;
             this.newEnvironmentName = '';
@@ -166,7 +166,7 @@ export struct EnvironmentManagementDialog {
           .margin({ right: $r('app.float.spacing_xs') })
 
         ThemedButton({
-          text: 'Delete',
+          text: '删除',
           onButtonClick: () => {
             this.handleDelete(environment.id);
           },
@@ -205,7 +205,7 @@ export struct EnvironmentManagementDialog {
         })
           .margin({ right: $r('app.float.spacing_sm') })
 
-        Text(this.editingEnvironment ? 'Edit Environment' : 'Create Environment')
+        Text(this.editingEnvironment ? '编辑环境' : '创建环境')
           .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.text_primary'))
           .fontWeight(FontWeight.Medium)
@@ -223,7 +223,7 @@ export struct EnvironmentManagementDialog {
       Column() {
         // Name Field
         Column() {
-          Text('Name')
+          Text('名称')
             .fontSize($r('app.float.font_size_sm'))
             .fontColor($r('app.color.text_secondary'))
             .width('100%')
@@ -231,7 +231,7 @@ export struct EnvironmentManagementDialog {
 
           ThemedTextInput({
             value: this.newEnvironmentName,
-            placeholder: 'Enter environment name',
+            placeholder: '输入环境名称',
             onValueChange: (value: string) => {
               this.newEnvironmentName = value;
             },
@@ -243,14 +243,14 @@ export struct EnvironmentManagementDialog {
 
         // Variables Section Header
         Row() {
-          Text('Variables')
+          Text('变量')
             .fontSize($r('app.float.font_size_md'))
             .fontColor($r('app.color.text_primary'))
             .fontWeight(FontWeight.Medium)
             .layoutWeight(1)
 
           ThemedButton({
-            text: 'Add',
+            text: '添加',
             onButtonClick: () => {
               this.addVariable();
             },
@@ -267,7 +267,7 @@ export struct EnvironmentManagementDialog {
 
         // Variables List
         if (this.newEnvironmentVariables.length === 0) {
-          Text('No variables yet')
+          Text('暂无变量')
             .fontSize($r('app.float.font_size_md'))
             .fontColor($r('app.color.text_secondary'))
             .width('100%')
@@ -297,7 +297,7 @@ export struct EnvironmentManagementDialog {
       // Form Actions
       Row() {
         ThemedButton({
-          text: 'Cancel',
+          text: '取消',
           onButtonClick: () => {
             this.showCreateForm = false;
             this.editingEnvironment = null;
@@ -309,7 +309,7 @@ export struct EnvironmentManagementDialog {
           .margin({ right: $r('app.float.spacing_sm') })
 
         ThemedButton({
-          text: this.editingEnvironment ? 'Update' : 'Create',
+          text: this.editingEnvironment ? '更新' : '创建',
           onButtonClick: () => {
             this.handleSave();
           },
@@ -347,7 +347,7 @@ export struct EnvironmentManagementDialog {
       // Name input - fixed width
       ThemedTextInput({
         value: variable.name,
-        placeholder: 'Variable Name',
+        placeholder: '变量名',
         onValueChange: (value: string) => {
           variable.name = value;
         },
@@ -360,7 +360,7 @@ export struct EnvironmentManagementDialog {
       // Value input - takes remaining space
       ThemedTextInput({
         value: variable.value,
-        placeholder: 'Variable Value',
+        placeholder: '变量值',
         onValueChange: (value: string) => {
           variable.value = value;
         },

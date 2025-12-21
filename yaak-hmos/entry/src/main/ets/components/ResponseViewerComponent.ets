@@ -145,7 +145,7 @@ export struct ResponseViewerComponent {
         .height(48)
         .color($r('app.color.primary'))
 
-      Text('Loading response...')
+      Text('加载响应中...')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .margin({ top: $r('app.float.spacing_md') })
@@ -159,11 +159,11 @@ export struct ResponseViewerComponent {
   @Builder
   buildEmptyState() {
     Column() {
-      Text('No response yet')
+      Text('暂无响应')
         .fontSize($r('app.float.font_size_lg'))
         .fontColor($r('app.color.text_secondary'))
 
-      Text('Send a request to see the response')
+      Text('发送请求以查看响应')
         .fontSize($r('app.float.font_size_sm'))
         .fontColor($r('app.color.text_secondary'))
         .margin({ top: $r('app.float.spacing_sm') })
@@ -190,17 +190,17 @@ export struct ResponseViewerComponent {
         TabContent() {
           this.buildBodyTab()
         }
-        .tabBar('Body')
+        .tabBar('响应体')
 
         TabContent() {
           ResponseHeadersTab({ headers: this.response?.headers || [] })
         }
-        .tabBar('Headers')
+        .tabBar('响应头')
 
         TabContent() {
           ResponseInfoTab({ response: this.response })
         }
-        .tabBar('Info')
+        .tabBar('信息')
       }
       .width('100%')
       .layoutWeight(1)
@@ -245,7 +245,7 @@ export struct ResponseViewerComponent {
 
       // History toggle button
       if (this.responseHistory.length > 0) {
-        Button(this.showHistory ? '▲ History' : '▼ History')
+        Button(this.showHistory ? '▲ 历史' : '▼ 历史')
           .fontSize($r('app.float.font_size_xs'))
           .fontColor($r('app.color.text_secondary'))
           .backgroundColor(Color.Transparent)
@@ -273,14 +273,14 @@ export struct ResponseViewerComponent {
     Column() {
       // History header
       Row() {
-        Text('Response History')
+        Text('响应历史')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_primary'))
           .fontWeight(FontWeight.Medium)
 
         Blank()
 
-        Button('Clear')
+        Button('清空')
           .fontSize($r('app.float.font_size_xs'))
           .fontColor($r('app.color.danger'))
           .backgroundColor(Color.Transparent)
@@ -373,7 +373,7 @@ export struct ResponseViewerComponent {
           this.contentTypeInfo.category === 'text' && 
           this.contentTypeInfo.canFormat) {
         Row() {
-          Button('Pretty')
+          Button('格式化')
             .fontSize($r('app.float.font_size_sm'))
             .fontColor(this.viewMode === 'pretty' ? $r('app.color.button_text') : $r('app.color.text_primary'))
             .backgroundColor(this.viewMode === 'pretty' ? $r('app.color.primary') : $r('app.color.surface_highlight'))
@@ -383,7 +383,7 @@ export struct ResponseViewerComponent {
               this.savePreferences();
             })
 
-          Button('Raw')
+          Button('原始')
             .fontSize($r('app.float.font_size_sm'))
             .fontColor(this.viewMode === 'raw' ? $r('app.color.button_text') : $r('app.color.text_primary'))
             .backgroundColor(this.viewMode === 'raw' ? $r('app.color.primary') : $r('app.color.surface_highlight'))
@@ -411,24 +411,24 @@ export struct ResponseViewerComponent {
     // Check for large response that needs confirmation
     if (this.isLargeResponse() && !this.showLargeResponseConfirmed) {
       Column() {
-        Text('⚠️ Large Response')
+        Text('⚠️ 大型响应')
           .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.warning'))
           .fontWeight(FontWeight.Bold)
           .margin({ bottom: $r('app.float.spacing_md') })
 
-        Text(`Response size: ${this.formatSize(this.responseBody.length)}`)
+        Text(`响应大小: ${this.formatSize(this.responseBody.length)}`)
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
           .margin({ bottom: $r('app.float.spacing_sm') })
 
-        Text('Large responses may affect performance.')
+        Text('大型响应可能影响性能')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
           .margin({ bottom: $r('app.float.spacing_lg') })
 
         Row() {
-          Button('Show Response')
+          Button('显示响应')
             .fontSize($r('app.float.font_size_md'))
             .fontColor($r('app.color.button_text'))
             .backgroundColor($r('app.color.primary'))
@@ -437,7 +437,7 @@ export struct ResponseViewerComponent {
               this.showLargeResponseConfirmed = true;
             })
 
-          Button('Cancel')
+          Button('取消')
             .fontSize($r('app.float.font_size_md'))
             .fontColor($r('app.color.text_primary'))
             .backgroundColor($r('app.color.surface_highlight'))
@@ -454,7 +454,7 @@ export struct ResponseViewerComponent {
       .alignItems(HorizontalAlign.Center)
     } else if (!this.contentTypeInfo) {
       Column() {
-        Text('No content to display')
+        Text('无内容显示')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
       }
@@ -498,12 +498,12 @@ export struct ResponseViewerComponent {
       .layoutWeight(1)
     } else {
       Column() {
-        Text('Unsupported content type')
+        Text('不支持的内容类型')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
           .margin({ bottom: $r('app.float.spacing_sm') })
 
-        Text(this.contentTypeInfo?.mimeType || 'Unknown')
+        Text(this.contentTypeInfo?.mimeType || '未知')
           .fontSize($r('app.float.font_size_sm'))
           .fontColor($r('app.color.text_secondary'))
       }
@@ -583,17 +583,17 @@ export struct ResponseViewerComponent {
   private showClearHistoryConfirmation(): void {
     try {
       promptAction.showDialog({
-        title: 'Clear History',
-        message: 'Are you sure you want to clear all response history for this request?',
+        title: '清空历史',
+        message: '确定要清空此请求的所有响应历史吗？',
         buttons: [
-          { text: 'Cancel', color: '#000000' },
-          { text: 'Clear', color: '#ff4d4f' }
+          { text: '取消', color: '#000000' },
+          { text: '清空', color: '#ff4d4f' }
         ]
       }).then((result: promptAction.ShowDialogSuccessResponse) => {
         if (result.index === 1) {
           this.onClearHistory();
           this.showHistory = false;
-          this.showToast('History cleared');
+          this.showToast('历史已清空');
         }
       }).catch((error: Error) => {
         console.error('[ResponseViewer] Clear history confirmation error:', error);

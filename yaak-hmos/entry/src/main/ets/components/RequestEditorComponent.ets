@@ -95,7 +95,7 @@ export struct RequestEditorComponent {
         // URL input
         ThemedTextInput({
           value: this.request.url,
-          placeholder: 'Enter request URL or paste cURL',
+          placeholder: '输入请求 URL 或粘贴 cURL',
           onValueChange: (value: string) => {
             this.handleUrlChange(value);
           },
@@ -107,7 +107,7 @@ export struct RequestEditorComponent {
         // Send/Cancel button
         if (this.isLoading) {
           ThemedButton({
-            text: 'Cancel',
+            text: '取消',
             onButtonClick: () => {
               this.onCancel();
             },
@@ -131,7 +131,7 @@ export struct RequestEditorComponent {
               .margin({ right: 4 })
 
             ThemedButton({
-              text: 'Send',
+              text: '发送',
               onButtonClick: () => {
                 this.onExecute();
               },
@@ -157,7 +157,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('Params')
+        .tabBar('参数')
 
         TabContent() {
           HeadersEditor({
@@ -172,7 +172,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('Headers')
+        .tabBar('请求头')
 
         TabContent() {
           BodyEditor({
@@ -188,7 +188,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('Body')
+        .tabBar('请求体')
 
         TabContent() {
           AuthEditor({
@@ -203,7 +203,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('Auth')
+        .tabBar('认证')
       }
       .width('100%')
       .layoutWeight(1)
@@ -294,11 +294,11 @@ export struct RequestEditorComponent {
   private showCurlImportConfirmation(curlCommand: string): void {
     try {
       this.getUIContext().getPromptAction().showDialog({
-        title: 'cURL Detected',
-        message: 'A cURL command was detected. Would you like to import it?',
+        title: '检测到 cURL',
+        message: '检测到 cURL 命令，是否导入？',
         buttons: [
-          { text: 'Cancel', color: '#666666' },
-          { text: 'Import', color: '#007AFF' }
+          { text: '取消', color: '#666666' },
+          { text: '导入', color: '#007AFF' }
         ]
       }).then((result: promptAction.ShowDialogSuccessResponse) => {
         if (result.index === 1) {
@@ -337,10 +337,10 @@ export struct RequestEditorComponent {
       // Notify parent to update the request
       this.onCurlImport(importedRequest);
 
-      this.showToast('cURL imported successfully');
+      this.showToast('cURL 导入成功');
     } else {
-      const errorMsg = parseResult.error || 'Unknown error';
-      this.showToast(`Failed to import cURL: ${errorMsg}`);
+      const errorMsg = parseResult.error || '未知错误';
+      this.showToast(`cURL 导入失败: ${errorMsg}`);
 
       // Set the URL as-is on failure
       this.request.url = curlCommand;

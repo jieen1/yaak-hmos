@@ -130,7 +130,7 @@ export struct WorkspaceSettingsDialog {
         Column() {
           // Header
           Row() {
-            Text(`Workspace Settings: ${this.workspace?.name || ''}`)
+            Text(`工作区设置: ${this.workspace?.name || ''}`)
               .fontSize($r('app.float.font_size_lg'))
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -156,7 +156,7 @@ export struct WorkspaceSettingsDialog {
             TabContent() {
               this.buildGeneralTab()
             }
-            .tabBar('General')
+            .tabBar('通用')
 
             TabContent() {
               HeadersEditor({
@@ -166,7 +166,7 @@ export struct WorkspaceSettingsDialog {
                 onNavigateToSource: () => {}
               })
             }
-            .tabBar('Headers')
+            .tabBar('请求头')
 
             TabContent() {
               AuthEditor({
@@ -176,7 +176,7 @@ export struct WorkspaceSettingsDialog {
                 onNavigateToSource: () => {}
               })
             }
-            .tabBar('Auth')
+            .tabBar('认证')
           }
           .width('100%')
           .layoutWeight(1)
@@ -191,7 +191,7 @@ export struct WorkspaceSettingsDialog {
             Blank()
 
             ThemedButton({
-              text: 'Cancel',
+              text: '取消',
               onButtonClick: () => {
                 this.onClose();
               },
@@ -201,7 +201,7 @@ export struct WorkspaceSettingsDialog {
               .margin({ right: $r('app.float.spacing_sm') })
 
             ThemedButton({
-              text: 'Save',
+              text: '保存',
               onButtonClick: () => {
                 this.handleSave();
               },

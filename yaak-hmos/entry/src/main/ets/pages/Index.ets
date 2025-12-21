@@ -328,8 +328,8 @@ struct Index {
   async createDefaultWorkspace(): Promise<void> {
     const workspace: Workspace = new Workspace();
     workspace.id = `ws_${Date.now()}`;
-    workspace.name = 'Default Workspace';
-    workspace.description = 'Your first workspace';
+    workspace.name = '默认工作区';
+    workspace.description = '您的第一个工作区';
     workspace.created_at = Date.now();
     workspace.updated_at = Date.now();
 
@@ -347,7 +347,7 @@ struct Index {
     const request: HttpRequest = new HttpRequest();
     request.id = `req_${Date.now()}`;
     request.workspace_id = this.selectedWorkspace.id;
-    request.name = 'New Request';
+    request.name = '新建请求';
     request.url = '';
     request.method = 'GET';
     request.created_at = Date.now();
@@ -374,7 +374,7 @@ struct Index {
     const folder: Folder = new Folder();
     folder.id = `folder_${Date.now()}`;
     folder.workspace_id = this.selectedWorkspace.id;
-    folder.name = 'New Folder';
+    folder.name = '新建文件夹';
     folder.created_at = Date.now();
     folder.updated_at = Date.now();
 
@@ -1152,9 +1152,9 @@ struct Index {
     const cancelled: boolean = RequestExecutor.cancelRequest(this.selectedRequest.id);
     
     if (cancelled) {
-      this.showToast('Request cancelled');
+      this.showToast('请求已取消');
     } else {
-      this.showToast('No active request to cancel');
+      this.showToast('没有活动的请求可取消');
     }
   }
 

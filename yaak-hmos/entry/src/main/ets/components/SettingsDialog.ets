@@ -46,13 +46,13 @@ export struct SettingsDialog {
   @Local privacyPolicyAccepted: boolean = false;
 
   private themeOptions: SelectOption[] = [
-    { label: 'Light', value: 'light' },
-    { label: 'Dark', value: 'dark' },
-    { label: 'Auto (System)', value: 'system' }
+    { label: '浅色', value: 'light' },
+    { label: '深色', value: 'dark' },
+    { label: '跟随系统', value: 'system' }
   ];
 
   private keymapOptions: SelectOption[] = [
-    { label: 'Default', value: 'default' },
+    { label: '默认', value: 'default' },
     { label: 'Vim', value: 'vim' },
     { label: 'VSCode', value: 'vscode' },
     { label: 'Emacs', value: 'emacs' }
@@ -122,7 +122,7 @@ export struct SettingsDialog {
         Column() {
           // Dialog Header
           Row() {
-            Text('Settings')
+            Text('设置')
               .fontSize($r('app.float.font_size_xl'))
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -145,11 +145,11 @@ export struct SettingsDialog {
           Row() {
             // Left Sidebar with Tabs
             Column() {
-              this.buildSidebarTab('Account', 'account');
-              this.buildSidebarTab('Sync', 'sync');
-              this.buildSidebarTab('Appearance', 'appearance');
-              this.buildSidebarTab('Editor', 'editor');
-              this.buildSidebarTab('About', 'about');
+              this.buildSidebarTab('账号', 'account');
+              this.buildSidebarTab('同步', 'sync');
+              this.buildSidebarTab('外观', 'appearance');
+              this.buildSidebarTab('编辑器', 'editor');
+              this.buildSidebarTab('关于', 'about');
             }
             .width(180)
             .height('100%')
@@ -689,7 +689,7 @@ export struct SettingsDialog {
   @Builder
   buildAppearanceSettings() {
     Column() {
-      Text('Theme')
+      Text('主题')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -711,7 +711,7 @@ export struct SettingsDialog {
   buildEditorSettings() {
     Column() {
       // Editor Font Size
-      Text(`Editor Font Size: ${this.settings.editorFontSize}px`)
+      Text(`编辑器字体大小: ${this.settings.editorFontSize}px`)
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -734,7 +734,7 @@ export struct SettingsDialog {
         .margin({ bottom: $r('app.float.spacing_md') })
 
       // Editor Keymap
-      Text('Editor Keymap')
+      Text('快捷键方案')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -752,7 +752,7 @@ export struct SettingsDialog {
 
       // Soft Wrap Toggle
       Row() {
-        Text('Soft Wrap')
+        Text('自动换行')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_primary'))
           .flexGrow(1)
@@ -771,7 +771,7 @@ export struct SettingsDialog {
   @Builder
   buildInterfaceSettings() {
     Column() {
-      Text(`Interface Font Size: ${this.settings.interfaceFontSize}px`)
+      Text(`界面字体大小: ${this.settings.interfaceFontSize}px`)
         .fontSize($r('app.float.font_size_sm'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
@@ -806,21 +806,21 @@ export struct SettingsDialog {
         .textAlign(TextAlign.Center)
         .margin({ bottom: $r('app.float.spacing_md') })
 
-      Text('Version 1.0.0')
+      Text('版本 1.0.0')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
         .textAlign(TextAlign.Center)
         .margin({ bottom: $r('app.float.spacing_xl') })
 
-      Text('A powerful API client for HarmonyOS')
+      Text('强大的 HarmonyOS API 调试工具')
         .fontSize($r('app.float.font_size_sm'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
         .textAlign(TextAlign.Center)
         .margin({ bottom: $r('app.float.spacing_lg') })
 
-      Text('© 2024 Flare. All rights reserved.')
+      Text('© 2024 Flare. 保留所有权利。')
         .fontSize($r('app.float.font_size_xs'))
         .fontColor($r('app.color.text_tertiary'))
         .width('100%')

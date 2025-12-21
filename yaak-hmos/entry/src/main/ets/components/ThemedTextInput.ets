@@ -6,7 +6,7 @@
 @ComponentV2
 export struct ThemedTextInput {
   @Param value: string = '';
-  @Param placeholder: string = '';
+  @Param placeholder: ResourceStr = '';
   @Param onValueChange: (value: string) => void = () => {};
   @Param inputType: InputType = InputType.Normal;
   @Param disabled: boolean = false;

@@ -156,7 +156,7 @@ export struct FolderSettingsDialog {
         Column() {
           // Header
           Row() {
-            Text(`Folder Settings: ${this.folder?.name || ''}`)
+            Text(`文件夹设置: ${this.folder?.name || ''}`)
               .fontSize($r('app.float.font_size_lg'))
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -182,7 +182,7 @@ export struct FolderSettingsDialog {
             TabContent() {
               this.buildGeneralTab()
             }
-            .tabBar('General')
+            .tabBar('通用')
 
             TabContent() {
               HeadersEditor({
@@ -192,7 +192,7 @@ export struct FolderSettingsDialog {
                 onNavigateToSource: this.handleNavigateToSource
               })
             }
-            .tabBar('Headers')
+            .tabBar('请求头')
 
             TabContent() {
               AuthEditor({
@@ -202,7 +202,7 @@ export struct FolderSettingsDialog {
                 onNavigateToSource: this.handleNavigateToSource
               })
             }
-            .tabBar('Auth')
+            .tabBar('认证')
           }
           .width('100%')
           .layoutWeight(1)
@@ -217,7 +217,7 @@ export struct FolderSettingsDialog {
             Blank()
 
             ThemedButton({
-              text: 'Cancel',
+              text: '取消',
               onButtonClick: () => {
                 this.onClose();
               },
@@ -227,7 +227,7 @@ export struct FolderSettingsDialog {
               .margin({ right: $r('app.float.spacing_sm') })
 
             ThemedButton({
-              text: 'Save',
+              text: '保存',
               onButtonClick: () => {
                 this.handleSave();
               },

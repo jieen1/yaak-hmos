@@ -395,7 +395,7 @@ export class CurlImporter {
    */
   private static generateNameFromUrl(url: string): string {
     if (!url) {
-      return 'Imported Request';
+      return '导入的请求';
     }
 
     try {
@@ -425,9 +425,9 @@ export class CurlImporter {
         }
       }
 
-      return 'Imported Request';
+      return '导入的请求';
     } catch (e) {
-      return 'Imported Request';
+      return '导入的请求';
     }
   }
 

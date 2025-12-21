@@ -6,115 +6,115 @@
     },
     {
       "name": "workspace",
-      "value": "Workspace"
+      "value": "工作区"
     },
     {
       "name": "environment",
-      "value": "Environment"
+      "value": "环境变量"
     },
     {
       "name": "new_request",
-      "value": "New Request"
+      "value": "新建请求"
     },
     {
       "name": "new_folder",
-      "value": "New Folder"
+      "value": "新建文件夹"
     },
     {
       "name": "new_workspace",
-      "value": "New Workspace"
+      "value": "新建工作区"
     },
     {
       "name": "new_environment",
-      "value": "New Environment"
+      "value": "新建环境"
     },
     {
       "name": "send",
-      "value": "Send"
+      "value": "发送"
     },
     {
       "name": "cancel",
-      "value": "Cancel"
+      "value": "取消"
     },
     {
       "name": "save",
-      "value": "Save"
+      "value": "保存"
     },
     {
       "name": "delete",
-      "value": "Delete"
+      "value": "删除"
     },
     {
       "name": "rename",
-      "value": "Rename"
+      "value": "重命名"
     },
     {
       "name": "duplicate",
-      "value": "Duplicate"
+      "value": "复制"
     },
     {
       "name": "settings",
-      "value": "Settings"
+      "value": "设置"
     },
     {
       "name": "search",
-      "value": "Search"
+      "value": "搜索"
     },
     {
       "name": "filter",
-      "value": "Filter"
+      "value": "筛选"
     },
     {
       "name": "params",
-      "value": "Params"
+      "value": "参数"
     },
     {
       "name": "headers",
-      "value": "Headers"
+      "value": "请求头"
     },
     {
       "name": "body",
-      "value": "Body"
+      "value": "请求体"
     },
     {
       "name": "auth",
-      "value": "Auth"
+      "value": "认证"
     },
     {
       "name": "response",
-      "value": "Response"
+      "value": "响应"
     },
     {
       "name": "request",
-      "value": "Request"
+      "value": "请求"
     },
     {
       "name": "status",
-      "value": "Status"
+      "value": "状态"
     },
     {
       "name": "time",
-      "value": "Time"
+      "value": "耗时"
     },
     {
       "name": "size",
-      "value": "Size"
+      "value": "大小"
     },
     {
       "name": "pretty",
-      "value": "Pretty"
+      "value": "格式化"
     },
     {
       "name": "raw",
-      "value": "Raw"
+      "value": "原始"
     },
     {
       "name": "info",
-      "value": "Info"
+      "value": "信息"
     },
     {
       "name": "history",
-      "value": "History"
+      "value": "历史记录"
     },
     {
       "name": "cookies",
@@ -122,11 +122,11 @@
     },
     {
       "name": "no_auth",
-      "value": "No Auth"
+      "value": "无认证"
     },
     {
       "name": "basic_auth",
-      "value": "Basic Auth"
+      "value": "Basic 认证"
     },
     {
       "name": "bearer_token",
@@ -142,31 +142,31 @@
     },
     {
       "name": "username",
-      "value": "Username"
+      "value": "用户名"
     },
     {
       "name": "password",
-      "value": "Password"
+      "value": "密码"
     },
     {
       "name": "token",
-      "value": "Token"
+      "value": "令牌"
     },
     {
       "name": "key",
-      "value": "Key"
+      "value": "键"
     },
     {
       "name": "value",
-      "value": "Value"
+      "value": "值"
     },
     {
       "name": "name",
-      "value": "Name"
+      "value": "名称"
     },
     {
       "name": "description",
-      "value": "Description"
+      "value": "描述"
     },
     {
       "name": "url",
@@ -174,95 +174,95 @@
     },
     {
       "name": "method",
-      "value": "Method"
+      "value": "方法"
     },
     {
       "name": "enabled",
-      "value": "Enabled"
+      "value": "已启用"
     },
     {
       "name": "disabled",
-      "value": "Disabled"
+      "value": "已禁用"
     },
     {
       "name": "add",
-      "value": "Add"
+      "value": "添加"
     },
     {
       "name": "remove",
-      "value": "Remove"
+      "value": "移除"
     },
     {
       "name": "clear",
-      "value": "Clear"
+      "value": "清空"
     },
     {
       "name": "import",
-      "value": "Import"
+      "value": "导入"
     },
     {
       "name": "export",
-      "value": "Export"
+      "value": "导出"
     },
     {
       "name": "theme",
-      "value": "Theme"
+      "value": "主题"
     },
     {
       "name": "light",
-      "value": "Light"
+      "value": "浅色"
     },
     {
       "name": "dark",
-      "value": "Dark"
+      "value": "深色"
     },
     {
       "name": "auto",
-      "value": "Auto"
+      "value": "自动"
     },
     {
       "name": "appearance",
-      "value": "Appearance"
+      "value": "外观"
     },
     {
       "name": "general",
-      "value": "General"
+      "value": "通用"
     },
     {
       "name": "advanced",
-      "value": "Advanced"
+      "value": "高级"
     },
     {
       "name": "no_results",
-      "value": "No results found"
+      "value": "未找到结果"
     },
     {
       "name": "loading",
-      "value": "Loading..."
+      "value": "加载中..."
     },
     {
       "name": "error",
-      "value": "Error"
+      "value": "错误"
     },
     {
       "name": "success",
-      "value": "Success"
+      "value": "成功"
     },
     {
       "name": "warning",
-      "value": "Warning"
+      "value": "警告"
     },
     {
       "name": "confirm_delete",
-      "value": "Are you sure you want to delete this?"
+      "value": "确定要删除吗？"
     },
     {
       "name": "confirm",
-      "value": "Confirm"
+      "value": "确认"
     },
     {
       "name": "close",
-      "value": "Close"
+      "value": "关闭"
     },
     {
       "name": "EntryAbility_desc",
@@ -278,15 +278,215 @@
     },
     {
       "name": "internet_permission_reason",
-      "value": "Required to send HTTP requests to APIs"
+      "value": "用于发送 HTTP 请求到 API 服务器"
     },
     {
       "name": "distributed_datasync_reason",
-      "value": "Required for cross-device data synchronization and task continuation"
+      "value": "用于跨设备数据同步和任务接续"
     },
     {
       "name": "get_bundle_info_reason",
-      "value": "Required to check app installation status on other devices"
+      "value": "用于检查其他设备上的应用安装状态"
+    },
+    {
+      "name": "welcome_to_flare",
+      "value": "欢迎使用 Flare"
+    },
+    {
+      "name": "welcome_instruction",
+      "value": "从侧边栏选择一个请求，或创建新请求开始使用"
+    },
+    {
+      "name": "default_workspace",
+      "value": "默认工作区"
+    },
+    {
+      "name": "default_workspace_desc",
+      "value": "您的第一个工作区"
+    },
+    {
+      "name": "no_environment",
+      "value": "无环境"
+    },
+    {
+      "name": "select_workspace",
+      "value": "选择工作区"
+    },
+    {
+      "name": "search_requests",
+      "value": "搜索请求..."
+    },
+    {
+      "name": "drop_here_to_root",
+      "value": "拖放到此处移动到根目录"
+    },
+    {
+      "name": "enter_request_url",
+      "value": "输入请求 URL 或粘贴 cURL"
+    },
+    {
+      "name": "curl_detected",
+      "value": "检测到 cURL"
+    },
+    {
+      "name": "curl_import_confirm",
+      "value": "检测到 cURL 命令，是否导入？"
+    },
+    {
+      "name": "curl_import_success",
+      "value": "cURL 导入成功"
+    },
+    {
+      "name": "curl_import_failed",
+      "value": "cURL 导入失败"
+    },
+    {
+      "name": "select_target_device",
+      "value": "选择目标设备"
+    },
+    {
+      "name": "select_first",
+      "value": "选择第一个"
+    },
+    {
+      "name": "device_discovery_failed",
+      "value": "设备发现失败"
+    },
+    {
+      "name": "no_device_found",
+      "value": "未发现可用设备"
+    },
+    {
+      "name": "continued_to_device",
+      "value": "已流转到"
+    },
+    {
+      "name": "continuation_failed",
+      "value": "流转失败"
+    },
+    {
+      "name": "loading_response",
+      "value": "加载响应中..."
+    },
+    {
+      "name": "no_response_yet",
+      "value": "暂无响应"
+    },
+    {
+      "name": "send_request_hint",
+      "value": "发送请求以查看响应"
+    },
+    {
+      "name": "response_history",
+      "value": "响应历史"
+    },
+    {
+      "name": "large_response",
+      "value": "大型响应"
+    },
+    {
+      "name": "response_size",
+      "value": "响应大小"
+    },
+    {
+      "name": "large_response_warning",
+      "value": "大型响应可能影响性能"
+    },
+    {
+      "name": "show_response",
+      "value": "显示响应"
+    },
+    {
+      "name": "no_content",
+      "value": "无内容显示"
+    },
+    {
+      "name": "unsupported_content_type",
+      "value": "不支持的内容类型"
+    },
+    {
+      "name": "clear_history",
+      "value": "清空历史"
+    },
+    {
+      "name": "clear_history_confirm",
+      "value": "确定要清空此请求的所有响应历史吗？"
+    },
+    {
+      "name": "history_cleared",
+      "value": "历史已清空"
+    },
+    {
+      "name": "type_command_or_search",
+      "value": "输入命令或搜索..."
+    },
+    {
+      "name": "navigate",
+      "value": "导航"
+    },
+    {
+      "name": "select",
+      "value": "选择"
+    },
+    {
+      "name": "action",
+      "value": "操作"
+    },
+    {
+      "name": "navigation",
+      "value": "导航"
+    },
+    {
+      "name": "new_http_request",
+      "value": "新建 HTTP 请求"
+    },
+    {
+      "name": "import_ellipsis",
+      "value": "导入..."
+    },
+    {
+      "name": "export_ellipsis",
+      "value": "导出..."
+    },
+    {
+      "name": "send_request",
+      "value": "发送请求"
+    },
+    {
+      "name": "duplicate_request",
+      "value": "复制请求"
+    },
+    {
+      "name": "toggle_sidebar",
+      "value": "切换侧边栏"
+    },
+    {
+      "name": "focus_url_bar",
+      "value": "聚焦 URL 栏"
+    },
+    {
+      "name": "copy_as_curl",
+      "value": "复制为 cURL"
+    },
+    {
+      "name": "toggle_response_panel",
+      "value": "切换响应面板"
+    },
+    {
+      "name": "offline_mode",
+      "value": "离线模式"
+    },
+    {
+      "name": "request_cancelled",
+      "value": "请求已取消"
+    },
+    {
+      "name": "no_active_request",
+      "value": "没有活动的请求可取消"
+    },
+    {
+      "name": "variables",
+      "value": "变量"
     }
   ]
 }

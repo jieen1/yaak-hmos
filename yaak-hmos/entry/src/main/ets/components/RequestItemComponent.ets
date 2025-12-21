@@ -34,33 +34,33 @@ export struct RequestItemComponent {
   @Builder
   buildContextMenu() {
     Menu() {
-      MenuItem({ content: 'Send' })
+      MenuItem({ content: '发送' })
         .onClick(() => {
           this.onSelect();
           this.onSend();
         })
 
-      MenuItem({ content: 'Rename' })
+      MenuItem({ content: '重命名' })
         .onClick(() => {
           this.startRename();
         })
 
-      MenuItem({ content: 'Duplicate' })
+      MenuItem({ content: '复制' })
         .onClick(() => {
           this.onDuplicate();
         })
 
-      MenuItem({ content: 'Copy as cURL' })
+      MenuItem({ content: '复制为 cURL' })
         .onClick(() => {
           this.onCopyAsCurl();
         })
 
-      MenuItem({ content: 'Share' })
+      MenuItem({ content: '分享' })
         .onClick(() => {
           this.onShare();
         })
 
-      MenuItem({ content: 'Delete' })
+      MenuItem({ content: '删除' })
         .onClick(() => {
           this.showDeleteConfirmation();
         })
@@ -217,16 +217,16 @@ export struct RequestItemComponent {
   private showDeleteConfirmation(): void {
     try {
       promptAction.showDialog({
-        title: 'Delete Request',
-        message: `Are you sure you want to delete "${this.request.name}"?`,
+        title: '删除请求',
+        message: `确定要删除 "${this.request.name}" 吗？`,
         buttons: [
-          { text: 'Cancel', color: '#000000' },
-          { text: 'Delete', color: '#ff4d4f' }
+          { text: '取消', color: '#000000' },
+          { text: '删除', color: '#ff4d4f' }
         ]
       }).then((result: promptAction.ShowDialogSuccessResponse) => {
         if (result.index === 1) {
           this.onDelete();
-          this.showToast('Request deleted');
+          this.showToast('请求已删除');
         }
       }).catch((error: Error) => {
         console.error('[RequestItem] Delete confirmation error:', error);
