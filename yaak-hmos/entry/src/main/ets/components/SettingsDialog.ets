@@ -266,7 +266,7 @@ export struct SettingsDialog {
   @Builder
   buildAboutSettings() {
     Column() {
-      Text('Yaak for HarmonyOS')
+      Text('Flare for HarmonyOS')
         .fontSize($r('app.float.font_size_xl'))
         .fontColor($r('app.color.text_primary'))
         .fontWeight(FontWeight.Bold)
@@ -288,7 +288,7 @@ export struct SettingsDialog {
         .textAlign(TextAlign.Center)
         .margin({ bottom: $r('app.float.spacing_lg') })
 
-      Text('© 2024 Yaak. All rights reserved.')
+      Text('© 2024 Flare. All rights reserved.')
         .fontSize($r('app.float.font_size_xs'))
         .fontColor($r('app.color.text_tertiary'))
         .width('100%')

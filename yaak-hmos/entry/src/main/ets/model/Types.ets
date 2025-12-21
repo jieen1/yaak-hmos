@@ -1,5 +1,5 @@
 /**
- * Type definitions for Yaak HarmonyOS Application
+ * Type definitions for Flare HarmonyOS Application
  */
 
 // HTTP Method types

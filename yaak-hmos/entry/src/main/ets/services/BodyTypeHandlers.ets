@@ -162,7 +162,7 @@ export class BodyTypeHandlers {
   private static generateBoundary(): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2);
-    return `----YaakFormBoundary${timestamp}${random}`;
+    return `----FlareFormBoundary${timestamp}${random}`;
   }
 
   /**

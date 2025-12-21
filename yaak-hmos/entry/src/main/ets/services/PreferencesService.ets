@@ -7,7 +7,7 @@
 import preferences from '@ohos.data.preferences';
 import type common from '@ohos.app.ability.common';
 
-const PREFERENCES_NAME = 'yaak_preferences';
+const PREFERENCES_NAME = 'flare_preferences';
 
 export class PreferencesService {
   private static instance: PreferencesService | null = null;

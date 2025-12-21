@@ -2,7 +2,7 @@
  * ExportService - Export workspaces and requests to various formats
  *
  * Supports:
- * - Yaak native JSON format
+ * - Flare native JSON format
  */
 
 import { Workspace } from '../model/Workspace';
@@ -147,9 +147,9 @@ interface WorkspaceData {
 }
 
 /**
- * Yaak export data structure
+ * Flare export data structure
  */
-interface YaakExportData {
+interface FlareExportData {
   version: string;
   exportedAt: number;
   workspaces: ExportedWorkspace[];
@@ -190,7 +190,7 @@ export class ExportService {
         filteredEnvs
       );
 
-      const exportData: YaakExportData = {
+      const exportData: FlareExportData = {
         version: ExportService.EXPORT_VERSION,
         exportedAt: Date.now(),
         workspaces: [exportedWorkspace]
@@ -255,7 +255,7 @@ export class ExportService {
         result.environmentsExported += filteredEnvs.length;
       });
 
-      const exportData: YaakExportData = {
+      const exportData: FlareExportData = {
         version: ExportService.EXPORT_VERSION,
         exportedAt: Date.now(),
         workspaces: exportedWorkspaces

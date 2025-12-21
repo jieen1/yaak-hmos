@@ -2,7 +2,7 @@
   "string": [
     {
       "name": "app_name",
-      "value": "Yaak"
+      "value": "Flare"
     },
     {
       "name": "workspace",
@@ -274,7 +274,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": ""
+      "value": "Flare"
     },
     {
       "name": "internet_permission_reason",

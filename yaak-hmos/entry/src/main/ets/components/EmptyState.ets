@@ -18,7 +18,7 @@ export struct EmptyState {
         .margin({ bottom: $r('app.float.spacing_lg') })
 
       // Welcome Message
-      Text('Welcome to Yaak')
+      Text('Welcome to Flare')
         .fontSize($r('app.float.font_size_2xl'))
         .fontColor($r('app.color.text_primary'))
         .fontWeight(FontWeight.Bold)

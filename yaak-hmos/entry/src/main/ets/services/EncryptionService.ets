@@ -8,7 +8,7 @@ import { huks } from '@kit.UniversalKeystoreKit';
 import { util } from '@kit.ArkTS';
 
 // Key alias for the encryption key
-const KEY_ALIAS: string = 'yaak_encryption_key';
+const KEY_ALIAS: string = 'flare_encryption_key';
 
 // AES-GCM parameters
 const AES_KEY_SIZE: number = 256;

@@ -8,7 +8,7 @@ import relationalStore from '@ohos.data.relationalStore';
 import common from '@ohos.app.ability.common';
 
 const STORE_CONFIG: relationalStore.StoreConfig = {
-  name: 'yaak.db',
+  name: 'flare.db',
   securityLevel: relationalStore.SecurityLevel.S1,
   encrypt: false,
   customDir: 'database'

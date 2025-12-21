@@ -1,5 +1,5 @@
 /**
- * Main Page - Yaak HarmonyOS Application
+ * Main Page - Flare HarmonyOS Application
  * Entry point with three-pane layout
  */
 
