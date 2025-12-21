@@ -20,6 +20,7 @@ export struct RequestItemComponent {
   @Param onDuplicate: () => void = () => {};
   @Param onSend: () => void = () => {};
   @Param onCopyAsCurl: () => void = () => {};
+  @Param onShare: () => void = () => {};
   @Param onStartEdit: () => void = () => {};
   @Param onEndEdit: () => void = () => {};
 
@@ -52,6 +53,11 @@ export struct RequestItemComponent {
       MenuItem({ content: 'Copy as cURL' })
         .onClick(() => {
           this.onCopyAsCurl();
+        })
+
+      MenuItem({ content: 'Share' })
+        .onClick(() => {
+          this.onShare();
         })
 
       MenuItem({ content: 'Delete' })

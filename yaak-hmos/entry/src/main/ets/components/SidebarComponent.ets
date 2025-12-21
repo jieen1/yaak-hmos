@@ -50,6 +50,7 @@ export struct SidebarComponent {
   @Param onRequestDuplicate: (requestId: string) => void = () => {};
   @Param onRequestSend: (requestId: string) => void = () => {};
   @Param onRequestCopyAsCurl: (requestId: string) => void = () => {};
+  @Param onRequestShare: (requestId: string) => void = () => {};
   @Param onFolderRename: (folderId: string, newName: string) => void = () => {};
   @Param onFolderDelete: (folderId: string) => void = () => {};
   @Param onFolderDuplicate: (folderId: string) => void = () => {};
@@ -405,6 +406,9 @@ export struct SidebarComponent {
         },
         onCopyAsCurl: () => {
           this.onRequestCopyAsCurl(item.getId());
+        },
+        onShare: () => {
+          this.onRequestShare(item.getId());
         },
         onStartEdit: () => {
           this.startEditing(item.getId(), 'request');

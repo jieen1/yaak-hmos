@@ -12,8 +12,9 @@ import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
 import { CurlImporter } from '../services/CurlImporter';
-import { PromptAction } from '@ohos.arkui.UIContext';
 import { promptAction } from '@kit.ArkUI';
+import { ContinuationService } from '../services/ContinuationService';
+import type { DeviceInfo, ContinuationData } from '../services/ContinuationService';
 
 /**
  * Get color for HTTP method
@@ -53,6 +54,9 @@ export struct RequestEditorComponent {
 
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
+  @Local showDeviceDialog: boolean = false;
+  @Local discoveredDevices: DeviceInfo[] = [];
+  @Local isDiscovering: boolean = false;
 
   aboutToAppear(): void {
   }
@@ -113,15 +117,29 @@ export struct RequestEditorComponent {
             .width(80)
             .flexShrink(0)
         } else {
-          ThemedButton({
-            text: 'Send',
-            onButtonClick: () => {
-              this.onExecute();
-            },
-            buttonSize: 'md'
-          })
-            .width(80)
-            .flexShrink(0)
+          Row() {
+            // Continuation button
+            ThemedButton({
+              symbolIcon: $r('sys.symbol.continuous_rolling'),
+              onButtonClick: () => {
+                this.showContinuationDialog();
+              },
+              buttonType: 'ghost',
+              buttonSize: 'md'
+            })
+              .width(40)
+              .margin({ right: 4 })
+
+            ThemedButton({
+              text: 'Send',
+              onButtonClick: () => {
+                this.onExecute();
+              },
+              buttonSize: 'md'
+            })
+              .width(80)
+          }
+          .flexShrink(0)
         }
       }
       .width('100%')
@@ -275,7 +293,7 @@ export struct RequestEditorComponent {
    */
   private showCurlImportConfirmation(curlCommand: string): void {
     try {
-      new PromptAction().showDialog({
+      this.getUIContext().getPromptAction().showDialog({
         title: 'cURL Detected',
         message: 'A cURL command was detected. Would you like to import it?',
         buttons: [
@@ -335,12 +353,117 @@ export struct RequestEditorComponent {
    */
   private showToast(message: string): void {
     try {
-      new PromptAction().showToast({
+      this.getUIContext().getPromptAction().showToast({
         message: message,
         duration: 2000
       });
     } catch (error) {
       console.error('[RequestEditor] Toast error:', error);
+    }
+  }
+
+  /**
+   * Show continuation device selection dialog
+   */
+  private async showContinuationDialog(): Promise<void> {
+    this.isDiscovering = true;
+    this.showDeviceDialog = true;
+
+    try {
+      const service = ContinuationService.getInstance();
+      await service.initialize();
+      this.discoveredDevices = await service.discoverDevices();
+    } catch (error) {
+      console.error('[RequestEditor] Device discovery failed:', error);
+      this.showToast('设备发现失败');
+    } finally {
+      this.isDiscovering = false;
+    }
+
+    if (this.discoveredDevices.length === 0) {
+      this.showDeviceDialog = false;
+      this.showToast('未发现可用设备');
+      return;
+    }
+
+    // Show device selection
+    this.showDeviceSelectionMenu();
+  }
+
+  /**
+   * Show device selection menu
+   */
+  private showDeviceSelectionMenu(): void {
+    if (this.discoveredDevices.length === 0) {
+      return;
+    }
+
+    // Limit to max 5 devices (plus cancel button = 6 max for showActionMenu)
+    const maxDevices = Math.min(this.discoveredDevices.length, 5);
+    
+    // Build device names for dialog
+    const deviceNames: string[] = [];
+    for (let i = 0; i < maxDevices; i++) {
+      const device = this.discoveredDevices[i];
+      if (device) {
+        deviceNames.push(device.deviceName);
+      }
+    }
+
+    try {
+      // Use showDialog instead of showActionMenu for dynamic button count
+      this.getUIContext().getPromptAction().showDialog({
+        title: '选择目标设备',
+        message: deviceNames.join('\n'),
+        buttons: [
+          { text: '取消', color: '#666666' },
+          { text: '选择第一个', color: '#007AFF' }
+        ]
+      }).then((result: promptAction.ShowDialogSuccessResponse) => {
+        if (result.index === 1 && this.discoveredDevices.length > 0) {
+          const selectedDevice = this.discoveredDevices[0];
+          if (selectedDevice) {
+            this.continueToDevice(selectedDevice);
+          }
+        }
+      }).catch((error: Error) => {
+        console.error('[RequestEditor] Device selection error:', error);
+      });
+    } catch (error) {
+      console.error('[RequestEditor] Show device menu failed:', error);
+    }
+  }
+
+  /**
+   * Continue request to target device
+   */
+  private async continueToDevice(device: DeviceInfo): Promise<void> {
+    try {
+      const continuationData: ContinuationData = {
+        requestId: this.request.id,
+        workspaceId: this.request.workspace_id,
+        url: this.request.url,
+        method: this.request.method,
+        headers: JSON.stringify(this.request.headers),
+        queryParams: JSON.stringify(this.request.query_params),
+        body: this.request.body || '',
+        bodyType: this.request.body_type,
+        auth: JSON.stringify(this.request.auth || {}),
+        activeTab: this.activeTab,
+        timestamp: Date.now()
+      };
+
+      const service = ContinuationService.getInstance();
+      const result = await service.continueToDevice(device.deviceId, continuationData);
+
+      if (result.success) {
+        this.showToast(`已流转到 ${device.deviceName}`);
+      } else {
+        this.showToast(result.error || '流转失败');
+      }
+    } catch (error) {
+      console.error('[RequestEditor] Continuation failed:', error);
+      this.showToast('流转失败');
     }
   }
 }

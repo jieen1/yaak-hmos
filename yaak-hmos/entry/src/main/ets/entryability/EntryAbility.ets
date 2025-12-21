@@ -3,12 +3,20 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { DatabaseManager } from '../database/DatabaseManager';
 import { ThemeManager } from '../theme/ThemeManager';
+import { ContinuationService } from '../services/ContinuationService';
+import type { ContinuationData } from '../services/ContinuationService';
 
 const DOMAIN = 0x0000;
+const CONTINUATION_DATA_KEY = 'flare_continuation_data';
 
 export default class EntryAbility extends UIAbility {
+  private continuationData: ContinuationData | null = null;
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    
+    // Check for continuation data
+    this.handleContinuation(want, launchParam);
     
     try {
       // Initialize ThemeManager with system color mode
@@ -32,6 +40,59 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to initialize DatabaseManager. Cause: %{public}s', JSON.stringify(err));
     }
+  }
+
+  /**
+   * Handle continuation from another device
+   */
+  private handleContinuation(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    // Check if this is a continuation launch
+    if (launchParam.launchReason === AbilityConstant.LaunchReason.CONTINUATION) {
+      hilog.info(DOMAIN, 'testTag', 'Launched via continuation');
+      
+      // Extract continuation data from want
+      if (want.parameters && want.parameters[CONTINUATION_DATA_KEY]) {
+        const dataStr = want.parameters[CONTINUATION_DATA_KEY] as string;
+        this.continuationData = ContinuationService.deserializeContinuationData(dataStr);
+        
+        if (this.continuationData !== null) {
+          hilog.info(DOMAIN, 'testTag', 'Continuation data received for request: %{public}s', 
+            this.continuationData.requestId);
+          
+          // Notify ContinuationService
+          ContinuationService.getInstance().receiveContinuation(this.continuationData);
+        }
+      }
+    }
+  }
+
+  /**
+   * Called when continuation is requested
+   */
+  onContinue(wantParam: Record<string, Object>): AbilityConstant.OnContinueResult {
+    hilog.info(DOMAIN, 'testTag', 'onContinue called');
+    
+    // Get pending continuation data
+    const continuationService = ContinuationService.getInstance();
+    const data = continuationService.getPendingContinuationData();
+    
+    if (data !== null) {
+      // Serialize and store in want parameters
+      wantParam[CONTINUATION_DATA_KEY] = ContinuationService.serializeContinuationData(data);
+      continuationService.clearPendingContinuationData();
+      
+      hilog.info(DOMAIN, 'testTag', 'Continuation data prepared for transfer');
+      return AbilityConstant.OnContinueResult.AGREE;
+    }
+    
+    return AbilityConstant.OnContinueResult.REJECT;
+  }
+
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    hilog.info(DOMAIN, 'testTag', 'onNewWant called');
+    
+    // Handle continuation when app is already running
+    this.handleContinuation(want, launchParam);
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {

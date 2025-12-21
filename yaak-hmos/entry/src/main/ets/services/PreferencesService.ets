@@ -163,6 +163,10 @@ export class PreferenceKeys {
   static readonly RESPONSE_VIEWER_HIDDEN: string = 'response_viewer_hidden';
   static readonly VIEW_MODE_PREFIX: string = 'view_mode_';
   static readonly ACTIVE_TAB_PREFIX: string = 'active_tab_';
+  static readonly PRIVACY_POLICY_ACCEPTED: string = 'privacy_policy_accepted';
+  static readonly SYNC_AUTO_ENABLED: string = 'sync_auto_enabled';
+  static readonly SYNC_WIFI_ONLY: string = 'sync_wifi_only';
+  static readonly SYNC_SENSITIVE_DATA: string = 'sync_sensitive_data';
 
   static getSidebarWidthKey(workspaceId: string): string {
     return `${PreferenceKeys.SIDEBAR_WIDTH_PREFIX}${workspaceId}`;

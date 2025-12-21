@@ -1,6 +1,19 @@
 {
   "app": {
     "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "E:/hm_debug_key/flare_debug.p12",
+          "storePassword": "0000001E984B3CEFB984DF90D7EA6261389E079A62B796726154B1A22DE20B1B198EB479B26D05118096FE382D4D",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001E407D7E07E517F7B65B9CDECCC0AFD219E595391CB3EADF5A25129E9CC41F5D3264DA3EAAF5CA7DEE1523",
+          "signAlg": "SHA256withECDSA",
+          "profile": "E:/hm_debug_key/debugDebug.p7b",
+          "certpath": "E:/hm_debug_key/flare_debug.cer"
+        }
+      }
     ],
     "products": [
       {

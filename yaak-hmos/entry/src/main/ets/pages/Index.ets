@@ -37,6 +37,9 @@ import { ExportResult } from '../services/ExportService';
 import { CommandPalette, CommandAction } from '../components/CommandPalette';
 import { InheritanceService } from '../services/InheritanceService';
 import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
+import { ShareService } from '../services/ShareService';
+import { AuthService } from '../services/AuthService';
+import { UserStorageService } from '../services/UserStorageService';
 import common from '@ohos.app.ability.common';
 import pasteboard from '@ohos.pasteboard';
 
@@ -835,6 +838,12 @@ struct Index {
           isVisible: this.showSettingsDialog,
           onClose: () => {
             this.showSettingsDialog = false;
+          },
+          onLogin: () => {
+            this.handleLogin();
+          },
+          onLogout: () => {
+            this.handleLogoutComplete();
           }
         })
       }
@@ -1008,6 +1017,7 @@ struct Index {
             onRequestDuplicate: this.handleRequestDuplicate,
             onRequestSend: this.handleRequestSend,
             onRequestCopyAsCurl: this.handleRequestCopyAsCurl,
+            onRequestShare: this.handleRequestShare,
             onFolderRename: this.handleFolderRename,
             onFolderDelete: this.handleFolderDelete,
             onFolderDuplicate: this.handleFolderDuplicate,
@@ -1157,6 +1167,37 @@ struct Index {
     } catch (error) {
       console.error('[Index] Toast error:', error);
     }
+  }
+
+  // Login handler - called when user clicks login button in settings
+  private async handleLogin(): Promise<void> {
+    console.info('[Index] Starting Huawei ID login');
+    try {
+      const result = await AuthService.loginWithHuaweiID();
+      
+      if (result.success && result.user !== null) {
+        // Save user info to storage
+        const userStorage = UserStorageService.getInstance();
+        await userStorage.initialize(this.context);
+        await userStorage.saveUserInfo(result.user);
+        
+        this.showToast('登录成功');
+        console.info('[Index] Login successful:', result.user.displayName);
+      } else {
+        const errorMsg = result.error || '登录失败';
+        this.showToast(errorMsg);
+        console.error('[Index] Login failed:', errorMsg);
+      }
+    } catch (error) {
+      console.error('[Index] Login error:', error);
+      this.showToast('登录失败，请重试');
+    }
+  }
+
+  // Logout complete handler - called after logout in settings
+  private handleLogoutComplete(): void {
+    console.info('[Index] Logout completed');
+    this.showToast('已退出登录');
   }
 
   handleRequestChangeCallback = async (req: HttpRequest): Promise<void> => {
@@ -1379,6 +1420,41 @@ struct Index {
     } catch (error) {
       console.error('[Index] Failed to copy as cURL:', JSON.stringify(error));
       this.showToast('Failed to copy as cURL');
+    }
+  }
+
+  handleRequestShare = async (requestId: string): Promise<void> => {
+    try {
+      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
+      if (!request) {
+        console.error('[Index] Request not found for share:', requestId);
+        return;
+      }
+
+      // Show share type selection
+      promptAction.showActionMenu({
+        title: '分享方式',
+        buttons: [
+          { text: '分享为 Flare 格式', color: '#007AFF' },
+          { text: '分享为 cURL', color: '#007AFF' },
+          { text: '取消', color: '#666666' }
+        ]
+      }).then(async (result: promptAction.ActionMenuSuccessResponse) => {
+        if (result.index === 0) {
+          // Share as Flare format
+          await ShareService.shareRequest(this.context, request);
+          this.showToast('已分享');
+        } else if (result.index === 1) {
+          // Share as cURL
+          await ShareService.shareAsCurl(this.context, request);
+          this.showToast('已分享');
+        }
+      }).catch((error: Error) => {
+        console.error('[Index] Share menu error:', error);
+      });
+    } catch (error) {
+      console.error('[Index] Failed to share request:', JSON.stringify(error));
+      this.showToast('分享失败');
     }
   }
 
