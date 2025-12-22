@@ -66,7 +66,7 @@ export struct WorkspaceHeader {
           },
           selectSize: 'md'
         })
-          .width(180)
+          .width('100')
 
         ThemedButton({
           symbolIcon: $r('sys.symbol.house'),
@@ -99,10 +99,10 @@ export struct WorkspaceHeader {
           },
           selectSize: 'md'
         })
-          .width(180)
+          .width('100')
 
         ThemedButton({
-          symbolIcon: $r('sys.symbol.glass'),
+          symbolIcon: $r('sys.symbol.cart'),
           onButtonClick: () => {
             this.onManageEnvironments();
           },

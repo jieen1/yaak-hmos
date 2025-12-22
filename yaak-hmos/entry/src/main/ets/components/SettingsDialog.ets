@@ -675,7 +675,7 @@ export struct SettingsDialog {
 
   private showToast(message: string): void {
     try {
-      promptAction.showToast({ message: message, duration: 2000 });
+      this.getUIContext().getPromptAction().showToast({ message: message, duration: 2000 });
     } catch (error) {
       console.error('[SettingsDialog] Toast error:', error);
     }
@@ -690,9 +690,10 @@ export struct SettingsDialog {
   buildAppearanceSettings() {
     Column() {
       Text('主题')
-        .fontSize($r('app.float.font_size_md'))
+        .fontSize($r('app.float.font_size_lg'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
+        .fontWeight(FontWeight.Bold)
         .margin({ bottom: $r('app.float.spacing_xs') })
 
       ThemedSelect({
@@ -712,9 +713,10 @@ export struct SettingsDialog {
     Column() {
       // Editor Font Size
       Text(`编辑器字体大小: ${this.settings.editorFontSize}px`)
-        .fontSize($r('app.float.font_size_md'))
+        .fontSize($r('app.float.font_size_lg'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
+        .fontWeight(FontWeight.Bold)
         .margin({ bottom: $r('app.float.spacing_xs') })
 
       Slider({
@@ -735,9 +737,10 @@ export struct SettingsDialog {
 
       // Editor Keymap
       Text('快捷键方案')
-        .fontSize($r('app.float.font_size_md'))
+        .fontSize($r('app.float.font_size_lg'))
         .fontColor($r('app.color.text_secondary'))
         .width('100%')
+        .fontWeight(FontWeight.Bold)
         .margin({ bottom: $r('app.float.spacing_xs') })
 
       ThemedSelect({
@@ -753,8 +756,9 @@ export struct SettingsDialog {
       // Soft Wrap Toggle
       Row() {
         Text('自动换行')
-          .fontSize($r('app.float.font_size_md'))
+          .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.text_primary'))
+          .fontWeight(FontWeight.Bold)
           .flexGrow(1)
 
         Toggle({ type: ToggleType.Switch, isOn: this.settings.softWrap })
@@ -764,33 +768,6 @@ export struct SettingsDialog {
           })
       }
       .width('100%')
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildInterfaceSettings() {
-    Column() {
-      Text(`界面字体大小: ${this.settings.interfaceFontSize}px`)
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_secondary'))
-        .width('100%')
-        .margin({ bottom: $r('app.float.spacing_xs') })
-
-      Slider({
-        value: this.settings.interfaceFontSize,
-        min: 10,
-        max: 20,
-        step: 1,
-        style: SliderStyle.OutSet
-      })
-        .width('100%')
-        .trackColor($r('app.color.surface_highlight'))
-        .selectedColor($r('app.color.primary'))
-        .blockColor($r('app.color.primary'))
-        .onChange((value: number) => {
-          this.settings.interfaceFontSize = Math.round(value);
-        })
     }
     .width('100%')
   }
@@ -820,7 +797,7 @@ export struct SettingsDialog {
         .textAlign(TextAlign.Center)
         .margin({ bottom: $r('app.float.spacing_lg') })
 
-      Text('© 2024 Flare. 保留所有权利。')
+      Text('© 2025 Flare. 保留所有权利。')
         .fontSize($r('app.float.font_size_xs'))
         .fontColor($r('app.color.text_tertiary'))
         .width('100%')
