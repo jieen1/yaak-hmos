@@ -46,19 +46,16 @@ export struct SettingsDialog {
     { label: '跟随系统', value: 'system' }
   ];
 
+  // 界面字体选项 - 中文字体
   private fontOptions: SelectOption[] = [
     { label: '系统默认', value: 'system' },
-    { label: 'HarmonyOS Sans', value: 'HarmonyOS Sans' },
-    { label: 'Source Han Sans', value: 'Source Han Sans' },
-    { label: 'Noto Sans SC', value: 'Noto Sans SC' }
+    { label: 'HarmonyOS Sans', value: 'HarmonyOS Sans' }
   ];
 
+  // 编辑器字体选项 - 等宽字体（含中文支持）
   private monoFontOptions: SelectOption[] = [
     { label: '系统默认', value: 'system' },
-    { label: 'JetBrains Mono', value: 'JetBrains Mono' },
-    { label: 'Fira Code', value: 'Fira Code' },
-    { label: 'Source Code Pro', value: 'Source Code Pro' },
-    { label: 'Consolas', value: 'Consolas' }
+    { label: 'HarmonyOS Sans', value: 'HarmonyOS Sans' }
   ];
 
   private fontSizeOptions: SelectOption[] = [
@@ -72,7 +69,7 @@ export struct SettingsDialog {
   ];
 
   private keymapOptions: SelectOption[] = [
-    { label: 'Default', value: 'default' },
+    { label: '默认', value: 'default' },
     { label: 'Vim', value: 'vim' },
     { label: 'Emacs', value: 'emacs' }
   ];
