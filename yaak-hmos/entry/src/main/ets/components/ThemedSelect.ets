@@ -4,6 +4,7 @@
  */
 
 import { SymbolGlyphModifier } from '@kit.ArkUI';
+import { FontSettings } from '../services/FontService';
 
 
 export interface SelectOption {
@@ -20,6 +21,9 @@ export struct ThemedSelect {
   @Param disabled: boolean = false;
   @Param selectSize: 'sm' | 'md' | 'lg' = 'md';
   @Param selectWidth: Length = '';
+  
+  // 使用全局字体设置（响应式）
+  @Local fontSettings: FontSettings = FontSettings.getInstance();
 
   build() {
     Select(this.buildSelectOptions())
@@ -27,6 +31,7 @@ export struct ThemedSelect {
       .value(this.getSelectedLabel())
       .backgroundColor($r('app.color.input_background'))
       .fontColor($r('app.color.text_primary'))
+      .font({ size: this.fontSettings.editorFontSize, family: this.fontSettings.editorFont })
       .height(this.getHeight())
       .borderRadius($r('app.float.border_radius_md'))
       .border({

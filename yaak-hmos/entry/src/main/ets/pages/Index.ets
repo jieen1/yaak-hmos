@@ -40,6 +40,7 @@ import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/I
 import { ShareService } from '../services/ShareService';
 import { AuthService } from '../services/AuthService';
 import { UserStorageService } from '../services/UserStorageService';
+import { FontSettings } from '../services/FontService';
 import EntryAbility from '../entryability/EntryAbility';
 import type { SettingsChangeCallback } from '../components/SettingsDialog';
 import common from '@ohos.app.ability.common';
@@ -186,6 +187,10 @@ struct Index {
         PreferenceKeys.EDITOR_FONT_SIZE,
         14
       );
+
+      // Apply font settings to FontSettings singleton
+      const fontSettings = FontSettings.getInstance();
+      fontSettings.init(this.interfaceFont, this.interfaceFontSize, this.editorFont, this.editorFontSize);
 
       this.editorKeymap = await this.preferencesService.getString(
         PreferenceKeys.EDITOR_KEYMAP,
@@ -900,15 +905,19 @@ struct Index {
             },
             onInterfaceFontChange: (font: string): void => {
               this.interfaceFont = font;
+              FontSettings.getInstance().setInterfaceFont(font);
             },
             onInterfaceFontSizeChange: (size: number): void => {
               this.interfaceFontSize = size;
+              FontSettings.getInstance().setInterfaceFontSize(size);
             },
             onEditorFontChange: (font: string): void => {
               this.editorFont = font;
+              FontSettings.getInstance().setEditorFont(font);
             },
             onEditorFontSizeChange: (size: number): void => {
               this.editorFontSize = size;
+              FontSettings.getInstance().setEditorFontSize(size);
             },
             onEditorKeymapChange: (keymap: string): void => {
               this.editorKeymap = keymap;
@@ -1123,7 +1132,6 @@ struct Index {
             inheritedHeaders: this.getInheritedHeadersForSelectedRequest(),
             inheritedAuth: this.getInheritedAuthForSelectedRequest(),
             isLoading: this.isRequestLoading,
-            editorFontSize: this.editorFontSize,
             onExecute: this.handleExecuteRequest,
             onCancel: this.handleCancelRequest,
             onCopyAsCurl: this.handleCurrentRequestCopyAsCurl,
@@ -1162,7 +1170,6 @@ struct Index {
             responseBody: this.responseBody,
             isLoading: this.isRequestLoading,
             responseHistory: this.responseHistory,
-            editorFontSize: this.editorFontSize,
             onSelectResponse: this.handleSelectResponse,
             onClearHistory: this.handleClearHistory
           })

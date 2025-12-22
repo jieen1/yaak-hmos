@@ -5,6 +5,7 @@
 
 import { BodyType } from '../model/Types';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
+import { FontSettings } from '../services/FontService';
 
 @ComponentV2
 export struct BodyEditor {
@@ -12,7 +13,9 @@ export struct BodyEditor {
   @Param bodyType: BodyType = 'none';
   @Param onBodyChange: (body: string) => void = () => {};
   @Param onBodyTypeChange: (bodyType: BodyType) => void = () => {};
-  @Param editorFontSize: number = 14;
+  
+  // 使用全局字体设置（响应式）
+  @Local fontSettings: FontSettings = FontSettings.getInstance();
 
   private bodyTypeOptions: SelectOption[] = [
     { label: 'None', value: 'none' },
@@ -30,7 +33,7 @@ export struct BodyEditor {
       // Body type selector
       Row() {
         Text('请求体类型:')
-          .fontSize($r('app.float.font_size_md'))
+          .fontSize($r('app.float.font_size_lg'))
           .fontColor($r('app.color.text_primary'))
           .margin({ right: $r('app.float.spacing_md') })
 
@@ -40,9 +43,9 @@ export struct BodyEditor {
           onSelectChange: (value: string) => {
             this.onBodyTypeChange(value as BodyType);
           },
-          selectSize: 'sm'
+          selectSize: 'sm',
+          selectWidth: '80%'
         })
-          .width(200)
       }
       .width('100%')
       .padding($r('app.float.spacing_md'))
@@ -92,8 +95,8 @@ export struct BodyEditor {
       .layoutWeight(1)
       .backgroundColor($r('app.color.code_background'))
       .fontColor($r('app.color.code_text'))
-      .fontSize(this.editorFontSize)
-      .fontFamily('monospace')
+      .fontSize(this.fontSettings.editorFontSize)
+      .fontFamily(this.fontSettings.editorFont)
       .padding($r('app.float.spacing_md'))
       .onChange((value: string) => {
         this.onBodyChange(value);
@@ -107,8 +110,8 @@ export struct BodyEditor {
       .layoutWeight(1)
       .backgroundColor($r('app.color.code_background'))
       .fontColor($r('app.color.code_text'))
-      .fontSize(this.editorFontSize)
-      .fontFamily('monospace')
+      .fontSize(this.fontSettings.editorFontSize)
+      .fontFamily(this.fontSettings.editorFont)
       .padding($r('app.float.spacing_md'))
       .onChange((value: string) => {
         this.onBodyChange(value);
@@ -122,7 +125,8 @@ export struct BodyEditor {
       .layoutWeight(1)
       .backgroundColor($r('app.color.input_background'))
       .fontColor($r('app.color.text_primary'))
-      .fontSize(this.editorFontSize)
+      .fontSize(this.fontSettings.editorFontSize)
+      .fontFamily(this.fontSettings.editorFont)
       .padding($r('app.float.spacing_md'))
       .onChange((value: string) => {
         this.onBodyChange(value);
@@ -146,8 +150,8 @@ export struct BodyEditor {
         .height(200)
         .backgroundColor($r('app.color.code_background'))
         .fontColor($r('app.color.code_text'))
-        .fontSize(this.editorFontSize)
-        .fontFamily('monospace')
+        .fontSize(this.fontSettings.editorFontSize)
+        .fontFamily(this.fontSettings.editorFont)
         .padding($r('app.float.spacing_md'))
         .onChange((value: string) => {
           this.onBodyChange(value);

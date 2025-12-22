@@ -223,7 +223,7 @@ export struct HeadersEditor {
         .margin({ right: $r('app.float.spacing_sm') })
 
       ThemedButton({
-        text: '×',
+        symbolIcon: $r("sys.symbol.xmark"),
         onButtonClick: () => this.deleteHeader(index),
         buttonType: 'ghost'
       })

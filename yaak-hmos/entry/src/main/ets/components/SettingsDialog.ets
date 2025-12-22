@@ -5,6 +5,7 @@
 
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
+import { FontSettings } from '../services/FontService';
 import EntryAbility from '../entryability/EntryAbility';
 
 /**
@@ -403,6 +404,9 @@ export struct SettingsDialog {
     try {
       const prefsService = PreferencesService.getInstance();
       await prefsService.setString(PreferenceKeys.INTERFACE_FONT, font);
+      
+      // 更新全局字体设置
+      FontSettings.getInstance().setInterfaceFont(font);
 
       if (this.onSettingsChange.onInterfaceFontChange) {
         this.onSettingsChange.onInterfaceFontChange(font);
@@ -416,6 +420,9 @@ export struct SettingsDialog {
     try {
       const prefsService = PreferencesService.getInstance();
       await prefsService.setNumber(PreferenceKeys.INTERFACE_FONT_SIZE, size);
+      
+      // 更新全局字体大小设置
+      FontSettings.getInstance().setInterfaceFontSize(size);
 
       if (this.onSettingsChange.onInterfaceFontSizeChange) {
         this.onSettingsChange.onInterfaceFontSizeChange(size);
@@ -429,6 +436,9 @@ export struct SettingsDialog {
     try {
       const prefsService = PreferencesService.getInstance();
       await prefsService.setString(PreferenceKeys.EDITOR_FONT, font);
+      
+      // 更新全局编辑器字体设置
+      FontSettings.getInstance().setEditorFont(font);
 
       if (this.onSettingsChange.onEditorFontChange) {
         this.onSettingsChange.onEditorFontChange(font);
@@ -442,6 +452,9 @@ export struct SettingsDialog {
     try {
       const prefsService = PreferencesService.getInstance();
       await prefsService.setNumber(PreferenceKeys.EDITOR_FONT_SIZE, size);
+      
+      // 更新全局编辑器字体大小设置
+      FontSettings.getInstance().setEditorFontSize(size);
 
       if (this.onSettingsChange.onEditorFontSizeChange) {
         this.onSettingsChange.onEditorFontSizeChange(size);

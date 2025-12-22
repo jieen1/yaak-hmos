@@ -56,8 +56,8 @@ export struct AuthEditor {
       // Auth type selector
       Row() {
         Text('认证类型')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+          .fontSize($r('app.float.font_size_lg'))
+          .fontColor($r('app.color.text_primary'))
           .width(100)
           .flexShrink(0)
 
@@ -67,7 +67,8 @@ export struct AuthEditor {
           onSelectChange: (value: string) => {
             this.handleAuthTypeChange(value);
           },
-          selectSize: 'md'
+          selectSize: 'md',
+          selectWidth: '80%'
         })
           .layoutWeight(1)
       }

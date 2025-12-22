@@ -6,6 +6,7 @@ import { ThemeManager } from '../theme/ThemeManager';
 import { ContinuationService } from '../services/ContinuationService';
 import type { ContinuationData } from '../services/ContinuationService';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
+import { FontSettings } from '../services/FontService';
 
 const DOMAIN = 0x0000;
 const CONTINUATION_DATA_KEY = 'flare_continuation_data';
@@ -67,8 +68,32 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'Loaded saved theme: %{public}s', savedTheme);
       
       this.applyThemeMode(savedTheme);
+      
+      // Load and apply font settings
+      await this.loadAndApplyFontSettings(prefsService);
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to load saved theme. Cause: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /**
+   * Load and apply font settings from preferences
+   */
+  private async loadAndApplyFontSettings(prefsService: PreferencesService): Promise<void> {
+    try {
+      const interfaceFont: string = await prefsService.getString(PreferenceKeys.INTERFACE_FONT, 'system');
+      const interfaceFontSize: number = await prefsService.getNumber(PreferenceKeys.INTERFACE_FONT_SIZE, 14);
+      const editorFont: string = await prefsService.getString(PreferenceKeys.EDITOR_FONT, 'system');
+      const editorFontSize: number = await prefsService.getNumber(PreferenceKeys.EDITOR_FONT_SIZE, 14);
+      
+      // 使用 FontSettings 单例
+      const fontSettings = FontSettings.getInstance();
+      fontSettings.init(interfaceFont, interfaceFontSize, editorFont, editorFontSize);
+      
+      hilog.info(DOMAIN, 'testTag', 'Font settings loaded: interface=%{public}s/%{public}d, editor=%{public}s/%{public}d',
+        interfaceFont, interfaceFontSize, editorFont, editorFontSize);
+    } catch (err) {
+      hilog.error(DOMAIN, 'testTag', 'Failed to load font settings. Cause: %{public}s', JSON.stringify(err));
     }
   }
 

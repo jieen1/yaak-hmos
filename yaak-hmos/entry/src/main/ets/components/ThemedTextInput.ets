@@ -3,6 +3,8 @@
  * Reusable text input with theme support
  */
 
+import { FontSettings } from '../services/FontService';
+
 @ComponentV2
 export struct ThemedTextInput {
   @Param value: string = '';
@@ -12,6 +14,9 @@ export struct ThemedTextInput {
   @Param disabled: boolean = false;
   @Param inputSize: 'sm' | 'md' | 'lg' = 'md';
   @Param maxLength: number = -1;
+  
+  // 使用全局字体设置（响应式）
+  @Local fontSettings: FontSettings = FontSettings.getInstance();
 
   build() {
     TextInput({ text: this.value, placeholder: this.placeholder })
@@ -19,7 +24,8 @@ export struct ThemedTextInput {
       .backgroundColor($r('app.color.input_background'))
       .fontColor($r('app.color.text_primary'))
       .placeholderColor($r('app.color.text_secondary'))
-      .fontSize(this.getFontSize())
+      .fontSize(this.fontSettings.editorFontSize)
+      .fontFamily(this.fontSettings.editorFont)
       .height(this.getHeight())
       .borderRadius($r('app.float.border_radius_md'))
       .border({
@@ -39,19 +45,6 @@ export struct ThemedTextInput {
       .onFocus(() => {
         // Could add focus styling here
       })
-  }
-
-  private getFontSize(): Resource {
-    switch (this.inputSize) {
-      case 'sm':
-        return $r('app.float.font_size_sm');
-      case 'md':
-        return $r('app.float.font_size_md');
-      case 'lg':
-        return $r('app.float.font_size_lg');
-      default:
-        return $r('app.float.font_size_md');
-    }
   }
 
   private getHeight(): Resource {
