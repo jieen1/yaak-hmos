@@ -167,6 +167,19 @@ export class PreferenceKeys {
   static readonly SYNC_AUTO_ENABLED: string = 'sync_auto_enabled';
   static readonly SYNC_WIFI_ONLY: string = 'sync_wifi_only';
   static readonly SYNC_SENSITIVE_DATA: string = 'sync_sensitive_data';
+  
+  // Appearance settings
+  static readonly THEME_MODE: string = 'theme_mode';
+  
+  // Font settings
+  static readonly INTERFACE_FONT: string = 'interface_font';
+  static readonly INTERFACE_FONT_SIZE: string = 'interface_font_size';
+  static readonly EDITOR_FONT: string = 'editor_font';
+  static readonly EDITOR_FONT_SIZE: string = 'editor_font_size';
+  
+  // Editor settings
+  static readonly EDITOR_KEYMAP: string = 'editor_keymap';
+  static readonly EDITOR_SOFT_WRAP: string = 'editor_soft_wrap';
 
   static getSidebarWidthKey(workspaceId: string): string {
     return `${PreferenceKeys.SIDEBAR_WIDTH_PREFIX}${workspaceId}`;

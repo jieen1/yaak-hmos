@@ -5,15 +5,25 @@ import { DatabaseManager } from '../database/DatabaseManager';
 import { ThemeManager } from '../theme/ThemeManager';
 import { ContinuationService } from '../services/ContinuationService';
 import type { ContinuationData } from '../services/ContinuationService';
+import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 
 const DOMAIN = 0x0000;
 const CONTINUATION_DATA_KEY = 'flare_continuation_data';
 
 export default class EntryAbility extends UIAbility {
   private continuationData: ContinuationData | null = null;
+  private static instance: EntryAbility | null = null;
+
+  /**
+   * Get singleton instance for accessing from other components
+   */
+  public static getInstance(): EntryAbility | null {
+    return EntryAbility.instance;
+  }
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    EntryAbility.instance = this;
     
     // Check for continuation data
     this.handleContinuation(want, launchParam);
@@ -29,6 +39,9 @@ export default class EntryAbility extends UIAbility {
         ThemeManager.getInstance().init(ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT);
         hilog.info(DOMAIN, 'testTag', 'ThemeManager initialized with default light mode');
       }
+      
+      // Load and apply saved theme preference
+      this.loadAndApplySavedTheme();
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to initialize ThemeManager. Cause: %{public}s', JSON.stringify(err));
     }
@@ -39,6 +52,51 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'DatabaseManager initialized');
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to initialize DatabaseManager. Cause: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /**
+   * Load saved theme preference and apply it
+   */
+  private async loadAndApplySavedTheme(): Promise<void> {
+    try {
+      const prefsService = PreferencesService.getInstance();
+      await prefsService.init(this.context);
+      
+      const savedTheme: string = await prefsService.getString(PreferenceKeys.THEME_MODE, 'system');
+      hilog.info(DOMAIN, 'testTag', 'Loaded saved theme: %{public}s', savedTheme);
+      
+      this.applyThemeMode(savedTheme);
+    } catch (err) {
+      hilog.error(DOMAIN, 'testTag', 'Failed to load saved theme. Cause: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  /**
+   * Apply theme mode to the application
+   * @param themeMode - 'light', 'dark', or 'system'
+   */
+  public applyThemeMode(themeMode: string): void {
+    try {
+      const appContext = this.context.getApplicationContext();
+      const themeManager = ThemeManager.getInstance();
+      
+      if (themeMode === 'dark') {
+        appContext.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
+        themeManager.setThemeMode('dark');
+        hilog.info(DOMAIN, 'testTag', 'Applied dark theme');
+      } else if (themeMode === 'light') {
+        appContext.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT);
+        themeManager.setThemeMode('light');
+        hilog.info(DOMAIN, 'testTag', 'Applied light theme');
+      } else {
+        // system / auto - follow system color mode
+        appContext.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+        themeManager.setThemeMode('auto');
+        hilog.info(DOMAIN, 'testTag', 'Applied system theme (follow system)');
+      }
+    } catch (err) {
+      hilog.error(DOMAIN, 'testTag', 'Failed to apply theme mode. Cause: %{public}s', JSON.stringify(err));
     }
   }
 

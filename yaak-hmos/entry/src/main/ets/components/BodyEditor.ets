@@ -12,6 +12,7 @@ export struct BodyEditor {
   @Param bodyType: BodyType = 'none';
   @Param onBodyChange: (body: string) => void = () => {};
   @Param onBodyTypeChange: (bodyType: BodyType) => void = () => {};
+  @Param editorFontSize: number = 14;
 
   private bodyTypeOptions: SelectOption[] = [
     { label: 'None', value: 'none' },
@@ -91,7 +92,7 @@ export struct BodyEditor {
       .layoutWeight(1)
       .backgroundColor($r('app.color.code_background'))
       .fontColor($r('app.color.code_text'))
-      .fontSize($r('app.float.font_size_md'))
+      .fontSize(this.editorFontSize)
       .fontFamily('monospace')
       .padding($r('app.float.spacing_md'))
       .onChange((value: string) => {
@@ -106,7 +107,7 @@ export struct BodyEditor {
       .layoutWeight(1)
       .backgroundColor($r('app.color.code_background'))
       .fontColor($r('app.color.code_text'))
-      .fontSize($r('app.float.font_size_md'))
+      .fontSize(this.editorFontSize)
       .fontFamily('monospace')
       .padding($r('app.float.spacing_md'))
       .onChange((value: string) => {
@@ -121,7 +122,7 @@ export struct BodyEditor {
       .layoutWeight(1)
       .backgroundColor($r('app.color.input_background'))
       .fontColor($r('app.color.text_primary'))
-      .fontSize($r('app.float.font_size_md'))
+      .fontSize(this.editorFontSize)
       .padding($r('app.float.spacing_md'))
       .onChange((value: string) => {
         this.onBodyChange(value);
@@ -145,7 +146,7 @@ export struct BodyEditor {
         .height(200)
         .backgroundColor($r('app.color.code_background'))
         .fontColor($r('app.color.code_text'))
-        .fontSize($r('app.float.font_size_md'))
+        .fontSize(this.editorFontSize)
         .fontFamily('monospace')
         .padding($r('app.float.spacing_md'))
         .onChange((value: string) => {

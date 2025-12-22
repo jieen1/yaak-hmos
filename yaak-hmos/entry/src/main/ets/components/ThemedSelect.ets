@@ -3,6 +3,9 @@
  * Reusable select/dropdown with theme support
  */
 
+import { SymbolGlyphModifier } from '@kit.ArkUI';
+
+
 export interface SelectOption {
   label: string;
   value: string;
@@ -16,6 +19,7 @@ export struct ThemedSelect {
   @Param onSelectChange: (value: string) => void = () => {};
   @Param disabled: boolean = false;
   @Param selectSize: 'sm' | 'md' | 'lg' = 'md';
+  @Param selectWidth: Length = '';
 
   build() {
     Select(this.buildSelectOptions())
@@ -36,6 +40,8 @@ export struct ThemedSelect {
           this.onSelectChange(this.options[index].value);
         }
       })
+      .width(this.selectWidth)
+      .arrowModifier(new SymbolGlyphModifier($r('sys.symbol.chevron_down')))
   }
 
   private buildSelectOptions(): SelectOption[] {

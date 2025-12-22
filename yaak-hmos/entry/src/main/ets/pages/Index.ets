@@ -40,6 +40,8 @@ import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/I
 import { ShareService } from '../services/ShareService';
 import { AuthService } from '../services/AuthService';
 import { UserStorageService } from '../services/UserStorageService';
+import EntryAbility from '../entryability/EntryAbility';
+import type { SettingsChangeCallback } from '../components/SettingsDialog';
 import common from '@ohos.app.ability.common';
 import pasteboard from '@ohos.pasteboard';
 
@@ -81,6 +83,14 @@ struct Index {
   @Local sidebarWidth: number = 250;
   @Local responseWidth: number = 350;
   @Local responseViewerHidden: boolean = true;
+
+  // Editor Settings
+  @Local interfaceFont: string = 'system';
+  @Local interfaceFontSize: number = 14;
+  @Local editorFont: string = 'system';
+  @Local editorFontSize: number = 14;
+  @Local editorKeymap: string = 'default';
+  @Local editorSoftWrap: boolean = false;
 
   // Resize state
   @Local isSidebarResizing: boolean = false;
@@ -155,6 +165,40 @@ struct Index {
         true
       );
 
+      // Load font settings
+      this.interfaceFont = await this.preferencesService.getString(
+        PreferenceKeys.INTERFACE_FONT,
+        'system'
+      );
+
+      this.interfaceFontSize = await this.preferencesService.getNumber(
+        PreferenceKeys.INTERFACE_FONT_SIZE,
+        14
+      );
+
+      this.editorFont = await this.preferencesService.getString(
+        PreferenceKeys.EDITOR_FONT,
+        'system'
+      );
+
+      // Load editor settings
+      this.editorFontSize = await this.preferencesService.getNumber(
+        PreferenceKeys.EDITOR_FONT_SIZE,
+        14
+      );
+
+      this.editorKeymap = await this.preferencesService.getString(
+        PreferenceKeys.EDITOR_KEYMAP,
+        'default'
+      );
+
+      this.editorSoftWrap = await this.preferencesService.getBoolean(
+        PreferenceKeys.EDITOR_SOFT_WRAP,
+        false
+      );
+
+      // Note: Theme is loaded and applied in EntryAbility.onCreate()
+
       // Load workspace-specific settings if workspace is selected
       if (this.selectedWorkspace) {
         const workspaceId: string = this.selectedWorkspace.id;
@@ -179,10 +223,21 @@ struct Index {
         sidebarWidth: this.sidebarWidth,
         sidebarHidden: this.sidebarHidden,
         responseWidth: this.responseWidth,
-        responseViewerHidden: this.responseViewerHidden
+        responseViewerHidden: this.responseViewerHidden,
+        editorFontSize: this.editorFontSize,
+        editorKeymap: this.editorKeymap,
+        editorSoftWrap: this.editorSoftWrap
       });
     } catch (error) {
       console.error('[Index] Failed to load persistent settings:', JSON.stringify(error));
+    }
+  }
+
+  // Apply theme setting via EntryAbility
+  private applyThemeSetting(theme: string): void {
+    const entryAbility = EntryAbility.getInstance();
+    if (entryAbility !== null) {
+      entryAbility.applyThemeMode(theme);
     }
   }
 
@@ -839,11 +894,28 @@ struct Index {
           onClose: () => {
             this.showSettingsDialog = false;
           },
-          onLogin: () => {
-            this.handleLogin();
-          },
-          onLogout: () => {
-            this.handleLogoutComplete();
+          onSettingsChange: {
+            onThemeChange: (theme: string): void => {
+              this.applyThemeSetting(theme);
+            },
+            onInterfaceFontChange: (font: string): void => {
+              this.interfaceFont = font;
+            },
+            onInterfaceFontSizeChange: (size: number): void => {
+              this.interfaceFontSize = size;
+            },
+            onEditorFontChange: (font: string): void => {
+              this.editorFont = font;
+            },
+            onEditorFontSizeChange: (size: number): void => {
+              this.editorFontSize = size;
+            },
+            onEditorKeymapChange: (keymap: string): void => {
+              this.editorKeymap = keymap;
+            },
+            onSoftWrapChange: (enabled: boolean): void => {
+              this.editorSoftWrap = enabled;
+            }
           }
         })
       }
@@ -1051,6 +1123,7 @@ struct Index {
             inheritedHeaders: this.getInheritedHeadersForSelectedRequest(),
             inheritedAuth: this.getInheritedAuthForSelectedRequest(),
             isLoading: this.isRequestLoading,
+            editorFontSize: this.editorFontSize,
             onExecute: this.handleExecuteRequest,
             onCancel: this.handleCancelRequest,
             onCopyAsCurl: this.handleCurrentRequestCopyAsCurl,
@@ -1089,6 +1162,7 @@ struct Index {
             responseBody: this.responseBody,
             isLoading: this.isRequestLoading,
             responseHistory: this.responseHistory,
+            editorFontSize: this.editorFontSize,
             onSelectResponse: this.handleSelectResponse,
             onClearHistory: this.handleClearHistory
           })

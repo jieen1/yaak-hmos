@@ -16,6 +16,7 @@ export struct ResponseViewerComponent {
   @Param responseHistory: HttpResponse[] = [];
   @Param onSelectResponse: (response: HttpResponse) => void = () => {};
   @Param onClearHistory: () => void = () => {};
+  @Param editorFontSize: number = 14;
 
   @Local activeTab: number = 0;
   @Local viewMode: string = 'pretty'; // 'pretty' or 'raw'
@@ -467,7 +468,8 @@ export struct ResponseViewerComponent {
         TextViewer({
           text: this.responseBody,
           language: this.getTextLanguage(),
-          pretty: this.viewMode === 'pretty'
+          pretty: this.viewMode === 'pretty',
+          fontSize: this.editorFontSize
         })
       }
       .width('100%')

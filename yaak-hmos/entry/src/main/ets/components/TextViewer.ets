@@ -7,6 +7,7 @@ export interface TextViewerProps {
   text: string;
   language: 'json' | 'xml' | 'html' | 'text';
   pretty: boolean;
+  fontSize?: number;
 }
 
 @ComponentV2
@@ -14,12 +15,13 @@ export struct TextViewer {
   @Param text: string = '';
   @Param language: 'json' | 'xml' | 'html' | 'text' = 'text';
   @Param pretty: boolean = true;
+  @Param fontSize: number = 14;
 
   build() {
     Scroll() {
       Text(this.formatText())
         .fontFamily('monospace')
-        .fontSize($r('app.float.font_size_sm'))
+        .fontSize(this.fontSize)
         .fontColor($r('app.color.text_primary'))
         .width('100%')
         .padding($r('app.float.spacing_md'))

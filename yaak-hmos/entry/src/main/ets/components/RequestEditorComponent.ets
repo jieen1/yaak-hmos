@@ -51,6 +51,7 @@ export struct RequestEditorComponent {
   @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
   @Param onCurlImport: (request: HttpRequest) => void = () => {};
   @Param onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
+  @Param editorFontSize: number = 14;
 
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
@@ -178,6 +179,7 @@ export struct RequestEditorComponent {
           BodyEditor({
             body: this.request.body || '',
             bodyType: this.request.body_type,
+            editorFontSize: this.editorFontSize,
             onBodyChange: (body) => {
               this.request.body = body;
               this.onChange(this.request);
