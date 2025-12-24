@@ -12,7 +12,7 @@ export struct ThemedText {
   @Param content: ResourceStr = '';
   
   // 可选的字体大小覆盖（如果不提供，使用全局设置，-1表示使用全局）
-  @Param fontSizeOverride: number = -1;
+  @Param fontSizeOverride:  number | string | Resource = -1;
   
   // 可选的字体颜色（空字符串表示不设置）
   @Param fontColor: ResourceColor = '';
@@ -47,7 +47,7 @@ export struct ThemedText {
   buildTextBasic() {
     Text(this.content)
       .fontFamily(this.fontSettings.interfaceFont)
-      .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+      .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
   }
   
   @Builder
@@ -57,7 +57,7 @@ export struct ThemedText {
       // 颜色 + 粗细 + 行数
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .fontColor(this.fontColor)
         .fontWeight(this.fontWeight)
         .maxLines(this.maxLines)
@@ -65,46 +65,46 @@ export struct ThemedText {
       // 颜色 + 粗细
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .fontColor(this.fontColor)
         .fontWeight(this.fontWeight)
     } else if (this.fontColor !== '' && this.maxLines !== -1) {
       // 颜色 + 行数
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .fontColor(this.fontColor)
         .maxLines(this.maxLines)
     } else if (this.fontWeight !== FontWeight.Normal && this.maxLines !== -1) {
       // 粗细 + 行数
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .fontWeight(this.fontWeight)
         .maxLines(this.maxLines)
     } else if (this.fontColor !== '') {
       // 只有颜色
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .fontColor(this.fontColor)
     } else if (this.fontWeight !== FontWeight.Normal) {
       // 只有粗细
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .fontWeight(this.fontWeight)
     } else if (this.maxLines !== -1) {
       // 只有行数
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
         .maxLines(this.maxLines)
     } else {
       // 基础
       Text(this.content)
         .fontFamily(this.fontSettings.interfaceFont)
-        .fontSize(this.fontSizeOverride !== -1 ? this.fontSettings.interfaceFontSize : this.fontSizeOverride)
+        .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
     }
   }
   

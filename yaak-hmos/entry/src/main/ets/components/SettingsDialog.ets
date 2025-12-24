@@ -75,7 +75,12 @@ export struct SettingsDialog {
   private loadAvailableFonts(): void {
     const fontSettings = FontSettings.getInstance();
     const availableFonts: string[] = fontSettings.getAvailableFonts();
-    
+    this.getUIContext().getFont().getSystemFontList()
+      .forEach((fontFamily: string) => {
+        if (availableFonts.indexOf(fontFamily) == -1) {
+          availableFonts.push(fontFamily);
+        }
+      });
     // 构建字体选项列表
     const options: SelectOption[] = [
       { label: '系统默认', value: 'system' }

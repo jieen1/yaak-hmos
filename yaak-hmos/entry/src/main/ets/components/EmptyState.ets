@@ -3,6 +3,7 @@
  * Displayed when no request is selected
  */
 
+import { ThemedText } from '.';
 import { ThemedButton } from './ThemedButton';
 
 @ComponentV2
@@ -12,24 +13,29 @@ export struct EmptyState {
 
   build() {
     Column() {
-      // Welcome Icon
-      Text('📬')
-        .fontSize($r('app.float.font_size_4xl'))
+
+      ThemedText({
+        content: '📬',
+        fontSizeOverride: $r('app.float.font_size_4xl'),
+      })
         .margin({ bottom: $r('app.float.spacing_lg') })
 
-      // Welcome Message
-      Text($r('app.string.welcome_to_flare'))
-        .fontSize($r('app.float.font_size_2xl'))
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Bold)
+      ThemedText({
+        content: $r('app.string.welcome_to_flare'),
+        fontSizeOverride: $r('app.float.font_size_2xl'),
+        fontColor: $r('app.color.text_primary'),
+        fontWeight: FontWeight.Bold,
+      })
         .margin({ bottom: $r('app.float.spacing_sm') })
 
       // Instructions
-      Text($r('app.string.welcome_instruction'))
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_secondary'))
-        .textAlign(TextAlign.Center)
-        .maxLines(2)
+      ThemedText({
+        content: $r('app.string.welcome_instruction'),
+        fontSizeOverride: $r('app.float.font_size_md'),
+        fontColor: $r('app.color.text_secondary'),
+        fontWeight: FontWeight.Bold,
+        maxLines: 2,
+      })
         .width('80%')
         .margin({ bottom: $r('app.float.spacing_2xl') })
 
