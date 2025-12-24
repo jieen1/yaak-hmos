@@ -5,9 +5,9 @@
  */
 
 // 默认值
-const DEFAULT_INTERFACE_FONT: string = 'HarmonyOS Sans';
+const DEFAULT_INTERFACE_FONT: string = 'system';
 const DEFAULT_INTERFACE_FONT_SIZE: number = 14;
-const DEFAULT_EDITOR_FONT: string = 'monospace';
+const DEFAULT_EDITOR_FONT: string = 'system';
 const DEFAULT_EDITOR_FONT_SIZE: number = 14;
 
 /**
@@ -69,46 +69,4 @@ export class FontSettings {
     this.setEditorFont(editorFont);
     this.setEditorFontSize(editorFontSize);
   }
-}
-
-// 便捷函数
-export function getFontSettings(): FontSettings {
-  return FontSettings.getInstance();
-}
-
-export function setInterfaceFont(font: string): void {
-  FontSettings.getInstance().setInterfaceFont(font);
-}
-
-export function setInterfaceFontSize(size: number): void {
-  FontSettings.getInstance().setInterfaceFontSize(size);
-}
-
-export function setEditorFont(font: string): void {
-  FontSettings.getInstance().setEditorFont(font);
-}
-
-export function setEditorFontSize(size: number): void {
-  FontSettings.getInstance().setEditorFontSize(size);
-}
-
-export function getEditorFont(): string {
-  return FontSettings.getInstance().editorFont;
-}
-
-export function getEditorFontSize(): number {
-  return FontSettings.getInstance().editorFontSize;
-}
-
-export function getInterfaceFont(): string {
-  return FontSettings.getInstance().interfaceFont;
-}
-
-export function getInterfaceFontSize(): number {
-  return FontSettings.getInstance().interfaceFontSize;
-}
-
-// 移除不再需要的 initFontStorage
-export function initFontStorage(): void {
-  // 空实现，保持兼容性
 }

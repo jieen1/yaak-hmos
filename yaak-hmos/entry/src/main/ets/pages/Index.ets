@@ -42,7 +42,6 @@ import { AuthService } from '../services/AuthService';
 import { UserStorageService } from '../services/UserStorageService';
 import { FontSettings } from '../services/FontService';
 import EntryAbility from '../entryability/EntryAbility';
-import type { SettingsChangeCallback } from '../components/SettingsDialog';
 import common from '@ohos.app.ability.common';
 import pasteboard from '@ohos.pasteboard';
 
@@ -86,10 +85,6 @@ struct Index {
   @Local responseViewerHidden: boolean = true;
 
   // Editor Settings
-  @Local interfaceFont: string = 'system';
-  @Local interfaceFontSize: number = 14;
-  @Local editorFont: string = 'system';
-  @Local editorFontSize: number = 14;
   @Local editorKeymap: string = 'default';
   @Local editorSoftWrap: boolean = false;
 
@@ -166,32 +161,6 @@ struct Index {
         true
       );
 
-      // Load font settings
-      this.interfaceFont = await this.preferencesService.getString(
-        PreferenceKeys.INTERFACE_FONT,
-        'system'
-      );
-
-      this.interfaceFontSize = await this.preferencesService.getNumber(
-        PreferenceKeys.INTERFACE_FONT_SIZE,
-        14
-      );
-
-      this.editorFont = await this.preferencesService.getString(
-        PreferenceKeys.EDITOR_FONT,
-        'system'
-      );
-
-      // Load editor settings
-      this.editorFontSize = await this.preferencesService.getNumber(
-        PreferenceKeys.EDITOR_FONT_SIZE,
-        14
-      );
-
-      // Apply font settings to FontSettings singleton
-      const fontSettings = FontSettings.getInstance();
-      fontSettings.init(this.interfaceFont, this.interfaceFontSize, this.editorFont, this.editorFontSize);
-
       this.editorKeymap = await this.preferencesService.getString(
         PreferenceKeys.EDITOR_KEYMAP,
         'default'
@@ -201,8 +170,6 @@ struct Index {
         PreferenceKeys.EDITOR_SOFT_WRAP,
         false
       );
-
-      // Note: Theme is loaded and applied in EntryAbility.onCreate()
 
       // Load workspace-specific settings if workspace is selected
       if (this.selectedWorkspace) {
@@ -229,7 +196,6 @@ struct Index {
         sidebarHidden: this.sidebarHidden,
         responseWidth: this.responseWidth,
         responseViewerHidden: this.responseViewerHidden,
-        editorFontSize: this.editorFontSize,
         editorKeymap: this.editorKeymap,
         editorSoftWrap: this.editorSoftWrap
       });
@@ -904,19 +870,15 @@ struct Index {
               this.applyThemeSetting(theme);
             },
             onInterfaceFontChange: (font: string): void => {
-              this.interfaceFont = font;
               FontSettings.getInstance().setInterfaceFont(font);
             },
             onInterfaceFontSizeChange: (size: number): void => {
-              this.interfaceFontSize = size;
               FontSettings.getInstance().setInterfaceFontSize(size);
             },
             onEditorFontChange: (font: string): void => {
-              this.editorFont = font;
               FontSettings.getInstance().setEditorFont(font);
             },
             onEditorFontSizeChange: (size: number): void => {
-              this.editorFontSize = size;
               FontSettings.getInstance().setEditorFontSize(size);
             },
             onEditorKeymapChange: (keymap: string): void => {
