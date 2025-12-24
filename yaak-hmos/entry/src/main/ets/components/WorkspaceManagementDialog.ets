@@ -6,6 +6,7 @@
 import { Workspace } from '../model/Workspace';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
+import { ThemedText } from './ThemedText';
 
 @ComponentV2
 export struct WorkspaceManagementDialog {
@@ -37,10 +38,11 @@ export struct WorkspaceManagementDialog {
         Column() {
           // Dialog Header
           Row() {
-            Text('工作区管理')
-              .fontSize($r('app.float.font_size_xl'))
-              .fontColor($r('app.color.text_primary'))
-              .fontWeight(FontWeight.Bold)
+            ThemedText({
+              content: '工作区管理',
+              fontWeight: FontWeight.Bold,
+              fontColor: $r('app.color.text_primary')
+            })
               .flexGrow(1)
 
             ThemedButton({
@@ -102,15 +104,15 @@ export struct WorkspaceManagementDialog {
       // Workspace List
       if (this.workspaces.length === 0) {
         Column() {
-          Text('No workspaces yet')
-            .fontSize($r('app.float.font_size_md'))
-            .fontColor($r('app.color.text_secondary'))
-            .width('100%')
-            .textAlign(TextAlign.Center)
-            .padding($r('app.float.spacing_2xl'))
+          ThemedText({
+            content: 'No workspaces yet',
+            fontColor: $r('app.color.text_secondary')
+          })
         }
         .layoutWeight(1)
         .width('100%')
+        .padding($r('app.float.spacing_2xl'))
+        .justifyContent(FlexAlign.Center)
       } else {
         List() {
           ForEach(this.workspaces, (workspace: Workspace) => {
@@ -136,16 +138,18 @@ export struct WorkspaceManagementDialog {
   buildWorkspaceItem(workspace: Workspace) {
     Row() {
       Column() {
-        Text(workspace.name)
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_primary'))
-          .fontWeight(FontWeight.Medium)
+        ThemedText({
+          content: workspace.name,
+          fontWeight: FontWeight.Medium,
+          fontColor: $r('app.color.text_primary')
+        })
           .width('100%')
 
         if (workspace.description) {
-          Text(workspace.description)
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor($r('app.color.text_secondary'))
+          ThemedText({
+            content: workspace.description,
+            fontColor: $r('app.color.text_secondary')
+          })
             .width('100%')
             .margin({ top: $r('app.float.spacing_xs') })
         }
@@ -206,10 +210,11 @@ export struct WorkspaceManagementDialog {
         })
           .margin({ right: $r('app.float.spacing_sm') })
 
-        Text(this.editingWorkspace ? '编辑工作区' : '创建工作区')
-          .fontSize($r('app.float.font_size_lg'))
-          .fontColor($r('app.color.text_primary'))
-          .fontWeight(FontWeight.Medium)
+        ThemedText({
+          content: this.editingWorkspace ? '编辑工作区' : '创建工作区',
+          fontWeight: FontWeight.Medium,
+          fontColor: $r('app.color.text_primary')
+        })
           .layoutWeight(1)
       }
       .width('100%')
@@ -225,9 +230,10 @@ export struct WorkspaceManagementDialog {
         Column() {
           // Name Field
           Column() {
-            Text('名称')
-              .fontSize($r('app.float.font_size_sm'))
-              .fontColor($r('app.color.text_secondary'))
+            ThemedText({
+              content: '名称',
+              fontColor: $r('app.color.text_secondary')
+            })
               .width('100%')
               .margin({ bottom: $r('app.float.spacing_xs') })
 
@@ -245,9 +251,10 @@ export struct WorkspaceManagementDialog {
 
           // Description Field
           Column() {
-            Text('描述（可选）')
-              .fontSize($r('app.float.font_size_sm'))
-              .fontColor($r('app.color.text_secondary'))
+            ThemedText({
+              content: '描述（可选）',
+              fontColor: $r('app.color.text_secondary')
+            })
               .width('100%')
               .margin({ bottom: $r('app.float.spacing_xs') })
 

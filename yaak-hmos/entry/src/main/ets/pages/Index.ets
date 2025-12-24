@@ -24,6 +24,7 @@ import { SidebarComponent } from '../components/SidebarComponent';
 import { RequestEditorComponent } from '../components/RequestEditorComponent';
 import { ResponseViewerComponent } from '../components/ResponseViewerComponent';
 import { EmptyState } from '../components/EmptyState';
+import { ThemedText } from '../components/ThemedText';
 import { SettingsDialog } from '../components/SettingsDialog';
 import { WorkspaceManagementDialog } from '../components/WorkspaceManagementDialog';
 import { EnvironmentManagementDialog } from '../components/EnvironmentManagementDialog';
@@ -171,6 +172,30 @@ struct Index {
         false
       );
 
+      // Load font settings
+      const interfaceFont: string = await this.preferencesService.getString(
+        PreferenceKeys.INTERFACE_FONT,
+        'system'
+      );
+      
+      const interfaceFontSize: number = await this.preferencesService.getNumber(
+        PreferenceKeys.INTERFACE_FONT_SIZE,
+        14
+      );
+      
+      const editorFont: string = await this.preferencesService.getString(
+        PreferenceKeys.EDITOR_FONT,
+        'system'
+      );
+      
+      const editorFontSize: number = await this.preferencesService.getNumber(
+        PreferenceKeys.EDITOR_FONT_SIZE,
+        14
+      );
+      
+      // Initialize FontSettings with loaded values
+      FontSettings.getInstance().init(interfaceFont, interfaceFontSize, editorFont, editorFontSize);
+
       // Load workspace-specific settings if workspace is selected
       if (this.selectedWorkspace) {
         const workspaceId: string = this.selectedWorkspace.id;
@@ -197,7 +222,11 @@ struct Index {
         responseWidth: this.responseWidth,
         responseViewerHidden: this.responseViewerHidden,
         editorKeymap: this.editorKeymap,
-        editorSoftWrap: this.editorSoftWrap
+        editorSoftWrap: this.editorSoftWrap,
+        interfaceFont: interfaceFont,
+        interfaceFontSize: interfaceFontSize,
+        editorFont: editorFont,
+        editorFontSize: editorFontSize
       });
     } catch (error) {
       console.error('[Index] Failed to load persistent settings:', JSON.stringify(error));
@@ -869,23 +898,29 @@ struct Index {
             onThemeChange: (theme: string): void => {
               this.applyThemeSetting(theme);
             },
-            onInterfaceFontChange: (font: string): void => {
+            onInterfaceFontChange: async (font: string): Promise<void> => {
               FontSettings.getInstance().setInterfaceFont(font);
+              await this.preferencesService.setString(PreferenceKeys.INTERFACE_FONT, font);
             },
-            onInterfaceFontSizeChange: (size: number): void => {
+            onInterfaceFontSizeChange: async (size: number): Promise<void> => {
               FontSettings.getInstance().setInterfaceFontSize(size);
+              await this.preferencesService.setNumber(PreferenceKeys.INTERFACE_FONT_SIZE, size);
             },
-            onEditorFontChange: (font: string): void => {
+            onEditorFontChange: async (font: string): Promise<void> => {
               FontSettings.getInstance().setEditorFont(font);
+              await this.preferencesService.setString(PreferenceKeys.EDITOR_FONT, font);
             },
-            onEditorFontSizeChange: (size: number): void => {
+            onEditorFontSizeChange: async (size: number): Promise<void> => {
               FontSettings.getInstance().setEditorFontSize(size);
+              await this.preferencesService.setNumber(PreferenceKeys.EDITOR_FONT_SIZE, size);
             },
-            onEditorKeymapChange: (keymap: string): void => {
+            onEditorKeymapChange: async (keymap: string): Promise<void> => {
               this.editorKeymap = keymap;
+              await this.preferencesService.setString(PreferenceKeys.EDITOR_KEYMAP, keymap);
             },
-            onSoftWrapChange: (enabled: boolean): void => {
+            onSoftWrapChange: async (enabled: boolean): Promise<void> => {
               this.editorSoftWrap = enabled;
+              await this.preferencesService.setBoolean(PreferenceKeys.EDITOR_SOFT_WRAP, enabled);
             }
           }
         })
@@ -1012,9 +1047,10 @@ struct Index {
         .height(48)
         .color($r('app.color.primary'))
 
-      Text('Initializing...')
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: 'Initializing...',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ top: $r('app.float.spacing_md') })
     }
     .width('100%')
@@ -1029,9 +1065,11 @@ struct Index {
       // Sidebar toggle button when hidden
       if (this.sidebarHidden) {
         Column() {
-          Text('☰')
-            .fontSize(20)
-            .fontColor($r('app.color.text_secondary'))
+          ThemedText({
+            content: '☰',
+            fontSizeOverride: 20,
+            fontColor: $r('app.color.text_secondary')
+          })
             .onClick(() => {
               this.sidebarHidden = false;
               this.saveSidebarHidden(false);

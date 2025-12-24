@@ -7,6 +7,7 @@ import { HttpRequest } from '../model/HttpRequest';
 import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
+import { ThemedText } from './ThemedText';
 import { QueryParamsEditor } from './QueryParamsEditor';
 import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
@@ -70,11 +71,11 @@ export struct RequestEditorComponent {
       Row() {
         // Method selector with colored text
         Row() {
-          Text(this.request.method)
-            .fontSize($r('app.float.font_size_md'))
-            .fontColor(this.getCurrentMethodColor())
-            .fontWeight(FontWeight.Bold)
-            .fontFamily('monospace')
+          ThemedText({
+            content: this.request.method,
+            fontWeight: FontWeight.Bold,
+            fontColor: this.getCurrentMethodColor()
+          })
         }
         .width(80)
         .height(36)

@@ -4,6 +4,7 @@
  */
 
 import { ThemedSelect, SelectOption } from './ThemedSelect';
+import { ThemedText } from './ThemedText';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 import { FontSettings } from '../services/FontService';
 import EntryAbility from '../entryability/EntryAbility';
@@ -39,23 +40,15 @@ export struct SettingsDialog {
   @Local editorKeymap: string = 'default';
   @Local softWrap: boolean = false;
 
+  // Dynamic font options
+  @Local fontOptions: SelectOption[] = [];
+  @Local monoFontOptions: SelectOption[] = [];
+
   // Options
   private themeOptions: SelectOption[] = [
     { label: '浅色', value: 'light' },
     { label: '深色', value: 'dark' },
     { label: '跟随系统', value: 'system' }
-  ];
-
-  // 界面字体选项 - 中文字体
-  private fontOptions: SelectOption[] = [
-    { label: '系统默认', value: 'system' },
-    { label: 'HarmonyOS Sans', value: 'HarmonyOS Sans' }
-  ];
-
-  // 编辑器字体选项 - 等宽字体（含中文支持）
-  private monoFontOptions: SelectOption[] = [
-    { label: '系统默认', value: 'system' },
-    { label: 'HarmonyOS Sans', value: 'HarmonyOS Sans' }
   ];
 
   private fontSizeOptions: SelectOption[] = [
@@ -75,7 +68,29 @@ export struct SettingsDialog {
   ];
 
   aboutToAppear(): void {
+    this.loadAvailableFonts();
     this.loadSettings();
+  }
+
+  private loadAvailableFonts(): void {
+    const fontSettings = FontSettings.getInstance();
+    const availableFonts: string[] = fontSettings.getAvailableFonts();
+    
+    // 构建字体选项列表
+    const options: SelectOption[] = [
+      { label: '系统默认', value: 'system' }
+    ];
+    
+    availableFonts.forEach((fontFamily: string) => {
+      const option: SelectOption = {
+        label: fontFamily,
+        value: fontFamily
+      };
+      options.push(option);
+    });
+    
+    this.fontOptions = options;
+    this.monoFontOptions = options;
   }
 
   private async loadSettings(): Promise<void> {
@@ -111,16 +126,20 @@ export struct SettingsDialog {
         Column() {
           // 标题栏
           Row() {
-            Text('设置')
-              .fontSize(18)
-              .fontColor($r('app.color.text_primary'))
-              .fontWeight(FontWeight.Medium)
+            ThemedText({
+              content: '设置',
+              fontSizeOverride: 18,
+              fontWeight: FontWeight.Medium,
+              fontColor: $r('app.color.text_primary')
+            })
 
             Blank()
 
-            Text('×')
-              .fontSize(24)
-              .fontColor($r('app.color.text_secondary'))
+            ThemedText({
+              content: '×',
+              fontSizeOverride: 24,
+              fontColor: $r('app.color.text_secondary')
+            })
               .onClick(() => this.onClose())
           }
           .width('100%')
@@ -192,9 +211,11 @@ export struct SettingsDialog {
         .backgroundColor(this.selectedTab === value ? $r('app.color.primary') : Color.Transparent)
         .borderRadius(2)
 
-      Text(label)
-        .fontSize(14)
-        .fontColor(this.selectedTab === value ? $r('app.color.primary') : $r('app.color.text_primary'))
+      ThemedText({
+        content: label,
+        fontSizeOverride: 14,
+        fontColor: this.selectedTab === value ? $r('app.color.primary') : $r('app.color.text_primary')
+      })
         .margin({ left: 12 })
     }
     .width('100%')
@@ -210,9 +231,10 @@ export struct SettingsDialog {
   buildThemeContent() {
     Column() {
       // 颜色模式
-      Text('颜色模式')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '颜色模式',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ bottom: 8 })
 
       ThemedSelect({
@@ -234,9 +256,10 @@ export struct SettingsDialog {
   buildInterfaceContent() {
     Column() {
       // 界面字体
-      Text('界面字体')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '界面字体',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ bottom: 8 })
 
       Row() {
@@ -270,9 +293,10 @@ export struct SettingsDialog {
       Column().height(20)
 
       // 编辑器字体
-      Text('编辑器字体')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '编辑器字体',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ bottom: 8 })
 
       Row() {
@@ -305,9 +329,10 @@ export struct SettingsDialog {
       Column().height(20)
 
       // 编辑器快捷键
-      Text('编辑器快捷键')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '编辑器快捷键',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ bottom: 8 })
 
       ThemedSelect({
@@ -336,9 +361,10 @@ export struct SettingsDialog {
             this.saveSoftWrap(value);
           })
 
-        Text('编辑器自动换行')
-          .fontSize($r('app.float.font_size_lg'))
-          .fontColor($r('app.color.text_primary'))
+        ThemedText({
+          content: '编辑器自动换行',
+          fontColor: $r('app.color.text_primary')
+        })
           .margin({ left: 10 })
       }
       .width('100%')
@@ -352,27 +378,35 @@ export struct SettingsDialog {
   @Builder
   buildAboutContent() {
     Column() {
-      Text('Flare')
-        .fontSize(22)
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Bold)
+      ThemedText({
+        content: 'Flare',
+        fontSizeOverride: 22,
+        fontWeight: FontWeight.Bold,
+        fontColor: $r('app.color.text_primary')
+      })
 
-      Text('版本 1.0.0')
-        .fontSize(13)
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '版本 1.0.0',
+        fontSizeOverride: 13,
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ top: 4 })
 
       Column().height(20)
 
-      Text('HarmonyOS API 调试工具')
-        .fontSize(14)
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: 'HarmonyOS API 调试工具',
+        fontSizeOverride: 14,
+        fontColor: $r('app.color.text_secondary')
+      })
 
       Column().height(12)
 
-      Text('© 2025 Flare')
-        .fontSize(12)
-        .fontColor($r('app.color.text_tertiary'))
+      ThemedText({
+        content: '© 2025 Flare',
+        fontSizeOverride: 12,
+        fontColor: $r('app.color.text_tertiary')
+      })
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)

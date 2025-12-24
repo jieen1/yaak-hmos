@@ -7,6 +7,7 @@ import { Workspace } from '../model/Workspace';
 import { Environment } from '../model/Environment';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { ThemedButton } from '.';
+import { ThemedText } from './ThemedText';
 import { NetworkService } from '../services/NetworkService';
 import type { NetworkStatus } from '../services/NetworkService';
 
@@ -124,9 +125,10 @@ export struct WorkspaceHeader {
             .fill('#EF4444')
             .margin({ right: 6 })
 
-          Text('离线模式')
-            .fontSize($r('app.float.font_size_sm'))
-            .fontColor('#EF4444')
+          ThemedText({
+            content: '离线模式',
+            fontColor: '#EF4444'
+          })
         }
         .padding({
           left: 12,

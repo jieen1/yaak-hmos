@@ -4,6 +4,7 @@
  */
 
 export { ThemedButton } from './ThemedButton';
+export { ThemedText } from './ThemedText';
 export { ThemedTextInput } from './ThemedTextInput';
 export { ThemedSelect, SelectOption } from './ThemedSelect';
 export { ThemedDivider } from './ThemedDivider';

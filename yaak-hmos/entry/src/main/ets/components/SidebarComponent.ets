@@ -14,6 +14,7 @@ import { RequestItemComponent } from './RequestItemComponent';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
 import { ThemedDivider } from './ThemedDivider';
+import { ThemedText } from './ThemedText';
 import { uniformTypeDescriptor } from '@kit.ArkData';
 
 // Drop position type
@@ -241,9 +242,10 @@ export struct SidebarComponent {
                 .borderRadius($r('app.float.border_radius_sm'))
             } else if (this.isDragging) {
               Row() {
-                Text($r('app.string.drop_here_to_root'))
-                  .fontSize($r('app.float.font_size_sm'))
-                  .fontColor($r('app.color.text_secondary'))
+                ThemedText({
+                  content: $r('app.string.drop_here_to_root'),
+                  fontColor: $r('app.color.text_secondary')
+                })
               }
               .width('100%')
               .height(40)

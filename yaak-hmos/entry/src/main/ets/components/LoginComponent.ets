@@ -5,6 +5,7 @@
 
 import { AuthService } from '../services/AuthService';
 import type { UserInfo, AuthResult } from '../services/AuthService';
+import { ThemedText } from './ThemedText';
 import { promptAction } from '@kit.ArkUI';
 
 /**
@@ -36,15 +37,19 @@ export struct LoginComponent {
           .objectFit(ImageFit.Contain)
           .margin({ bottom: 16 })
 
-        Text('Flare')
-          .fontSize(32)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
+        ThemedText({
+          content: 'Flare',
+          fontSizeOverride: 32,
+          fontWeight: FontWeight.Bold,
+          fontColor: $r('app.color.text_primary')
+        })
           .margin({ bottom: 8 })
 
-        Text('API 调试工具')
-          .fontSize(16)
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: 'API 调试工具',
+          fontSizeOverride: 16,
+          fontColor: $r('app.color.text_secondary')
+        })
           .margin({ bottom: 48 })
       }
       .alignItems(HorizontalAlign.Center)
@@ -61,9 +66,11 @@ export struct LoginComponent {
                 .color(Color.White)
                 .margin({ right: 8 })
             }
-            Text(this.isLoading ? '登录中...' : '使用华为账号登录')
-              .fontSize(16)
-              .fontColor(Color.White)
+            ThemedText({
+              content: this.isLoading ? '登录中...' : '使用华为账号登录',
+              fontSizeOverride: 16,
+              fontColor: Color.White
+            })
           }
         }
         .type(ButtonType.Capsule)
@@ -78,9 +85,11 @@ export struct LoginComponent {
 
         // Guest mode button
         Button() {
-          Text('以访客模式使用')
-            .fontSize(16)
-            .fontColor($r('app.color.text_primary'))
+          ThemedText({
+            content: '以访客模式使用',
+            fontSizeOverride: 16,
+            fontColor: $r('app.color.text_primary')
+          })
         }
         .type(ButtonType.Capsule)
         .width('100%')
@@ -97,11 +106,16 @@ export struct LoginComponent {
 
         // Error message
         if (this.errorMessage.length > 0) {
-          Text(this.errorMessage)
-            .fontSize(14)
-            .fontColor('#EF4444')
-            .margin({ top: 16 })
-            .textAlign(TextAlign.Center)
+          Column() {
+            ThemedText({
+              content: this.errorMessage,
+              fontSizeOverride: 14,
+              fontColor: '#EF4444'
+            })
+          }
+          .width('100%')
+          .margin({ top: 16 })
+          .alignItems(HorizontalAlign.Center)
         }
       }
       .width('100%')
@@ -109,25 +123,33 @@ export struct LoginComponent {
 
       // Footer
       Column() {
-        Text('登录即表示您同意')
-          .fontSize(12)
-          .fontColor($r('app.color.text_tertiary'))
+        ThemedText({
+          content: '登录即表示您同意',
+          fontSizeOverride: 12,
+          fontColor: $r('app.color.text_tertiary')
+        })
 
         Row() {
-          Text('服务条款')
-            .fontSize(12)
-            .fontColor($r('app.color.primary'))
+          ThemedText({
+            content: '服务条款',
+            fontSizeOverride: 12,
+            fontColor: $r('app.color.primary')
+          })
             .onClick(() => {
               this.showTermsOfService();
             })
 
-          Text(' 和 ')
-            .fontSize(12)
-            .fontColor($r('app.color.text_tertiary'))
+          ThemedText({
+            content: ' 和 ',
+            fontSizeOverride: 12,
+            fontColor: $r('app.color.text_tertiary')
+          })
 
-          Text('隐私政策')
-            .fontSize(12)
-            .fontColor($r('app.color.primary'))
+          ThemedText({
+            content: '隐私政策',
+            fontSizeOverride: 12,
+            fontColor: $r('app.color.primary')
+          })
             .onClick(() => {
               this.showPrivacyPolicy();
             })

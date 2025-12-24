@@ -3,6 +3,8 @@
  * Displays image content with zoom and pan support
  */
 
+import { ThemedText } from './ThemedText';
+
 @ComponentV2
 export struct ImageViewer {
   @Param imagePath: string = '';
@@ -62,9 +64,10 @@ export struct ImageViewer {
   @Builder
   buildEmptyState() {
     Column() {
-      Text('No image to display')
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: 'No image to display',
+        fontColor: $r('app.color.text_secondary')
+      })
     }
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)

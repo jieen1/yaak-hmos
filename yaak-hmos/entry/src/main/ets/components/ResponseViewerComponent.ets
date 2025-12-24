@@ -6,6 +6,7 @@ import { PreferencesService, PreferenceKeys } from '../services/PreferencesServi
 import { TextViewer } from './TextViewer';
 import { ImageViewer } from './ImageViewer';
 import { VideoViewer, AudioViewer } from './MediaViewer';
+import { ThemedText } from './ThemedText';
 import promptAction from '@ohos.promptAction';
 
 @ComponentV2
@@ -145,9 +146,10 @@ export struct ResponseViewerComponent {
         .height(48)
         .color($r('app.color.primary'))
 
-      Text('加载响应中...')
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '加载响应中...',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ top: $r('app.float.spacing_md') })
     }
     .width('100%')
@@ -159,13 +161,15 @@ export struct ResponseViewerComponent {
   @Builder
   buildEmptyState() {
     Column() {
-      Text('暂无响应')
-        .fontSize($r('app.float.font_size_lg'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '暂无响应',
+        fontColor: $r('app.color.text_secondary')
+      })
 
-      Text('发送请求以查看响应')
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: '发送请求以查看响应',
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ top: $r('app.float.spacing_sm') })
     }
     .width('100%')
@@ -219,26 +223,30 @@ export struct ResponseViewerComponent {
   buildStatusBar() {
     Row() {
       // Status Code
-      Text(`${this.response?.status_code || 0}`)
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor(this.getStatusColor())
-        .fontWeight(FontWeight.Bold)
+      ThemedText({
+        content: `${this.response?.status_code || 0}`,
+        fontWeight: FontWeight.Bold,
+        fontColor: this.getStatusColor()
+      })
 
-      Text(this.response?.status_text || '')
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor(this.getStatusColor())
+      ThemedText({
+        content: this.response?.status_text || '',
+        fontColor: this.getStatusColor()
+      })
         .margin({ left: $r('app.float.spacing_xs') })
 
       // Time
-      Text(`${this.response?.elapsed_time || 0}ms`)
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: `${this.response?.elapsed_time || 0}ms`,
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ left: $r('app.float.spacing_lg') })
 
       // Size
-      Text(this.formatSize(this.response?.size || 0))
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: this.formatSize(this.response?.size || 0),
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ left: $r('app.float.spacing_md') })
 
       Blank()
@@ -273,10 +281,11 @@ export struct ResponseViewerComponent {
     Column() {
       // History header
       Row() {
-        Text('响应历史')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_primary'))
-          .fontWeight(FontWeight.Medium)
+        ThemedText({
+          content: '响应历史',
+          fontWeight: FontWeight.Medium,
+          fontColor: $r('app.color.text_primary')
+        })
 
         Blank()
 
@@ -321,34 +330,39 @@ export struct ResponseViewerComponent {
   buildHistoryItem(historyResponse: HttpResponse) {
     Row() {
       // Status indicator
-      Text(`${historyResponse.status_code}`)
-        .fontSize($r('app.float.font_size_xs'))
-        .fontColor(this.getStatusColorForCode(historyResponse.status_code))
-        .fontWeight(FontWeight.Bold)
+      ThemedText({
+        content: `${historyResponse.status_code}`,
+        fontWeight: FontWeight.Bold,
+        fontColor: this.getStatusColorForCode(historyResponse.status_code)
+      })
         .width(40)
 
       // Timestamp
-      Text(this.formatTimestamp(historyResponse.created_at))
-        .fontSize($r('app.float.font_size_xs'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: this.formatTimestamp(historyResponse.created_at),
+        fontColor: $r('app.color.text_secondary')
+      })
         .flexGrow(1)
 
       // Duration
-      Text(`${historyResponse.elapsed_time}ms`)
-        .fontSize($r('app.float.font_size_xs'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: `${historyResponse.elapsed_time}ms`,
+        fontColor: $r('app.color.text_secondary')
+      })
         .margin({ right: $r('app.float.spacing_sm') })
 
       // Size
-      Text(this.formatSize(historyResponse.size))
-        .fontSize($r('app.float.font_size_xs'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: this.formatSize(historyResponse.size),
+        fontColor: $r('app.color.text_secondary')
+      })
 
       // Selected indicator
       if (this.response?.id === historyResponse.id) {
-        Text('●')
-          .fontSize($r('app.float.font_size_xs'))
-          .fontColor($r('app.color.primary'))
+        ThemedText({
+          content: '●',
+          fontColor: $r('app.color.primary')
+        })
           .margin({ left: $r('app.float.spacing_sm') })
       }
     }
@@ -411,20 +425,24 @@ export struct ResponseViewerComponent {
     // Check for large response that needs confirmation
     if (this.isLargeResponse() && !this.showLargeResponseConfirmed) {
       Column() {
-        Text('⚠️ 大型响应')
-          .fontSize($r('app.float.font_size_lg'))
-          .fontColor($r('app.color.warning'))
-          .fontWeight(FontWeight.Bold)
+        ThemedText({
+          content: '⚠️ 大型响应',
+          fontSizeOverride: 18,
+          fontWeight: FontWeight.Bold,
+          fontColor: $r('app.color.warning')
+        })
           .margin({ bottom: $r('app.float.spacing_md') })
 
-        Text(`响应大小: ${this.formatSize(this.responseBody.length)}`)
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: `响应大小: ${this.formatSize(this.responseBody.length)}`,
+          fontColor: $r('app.color.text_secondary')
+        })
           .margin({ bottom: $r('app.float.spacing_sm') })
 
-        Text('大型响应可能影响性能')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: '大型响应可能影响性能',
+          fontColor: $r('app.color.text_secondary')
+        })
           .margin({ bottom: $r('app.float.spacing_lg') })
 
         Row() {
@@ -454,9 +472,10 @@ export struct ResponseViewerComponent {
       .alignItems(HorizontalAlign.Center)
     } else if (!this.contentTypeInfo) {
       Column() {
-        Text('无内容显示')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: '无内容显示',
+          fontColor: $r('app.color.text_secondary')
+        })
       }
       .width('100%')
       .layoutWeight(1)
@@ -498,14 +517,16 @@ export struct ResponseViewerComponent {
       .layoutWeight(1)
     } else {
       Column() {
-        Text('不支持的内容类型')
-          .fontSize($r('app.float.font_size_md'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: '不支持的内容类型',
+          fontColor: $r('app.color.text_secondary')
+        })
           .margin({ bottom: $r('app.float.spacing_sm') })
 
-        Text(this.contentTypeInfo?.mimeType || '未知')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: this.contentTypeInfo?.mimeType || '未知',
+          fontColor: $r('app.color.text_secondary')
+        })
       }
       .width('100%')
       .layoutWeight(1)

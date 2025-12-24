@@ -1,4 +1,5 @@
 import { HttpResponse } from '../model';
+import { ThemedText } from './ThemedText';
 
 interface InfoItem {
   label: string;
@@ -25,9 +26,10 @@ export struct ResponseInfoTab {
   @Builder
   buildEmptyState() {
     Column() {
-      Text('No response information')
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: 'No response information',
+        fontColor: $r('app.color.text_secondary')
+      })
     }
     .width('100%')
     .height('100%')
@@ -147,10 +149,11 @@ export struct ResponseInfoTab {
   buildSection(title: string, items: InfoItem[]) {
     Column() {
       // Section Title
-      Text(title)
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_primary'))
-        .fontWeight(FontWeight.Bold)
+      ThemedText({
+        content: title,
+        fontWeight: FontWeight.Bold,
+        fontColor: $r('app.color.text_primary')
+      })
         .margin({ bottom: $r('app.float.spacing_sm') })
 
       // Section Items
@@ -172,18 +175,19 @@ export struct ResponseInfoTab {
   buildInfoItem(label: string, value: string, index: number) {
     Row() {
       // Label
-      Text(label)
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_secondary'))
+      ThemedText({
+        content: label,
+        fontColor: $r('app.color.text_secondary')
+      })
         .width('40%')
 
       // Value
-      Text(value)
-        .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_primary'))
+      ThemedText({
+        content: value,
+        maxLines: 2,
+        fontColor: $r('app.color.text_primary')
+      })
         .layoutWeight(1)
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
         .margin({ left: $r('app.float.spacing_md') })
     }
     .width('100%')

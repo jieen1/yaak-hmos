@@ -4,6 +4,8 @@
  * 使用 @ObservedV2 实现响应式字体设置
  */
 
+import font from '@ohos.font';
+
 // 默认值
 const DEFAULT_INTERFACE_FONT: string = 'system';
 const DEFAULT_INTERFACE_FONT_SIZE: number = 14;
@@ -23,13 +25,56 @@ export class FontSettings {
   @Trace editorFont: string = DEFAULT_EDITOR_FONT;
   @Trace editorFontSize: number = DEFAULT_EDITOR_FONT_SIZE;
   
-  private constructor() {}
+  private availableFonts: string[] = [];
+  
+  private constructor() {
+    this.loadAvailableFonts();
+  }
   
   static getInstance(): FontSettings {
     if (FontSettings.instance === null) {
       FontSettings.instance = new FontSettings();
     }
     return FontSettings.instance;
+  }
+  
+  /**
+   * 加载系统可用字体列表
+   */
+  private loadAvailableFonts(): void {
+    try {
+      const uiFontConfig: font.UIFontConfig = font.getUIFontConfig();
+      
+      // 从 generic 列表中提取字体族名称
+      const fontFamilies: string[] = [];
+      
+      if (uiFontConfig.generic && uiFontConfig.generic.length > 0) {
+        uiFontConfig.generic.forEach((genericInfo: font.UIFontGenericInfo) => {
+          if (genericInfo.family) {
+            fontFamilies.push(genericInfo.family);
+          }
+        });
+      }
+      
+      this.availableFonts = fontFamilies;
+      console.info('[FontService] Loaded available fonts:', this.availableFonts.length);
+    } catch (error) {
+      console.error('[FontService] Failed to load available fonts:', error);
+      // 使用默认字体列表作为后备
+      this.availableFonts = [
+        'HarmonyOS Sans',
+        'HarmonyOS Sans SC',
+        'HarmonyOS Sans TC',
+        'Noto Sans Mono'
+      ];
+    }
+  }
+  
+  /**
+   * 获取可用字体列表
+   */
+  getAvailableFonts(): string[] {
+    return this.availableFonts;
   }
   
   /**

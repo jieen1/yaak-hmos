@@ -12,6 +12,7 @@ import { HeadersEditor } from './HeadersEditor';
 import { AuthEditor } from './AuthEditor';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
+import { ThemedText } from './ThemedText';
 
 @ComponentV2
 export struct FolderSettingsDialog {
@@ -156,10 +157,11 @@ export struct FolderSettingsDialog {
         Column() {
           // Header
           Row() {
-            Text(`文件夹设置: ${this.folder?.name || ''}`)
-              .fontSize($r('app.float.font_size_lg'))
-              .fontColor($r('app.color.text_primary'))
-              .fontWeight(FontWeight.Bold)
+            ThemedText({
+              content: `文件夹设置: ${this.folder?.name || ''}`,
+              fontWeight: FontWeight.Bold,
+              fontColor: $r('app.color.text_primary')
+            })
               .flexGrow(1)
 
             ThemedButton({
@@ -258,9 +260,10 @@ export struct FolderSettingsDialog {
     Column() {
       // Folder Name
       Column() {
-        Text('Folder Name')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: 'Folder Name',
+          fontColor: $r('app.color.text_secondary')
+        })
           .width('100%')
           .margin({ bottom: $r('app.float.spacing_xs') })
 

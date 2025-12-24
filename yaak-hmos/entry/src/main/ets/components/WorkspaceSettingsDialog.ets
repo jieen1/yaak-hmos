@@ -9,6 +9,7 @@ import { HeadersEditor } from './HeadersEditor';
 import { AuthEditor } from './AuthEditor';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
+import { ThemedText } from './ThemedText';
 
 @ComponentV2
 export struct WorkspaceSettingsDialog {
@@ -130,10 +131,11 @@ export struct WorkspaceSettingsDialog {
         Column() {
           // Header
           Row() {
-            Text(`工作区设置: ${this.workspace?.name || ''}`)
-              .fontSize($r('app.float.font_size_lg'))
-              .fontColor($r('app.color.text_primary'))
-              .fontWeight(FontWeight.Bold)
+            ThemedText({
+              content: `工作区设置: ${this.workspace?.name || ''}`,
+              fontWeight: FontWeight.Bold,
+              fontColor: $r('app.color.text_primary')
+            })
               .flexGrow(1)
 
             ThemedButton({
@@ -232,9 +234,10 @@ export struct WorkspaceSettingsDialog {
     Column() {
       // Workspace Name
       Column() {
-        Text('Workspace Name')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: 'Workspace Name',
+          fontColor: $r('app.color.text_secondary')
+        })
           .width('100%')
           .margin({ bottom: $r('app.float.spacing_xs') })
 
@@ -252,9 +255,10 @@ export struct WorkspaceSettingsDialog {
 
       // Workspace Description
       Column() {
-        Text('Description (Optional)')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: 'Description (Optional)',
+          fontColor: $r('app.color.text_secondary')
+        })
           .width('100%')
           .margin({ bottom: $r('app.float.spacing_xs') })
 
@@ -271,9 +275,10 @@ export struct WorkspaceSettingsDialog {
 
       // Info text
       Column() {
-        Text('Headers and authentication configured here will be inherited by all requests in this workspace.')
-          .fontSize($r('app.float.font_size_sm'))
-          .fontColor($r('app.color.text_secondary'))
+        ThemedText({
+          content: 'Headers and authentication configured here will be inherited by all requests in this workspace.',
+          fontColor: $r('app.color.text_secondary')
+        })
           .width('100%')
           .margin({ top: $r('app.float.spacing_xl') })
       }
