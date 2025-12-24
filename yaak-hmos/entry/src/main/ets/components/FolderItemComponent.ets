@@ -93,7 +93,7 @@ export struct FolderItemComponent {
           .onChange((value: string) => {
             this.editingName = value;
           })
-          .onSubmit((enterKey: EnterKeyType) => {
+          .onSubmit(() => {
             this.saveRename();
           })
           .onBlur(() => {
@@ -104,6 +104,7 @@ export struct FolderItemComponent {
           })
           .focusable(true)
           .defaultFocus(true)
+          .selectAll(true)
           .id('folder_rename_input_' + this.folder.id)
       } else {
         Text(this.folder.name)
