@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "D:/flare_files/test.p12",
+          "storePassword": "0000001E27A70C092395D11691743BEEDB92AE56A457B1A7935E25DCC64F24572912D5B218B2A6245616E86F3F96",
+          "keyAlias": "test",
+          "keyPassword": "0000001E79AE02F7209396A55A47EE5D4A2DAF6D506894A379B3D6AE141E9CBAD0796EF948378EC03DC9D8DDAD3A",
+          "signAlg": "SHA256withECDSA",
+          "profile": "D:/flare_files/发布Release.p7b",
+          "certpath": "D:/flare_files/内部测试.cer"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "6.0.0(20)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
