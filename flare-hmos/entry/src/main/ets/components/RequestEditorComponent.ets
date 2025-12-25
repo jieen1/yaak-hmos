@@ -139,7 +139,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('参数')
+        .tabBar(this.buildParamsTabBar())
 
         TabContent() {
           HeadersEditor({
@@ -154,7 +154,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('请求头')
+        .tabBar(this.buildHeadersTabBar())
 
         TabContent() {
           BodyEditor({
@@ -266,6 +266,7 @@ export struct RequestEditorComponent {
     }
 
     // Normal URL change
+    console.info(`[RequestEditor] URL changed: ${value}`);
     this.request.url = value;
     this.onChange(this.request);
   }
@@ -342,5 +343,76 @@ export struct RequestEditorComponent {
     } catch (error) {
       console.error('[RequestEditor] Toast error:', error);
     }
+  }
+
+  /**
+   * Build params tab bar with badge
+   */
+  @Builder
+  buildParamsTabBar() {
+    Row() {
+      Text('参数')
+        .fontSize($r('app.float.font_size_md'))
+        .fontColor($r('app.color.text_primary'))
+      
+      if (this.request.query_params) {
+        Text(`${this.getQueryParamsCount()}`)
+          .fontSize(10)
+          .fontColor($r('app.color.text_secondary'))
+          .borderRadius($r('app.float.border_radius_sm'))
+          .borderColor($r('app.color.text_tertiary'))
+          .borderWidth(1)
+          .padding({ left: 5, right: 5, top: 1, bottom: 1 })
+          .margin({ left: 4, bottom: 5 })
+      }
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /**
+   * Build headers tab bar with badge
+   */
+  @Builder
+  buildHeadersTabBar() {
+    Row() {
+      Text('请求头')
+        .fontSize($r('app.float.font_size_md'))
+        .fontColor($r('app.color.text_primary'))
+      
+      if (this.request.headers) {
+        Text(`${this.getHeadersCount()}`)
+          .fontSize(10)
+          .fontColor($r('app.color.text_secondary'))
+          .borderRadius($r('app.float.border_radius_sm'))
+          .borderColor($r('app.color.text_tertiary'))
+          .borderWidth(1)
+          .padding({ left: 5, right: 5, top: 1, bottom: 1 })
+          .margin({ left: 4, bottom: 5 })
+      }
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /**
+   * Get count of enabled query params
+   */
+  private getQueryParamsCount(): number {
+    if (!this.request.query_params) {
+      return 0;
+    }
+    return this.request.query_params.filter(p => p.enabled && (p.name || p.value)).length;
+  }
+
+  /**
+   * Get count of enabled headers
+   */
+
+  private getHeadersCount(): number {
+    if (!this.request.headers) {
+      return 0;
+    }
+    return this.request.headers.filter(h => h.enabled && (h.name || h.value)).length;
   }
 }

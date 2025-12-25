@@ -32,8 +32,9 @@ export struct TextViewer {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.background'))
+    .backgroundColor($r('app.color.code_background'))
     .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
   }
 
   private formatText(): string {

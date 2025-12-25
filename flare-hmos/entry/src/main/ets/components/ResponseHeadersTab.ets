@@ -4,17 +4,6 @@ import { ResponseHeader } from '../model';
 export struct ResponseHeadersTab {
   @Param headers: ResponseHeader[] = [];
 
-  aboutToAppear(): void {
-    console.info('[ResponseHeadersTab] aboutToAppear, headers count:', this.headers.length,
-      'headers:', JSON.stringify(this.headers));
-  }
-
-  @Monitor('headers')
-  onHeadersChange(): void {
-    console.info('[ResponseHeadersTab] headers changed, count:', this.headers.length,
-      'headers:', JSON.stringify(this.headers));
-  }
-
   // Helper methods to filter headers (non-UI logic)
   private getSetCookieHeaders(): ResponseHeader[] {
     const result: ResponseHeader[] = [];
@@ -78,6 +67,7 @@ export struct ResponseHeadersTab {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
   }
 
   @Builder
@@ -113,7 +103,7 @@ export struct ResponseHeadersTab {
     Column() {
       Text('Response Headers')
         .fontSize($r('app.float.font_size_sm'))
-        .fontColor($r('app.color.text_secondary'))
+        .fontColor($r('app.color.text_primary'))
         .fontWeight(FontWeight.Bold)
         .margin({ bottom: $r('app.float.spacing_sm') })
         .visibility(this.getRegularHeaders().length > 0 ? Visibility.Visible : Visibility.None)

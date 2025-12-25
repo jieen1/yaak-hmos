@@ -59,6 +59,7 @@ export struct ResponseInfoTab {
     .width('100%')
     .height('100%')
     .scrollBar(BarState.Auto)
+    .align(Alignment.Top)
   }
 
   private buildStatusItems(): InfoItem[] {
