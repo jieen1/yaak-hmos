@@ -32,19 +32,16 @@ import { FolderSettingsDialog } from '../components/FolderSettingsDialog';
 import { WorkspaceSettingsDialog } from '../components/WorkspaceSettingsDialog';
 import { ResizeHandle, ResizeEvent } from '../components/ResizeHandle';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
-import { CurlGenerator } from '../services/CurlGenerator';
 import { ExportDialog, WorkspaceDataResult } from '../components/ExportDialog';
 import { ExportResult } from '../services/ExportService';
 import { CommandPalette, CommandAction } from '../components/CommandPalette';
 import { InheritanceService } from '../services/InheritanceService';
 import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
-import { ShareService } from '../services/ShareService';
 import { AuthService } from '../services/AuthService';
 import { UserStorageService } from '../services/UserStorageService';
 import { FontSettings } from '../services/FontService';
 import EntryAbility from '../entryability/EntryAbility';
 import common from '@ohos.app.ability.common';
-import pasteboard from '@ohos.pasteboard';
 
 @Entry
 @ComponentV2
@@ -1097,8 +1094,6 @@ struct Index {
             onRequestDelete: this.handleRequestDelete,
             onRequestDuplicate: this.handleRequestDuplicate,
             onRequestSend: this.handleRequestSend,
-            onRequestCopyAsCurl: this.handleRequestCopyAsCurl,
-            onRequestShare: this.handleRequestShare,
             onFolderRename: this.handleFolderRename,
             onFolderDelete: this.handleFolderDelete,
             onFolderDuplicate: this.handleFolderDuplicate,
@@ -1134,7 +1129,6 @@ struct Index {
             isLoading: this.isRequestLoading,
             onExecute: this.handleExecuteRequest,
             onCancel: this.handleCancelRequest,
-            onCopyAsCurl: this.handleCurrentRequestCopyAsCurl,
             onChange: this.handleRequestChangeCallback,
             onCurlImport: this.handleCurlImport,
             onNavigateToSource: this.handleNavigateToSource
@@ -1215,14 +1209,6 @@ struct Index {
     this.cancelRequest();
   }
 
-  // Copy current request as cURL handler
-  handleCurrentRequestCopyAsCurl = async (): Promise<void> => {
-    if (!this.selectedRequest) {
-      console.warn('[Index] No request selected to copy as cURL');
-      return;
-    }
-    await this.handleRequestCopyAsCurl(this.selectedRequest.id);
-  }
 
   cancelRequest(): void {
     if (!this.selectedRequest) {
@@ -1469,73 +1455,6 @@ struct Index {
       console.info('[Index] Request sent from context menu:', requestId);
     } catch (error) {
       console.error('[Index] Failed to send request:', JSON.stringify(error));
-    }
-  }
-
-  handleRequestCopyAsCurl = async (requestId: string): Promise<void> => {
-    try {
-      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
-      if (!request) {
-        console.error('[Index] Request not found for copy as cURL:', requestId);
-        return;
-      }
-
-      // Merge environment variables
-      const envs: Environment[] = this.selectedEnvironment ? [this.selectedEnvironment] : [];
-      const variables: Map<string, string> = EnvironmentService.mergeVariables(envs);
-
-      // Generate cURL command
-      const curlCommand: string = CurlGenerator.generate(request, variables, {
-        multiLine: true,
-        includeComments: false,
-        shellType: 'bash'
-      });
-
-      // Copy to clipboard
-      const pasteboardData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, curlCommand);
-      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      await systemPasteboard.setData(pasteboardData);
-
-      this.showToast('Copied as cURL');
-      console.info('[Index] Request copied as cURL:', requestId);
-    } catch (error) {
-      console.error('[Index] Failed to copy as cURL:', JSON.stringify(error));
-      this.showToast('Failed to copy as cURL');
-    }
-  }
-
-  handleRequestShare = async (requestId: string): Promise<void> => {
-    try {
-      const request: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === requestId);
-      if (!request) {
-        console.error('[Index] Request not found for share:', requestId);
-        return;
-      }
-
-      // Show share type selection
-      promptAction.showActionMenu({
-        title: '分享方式',
-        buttons: [
-          { text: '分享为 Flare 格式', color: '#007AFF' },
-          { text: '分享为 cURL', color: '#007AFF' },
-          { text: '取消', color: '#666666' }
-        ]
-      }).then(async (result: promptAction.ActionMenuSuccessResponse) => {
-        if (result.index === 0) {
-          // Share as Flare format
-          await ShareService.shareRequest(this.context, request);
-          this.showToast('已分享');
-        } else if (result.index === 1) {
-          // Share as cURL
-          await ShareService.shareAsCurl(this.context, request);
-          this.showToast('已分享');
-        }
-      }).catch((error: Error) => {
-        console.error('[Index] Share menu error:', error);
-      });
-    } catch (error) {
-      console.error('[Index] Failed to share request:', JSON.stringify(error));
-      this.showToast('分享失败');
     }
   }
 
@@ -1918,11 +1837,6 @@ struct Index {
       case 'toggle-response':
         this.responseViewerHidden = !this.responseViewerHidden;
         this.saveResponseViewerHidden(this.responseViewerHidden);
-        break;
-      case 'copy-as-curl':
-        if (this.selectedRequest) {
-          this.handleRequestCopyAsCurl(this.selectedRequest.id);
-        }
         break;
       case 'select-request':
         this.handleRequestSelectById(action.id);

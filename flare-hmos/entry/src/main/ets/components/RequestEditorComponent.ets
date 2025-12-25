@@ -41,22 +41,19 @@ function getMethodColor(method: string): string {
 
 @ComponentV2
 export struct RequestEditorComponent {
-  @Param request: HttpRequest = new HttpRequest();
-  @Param inheritedHeaders: InheritedHeaderWithSource[] = [];
-  @Param inheritedAuth: InheritedAuthInfo | null = null;
+  @Param @Require request: HttpRequest;
+  @Param @Require inheritedHeaders: InheritedHeaderWithSource[];
+  @Param @Require inheritedAuth: InheritedAuthInfo | null;
   @Param onExecute: () => void = () => {};
   @Param onCancel: () => void = () => {};
   @Param onCopyAsCurl: () => void = () => {};
-  @Param isLoading: boolean = false;
   @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
   @Param onCurlImport: (request: HttpRequest) => void = () => {};
   @Param onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
+  @Param isLoading: boolean = false;
 
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
-  @Local showDeviceDialog: boolean = false;
-  @Local discoveredDevices: DeviceInfo[] = [];
-  @Local isDiscovering: boolean = false;
 
   /**
    * Get current method color

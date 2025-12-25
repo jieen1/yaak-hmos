@@ -142,13 +142,12 @@ export struct FolderSettingsDialog {
 
   build() {
     if (this.visible && this.folder !== null) {
-      Column() {
+      Stack() {
         // Backdrop
         Column()
           .width('100%')
           .height('100%')
-          .backgroundColor('#00000066')
-          .position({ x: 0, y: 0 })
+          .backgroundColor('rgba(0, 0, 0, 0.5)')
           .onClick(() => {
             this.onClose();
           })

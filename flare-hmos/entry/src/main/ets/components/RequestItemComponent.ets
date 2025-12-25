@@ -50,16 +50,6 @@ export struct RequestItemComponent {
           this.onDuplicate();
         })
 
-      MenuItem({ content: '复制为 cURL' })
-        .onClick(() => {
-          this.onCopyAsCurl();
-        })
-
-      MenuItem({ content: '分享' })
-        .onClick(() => {
-          this.onShare();
-        })
-
       MenuItem({ content: '删除' })
         .onClick(() => {
           this.showDeleteConfirmation();
@@ -197,15 +187,9 @@ export struct RequestItemComponent {
     this.onEndEdit();
   }
 
-  private cancelRename(): void {
-    this.editingName = '';
-    this.hasInitializedEdit = false;
-    this.onEndEdit();
-  }
-
   private showToast(message: string): void {
     try {
-      promptAction.showToast({
+      this.getUIContext().getPromptAction().showToast({
         message: message,
         duration: 2000
       });
@@ -216,7 +200,7 @@ export struct RequestItemComponent {
 
   private showDeleteConfirmation(): void {
     try {
-      promptAction.showDialog({
+      this.getUIContext().getPromptAction().showDialog({
         title: '删除请求',
         message: `确定要删除 "${this.request.name}" 吗？`,
         buttons: [

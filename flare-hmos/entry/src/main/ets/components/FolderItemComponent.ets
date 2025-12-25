@@ -185,12 +185,6 @@ export struct FolderItemComponent {
     this.onEndEdit();
   }
 
-  private cancelRename(): void {
-    this.editingName = '';
-    this.hasInitializedEdit = false;
-    this.onEndEdit();
-  }
-
   private showToast(message: string): void {
     try {
       promptAction.showToast({
@@ -204,7 +198,7 @@ export struct FolderItemComponent {
 
   private showDeleteConfirmation(): void {
     try {
-      promptAction.showDialog({
+      this.getUIContext().getPromptAction().showDialog({
         title: '删除文件夹',
         message: `确定要删除 "${this.folder.name}" 及其所有内容吗？`,
         buttons: [
