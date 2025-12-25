@@ -44,12 +44,12 @@ export struct RequestEditorComponent {
   @Param @Require request: HttpRequest;
   @Param @Require inheritedHeaders: InheritedHeaderWithSource[];
   @Param @Require inheritedAuth: InheritedAuthInfo | null;
-  @Param onExecute: () => void = () => {};
-  @Param onCancel: () => void = () => {};
-  @Param onCopyAsCurl: () => void = () => {};
-  @Param onChange: (request: HttpRequest) => void | Promise<void> = () => {};
-  @Param onCurlImport: (request: HttpRequest) => void = () => {};
-  @Param onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
+  @Event onExecute: () => void = () => {};
+  @Event onCancel: () => void = () => {};
+  @Event onCopyAsCurl: () => void = () => {};
+  @Event onChange: (request: HttpRequest) => void | Promise<void> = () => {};
+  @Event onCurlImport: (request: HttpRequest) => void = () => {};
+  @Event onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
   @Param isLoading: boolean = false;
 
   @Local activeTab: number = 0;
@@ -308,11 +308,18 @@ export struct RequestEditorComponent {
     const parseResult = CurlImporter.parse(curlCommand, this.request.workspace_id);
 
     if (parseResult.success && parseResult.request) {
-      // Preserve the original request ID and workspace
+      // Preserve the original request's important properties
       const importedRequest = parseResult.request;
       importedRequest.id = this.request.id;
       importedRequest.workspace_id = this.request.workspace_id;
       importedRequest.folder_id = this.request.folder_id;
+      // 保留原请求的名称（如果不是默认名称）
+      if (this.request.name && this.request.name !== '新建请求') {
+        importedRequest.name = this.request.name;
+      }
+      // 保留排序优先级和创建时间
+      importedRequest.sort_priority = this.request.sort_priority;
+      importedRequest.created_at = this.request.created_at;
 
       // Notify parent to update the request
       this.onCurlImport(importedRequest);

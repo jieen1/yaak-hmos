@@ -12,8 +12,8 @@ import { ThemedButton } from './ThemedButton';
 export struct HeadersEditor {
   @Param headers: HttpHeader[] = [];
   @Param inheritedHeaders: InheritedHeaderWithSource[] = [];
-  @Param onChange: (headers: HttpHeader[]) => void = () => {};
-  @Param onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
+  @Event onChange: (headers: HttpHeader[]) => void = () => {};
+  @Event onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
 
   @Local showInheritedHeaders: boolean = true;
 

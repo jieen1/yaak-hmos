@@ -9,8 +9,8 @@ import { ThemedButton } from './ThemedButton';
 
 @ComponentV2
 export struct QueryParamsEditor {
-  @Param queryParams: QueryParam[] = [];
-  @Param onChange: (queryParams: QueryParam[]) => void = () => {
+  @Param @Require queryParams: QueryParam[];
+  @Event onChange: (queryParams: QueryParam[]) => void = () => {
   };
 
   build() {

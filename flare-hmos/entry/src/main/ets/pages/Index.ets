@@ -830,6 +830,13 @@ struct Index {
   async handleRequestChange(request: HttpRequest): Promise<void> {
     if (this.selectedRequest && request.id === this.selectedRequest.id) {
       this.selectedRequest = request;
+      
+      // 同步更新 requests 数组中的对应项，确保数据一致性
+      const index: number = this.requests.findIndex((r: HttpRequest) => r.id === request.id);
+      if (index >= 0) {
+        this.requests[index] = request;
+      }
+      
       // Save changes to database
       try {
         await this.requestRepo.updateRequest(request);
@@ -1272,10 +1279,28 @@ struct Index {
   }
 
   handleCurlImport = async (importedRequest: HttpRequest): Promise<void> => {
-    // Update the selected request with imported data
+    // 保留原请求的一些重要属性
+    const originalRequest: HttpRequest | null = this.selectedRequest;
+    if (originalRequest) {
+      // 保留原请求的名称（如果用户已经命名过）
+      if (originalRequest.name && originalRequest.name !== '新建请求' && originalRequest.name !== '导入的请求') {
+        importedRequest.name = originalRequest.name;
+      }
+      // 保留排序优先级和创建时间
+      importedRequest.sort_priority = originalRequest.sort_priority;
+      importedRequest.created_at = originalRequest.created_at;
+    }
+    
+    // 先更新 selectedRequest
     this.selectedRequest = importedRequest;
+    
+    // 保存到数据库并同步 requests 数组
     await this.handleRequestChange(importedRequest);
-    console.info('[Index] cURL imported successfully');
+    
+    // 重建侧边栏
+    this.rebuildSidebar();
+    
+    console.info('[Index] cURL imported successfully:', importedRequest.id);
   }
 
   // Response history handlers

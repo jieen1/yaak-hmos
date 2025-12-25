@@ -14,15 +14,15 @@ export struct RequestItemComponent {
   @Param level: number = 0;
   @Param isSelected: boolean = false;
   @Param isEditing: boolean = false;
-  @Param onSelect: () => void = () => {};
-  @Param onRename: (newName: string) => void = () => {};
-  @Param onDelete: () => void = () => {};
-  @Param onDuplicate: () => void = () => {};
-  @Param onSend: () => void = () => {};
-  @Param onCopyAsCurl: () => void = () => {};
-  @Param onShare: () => void = () => {};
-  @Param onStartEdit: () => void = () => {};
-  @Param onEndEdit: () => void = () => {};
+  @Event onSelect: () => void = () => {};
+  @Event onRename: (newName: string) => void = () => {};
+  @Event onDelete: () => void = () => {};
+  @Event onDuplicate: () => void = () => {};
+  @Event onSend: () => void = () => {};
+  @Event onCopyAsCurl: () => void = () => {};
+  @Event onShare: () => void = () => {};
+  @Event onStartEdit: () => void = () => {};
+  @Event onEndEdit: () => void = () => {};
 
   @Local editingName: string = '';
   @Local private lastClickTime: number = 0;
