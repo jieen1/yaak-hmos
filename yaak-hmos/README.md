@@ -1,6 +1,6 @@
-# Yaak HarmonyOS Native Port
+# Flare HarmonyOS Native Port
 
-This project is a native HarmonyOS port of the Yaak API Client, built using ArkTS and ArkUI.
+This project is a native HarmonyOS port of the Flare API Client, built using ArkTS and ArkUI.
 
 ## Architecture
 
