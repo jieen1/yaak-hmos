@@ -8,6 +8,17 @@ import type { InheritedHeaderWithSource } from '../services/InheritanceService';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
 
+/**
+ * Flat list item for header rendering
+ */
+interface FlatHeaderItem {
+  id: string;
+  name: string;
+  value: string;
+  enabled: boolean;
+  index: number;
+}
+
 @ComponentV2
 export struct HeadersEditor {
   @Param headers: HttpHeader[] = [];
@@ -16,6 +27,37 @@ export struct HeadersEditor {
   @Event onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
 
   @Local showInheritedHeaders: boolean = true;
+  // Local flat list for UI rendering - triggers update when rebuilt
+  @Local private flatList: FlatHeaderItem[] = [];
+
+  aboutToAppear(): void {
+    this.rebuildFlatList();
+  }
+
+  // Monitor headers changes and rebuild flat list
+  @Monitor('headers')
+  onHeadersChange(): void {
+    this.rebuildFlatList();
+  }
+
+  /**
+   * Rebuild flat list from headers
+   * Creates a new array to trigger UI update
+   */
+  private rebuildFlatList(): void {
+    const newFlatList: FlatHeaderItem[] = [];
+    this.headers.forEach((header: HttpHeader, index: number) => {
+      const flatItem: FlatHeaderItem = {
+        id: header.id,
+        name: header.name,
+        value: header.value,
+        enabled: header.enabled,
+        index: index
+      };
+      newFlatList.push(flatItem);
+    });
+    this.flatList = newFlatList;
+  }
 
   build() {
     Column() {
@@ -44,7 +86,7 @@ export struct HeadersEditor {
       }
 
       // Editable headers list
-      if (this.headers.length === 0 && this.inheritedHeaders.length === 0) {
+      if (this.flatList.length === 0 && this.inheritedHeaders.length === 0) {
         Text('没有请求头')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
@@ -53,11 +95,11 @@ export struct HeadersEditor {
           .padding($r('app.float.spacing_2xl'))
       } else {
         List() {
-          ForEach(this.headers, (header: HttpHeader, index: number) => {
+          ForEach(this.flatList, (flatItem: FlatHeaderItem) => {
             ListItem() {
-              this.buildHeaderRow(header, index)
+              this.buildHeaderRow(flatItem)
             }
-          }, (header: HttpHeader) => header.id)
+          }, (flatItem: FlatHeaderItem) => flatItem.id + '_' + flatItem.name + '_' + flatItem.value + '_' + flatItem.enabled)
         }
         .width('100%')
         .height("100%")
@@ -181,14 +223,18 @@ export struct HeadersEditor {
   }
 
   @Builder
-  buildHeaderRow(header: HttpHeader, index: number) {
+  buildHeaderRow(flatItem: FlatHeaderItem) {
     Row() {
       // Enabled checkbox
       Checkbox()
-        .select(header.enabled)
+        .select(flatItem.enabled)
         .onChange((value: boolean) => {
-          header.enabled = value;
-          this.onChange(this.headers);
+          // Update original data
+          if (flatItem.index < this.headers.length) {
+            this.headers[flatItem.index].enabled = value;
+            this.onChange(this.headers);
+            this.rebuildFlatList();
+          }
         })
         .width(24)
         .height(24)
@@ -197,11 +243,15 @@ export struct HeadersEditor {
 
       // Name input - fixed width
       ThemedTextInput({
-        value: header.name,
+        value: flatItem.name,
         placeholder: '请求头名称',
         onValueChange: (value: string) => {
-          header.name = value;
-          this.onChange(this.headers);
+          // Update original data
+          if (flatItem.index < this.headers.length) {
+            this.headers[flatItem.index].name = value;
+            this.onChange(this.headers);
+            // Don't rebuild on every keystroke for performance
+          }
         },
         inputSize: 'md'
       })
@@ -211,11 +261,15 @@ export struct HeadersEditor {
 
       // Value input - takes remaining space
       ThemedTextInput({
-        value: header.value,
+        value: flatItem.value,
         placeholder: '请求头值',
         onValueChange: (value: string) => {
-          header.value = value;
-          this.onChange(this.headers);
+          // Update original data
+          if (flatItem.index < this.headers.length) {
+            this.headers[flatItem.index].value = value;
+            this.onChange(this.headers);
+            // Don't rebuild on every keystroke for performance
+          }
         },
         inputSize: 'md'
       })
@@ -224,7 +278,7 @@ export struct HeadersEditor {
 
       ThemedButton({
         symbolIcon: $r("sys.symbol.xmark"),
-        onButtonClick: () => this.deleteHeader(index),
+        onButtonClick: () => this.deleteHeader(flatItem.index),
         buttonType: 'ghost'
       })
     }
@@ -271,6 +325,7 @@ export struct HeadersEditor {
 
     this.headers.push(newHeader);
     this.onChange(this.headers);
+    this.rebuildFlatList();
   }
 
   /**
@@ -279,6 +334,7 @@ export struct HeadersEditor {
   private deleteHeader(index: number): void {
     this.headers.splice(index, 1);
     this.onChange(this.headers);
+    this.rebuildFlatList();
   }
 
   /**

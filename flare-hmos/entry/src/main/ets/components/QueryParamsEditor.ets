@@ -7,11 +7,54 @@ import { QueryParam } from '../model/HttpRequest';
 import { ThemedTextInput } from './ThemedTextInput';
 import { ThemedButton } from './ThemedButton';
 
+/**
+ * Flat list item for query parameter rendering
+ */
+interface FlatQueryParamItem {
+  id: string;
+  name: string;
+  value: string;
+  enabled: boolean;
+  index: number;
+}
+
 @ComponentV2
 export struct QueryParamsEditor {
   @Param @Require queryParams: QueryParam[];
   @Event onChange: (queryParams: QueryParam[]) => void = () => {
   };
+
+  // Local flat list for UI rendering - triggers update when rebuilt
+  @Local flatList: FlatQueryParamItem[] = [];
+
+  aboutToAppear(): void {
+    this.rebuildFlatList();
+  }
+
+  // Monitor queryParams changes and rebuild flat list
+  @Monitor('queryParams')
+  onQueryParamsChange(): void {
+    this.rebuildFlatList();
+  }
+
+  /**
+   * Rebuild flat list from queryParams
+   * Creates a new array to trigger UI update
+   */
+  private rebuildFlatList(): void {
+    const newFlatList: FlatQueryParamItem[] = [];
+    this.queryParams.forEach((param: QueryParam, index: number) => {
+      const flatItem: FlatQueryParamItem = {
+        id: param.id,
+        name: param.name,
+        value: param.value,
+        enabled: param.enabled,
+        index: index
+      };
+      newFlatList.push(flatItem);
+    });
+    this.flatList = newFlatList;
+  }
 
   build() {
     Column() {
@@ -35,7 +78,7 @@ export struct QueryParamsEditor {
       .padding($r('app.float.spacing_md'))
 
       // Query Parameters list
-      if (this.queryParams.length === 0) {
+      if (this.flatList.length === 0) {
         Text('没有请求参数')
           .fontSize($r('app.float.font_size_md'))
           .fontColor($r('app.color.text_secondary'))
@@ -44,9 +87,11 @@ export struct QueryParamsEditor {
           .padding($r('app.float.spacing_2xl'))
       } else {
         List() {
-          ForEach(this.queryParams, (param: QueryParam, index: number) => {
-            this.buildQueryParamRow(param, index);
-          }, (param: QueryParam) => param.id)
+          ForEach(this.flatList, (flatItem: FlatQueryParamItem) => {
+            ListItem() {
+              this.buildQueryParamRow(flatItem);
+            }
+          }, (flatItem: FlatQueryParamItem) => flatItem.id + '_' + flatItem.name + '_' + flatItem.value + '_' + flatItem.enabled)
         }
         .width('100%')
         .height("100%")
@@ -63,14 +108,18 @@ export struct QueryParamsEditor {
   }
 
   @Builder
-  buildQueryParamRow(param: QueryParam, index: number) {
+  buildQueryParamRow(flatItem: FlatQueryParamItem) {
     Row() {
       // Enabled checkbox
       Checkbox()
-        .select(param.enabled)
+        .select(flatItem.enabled)
         .onChange((value: boolean) => {
-          param.enabled = value;
-          this.onChange(this.queryParams);
+          // Update original data
+          if (flatItem.index < this.queryParams.length) {
+            this.queryParams[flatItem.index].enabled = value;
+            this.onChange(this.queryParams);
+            this.rebuildFlatList();
+          }
         })
         .width(24)
         .height(24)
@@ -79,11 +128,15 @@ export struct QueryParamsEditor {
 
       // Name input - fixed width
       ThemedTextInput({
-        value: param.name,
+        value: flatItem.name,
         placeholder: '参数名称',
         onValueChange: (value: string) => {
-          param.name = value;
-          this.onChange(this.queryParams);
+          // Update original data
+          if (flatItem.index < this.queryParams.length) {
+            this.queryParams[flatItem.index].name = value;
+            this.onChange(this.queryParams);
+            // Don't rebuild on every keystroke for performance
+          }
         },
         inputSize: 'md'
       })
@@ -93,11 +146,15 @@ export struct QueryParamsEditor {
 
       // Value input - takes remaining space
       ThemedTextInput({
-        value: param.value,
+        value: flatItem.value,
         placeholder: '参数值',
         onValueChange: (value: string) => {
-          param.value = value;
-          this.onChange(this.queryParams);
+          // Update original data
+          if (flatItem.index < this.queryParams.length) {
+            this.queryParams[flatItem.index].value = value;
+            this.onChange(this.queryParams);
+            // Don't rebuild on every keystroke for performance
+          }
         },
         inputSize: 'md'
       })
@@ -106,7 +163,7 @@ export struct QueryParamsEditor {
 
       ThemedButton({
         symbolIcon: $r("sys.symbol.xmark"),
-        onButtonClick: () => this.deleteQueryParam(index),
+        onButtonClick: () => this.deleteQueryParam(flatItem.index),
         buttonType: 'ghost'
       })
     }
@@ -136,6 +193,7 @@ export struct QueryParamsEditor {
 
     this.queryParams.push(newParam);
     this.onChange(this.queryParams);
+    this.rebuildFlatList();
   }
 
   /**
@@ -144,6 +202,7 @@ export struct QueryParamsEditor {
   private deleteQueryParam(index: number): void {
     this.queryParams.splice(index, 1);
     this.onChange(this.queryParams);
+    this.rebuildFlatList();
   }
 
   /**
