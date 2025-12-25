@@ -38,7 +38,7 @@ export struct TextViewer {
 
   private formatText(): string {
     if (!this.text) {
-      return 'No content';
+      return '没有内容';
     }
 
     // Raw mode - return as-is

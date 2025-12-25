@@ -28,6 +28,7 @@ export struct ThemedButton {
       .borderRadius(this.isCircle ? '50%' : $r('app.float.border_radius_md'))
       .opacity(this.disabled ? $r('app.float.opacity_disabled') : 1)
       .enabled(!this.disabled)
+      .hoverEffect(HoverEffect.Highlight)
       .onClick(() => {
         if (!this.disabled) {
           this.onButtonClick();

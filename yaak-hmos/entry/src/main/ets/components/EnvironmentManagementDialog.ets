@@ -103,7 +103,7 @@ export struct EnvironmentManagementDialog {
       // Environment List
       if (this.environments.length === 0) {
         Column() {
-          Text('No environments yet')
+          Text('没有环境信息')
             .fontSize($r('app.float.font_size_md'))
             .fontColor($r('app.color.text_secondary'))
             .width('100%')

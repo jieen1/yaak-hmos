@@ -48,6 +48,7 @@ export struct ThemedText {
     Text(this.content)
       .fontFamily(this.fontSettings.interfaceFont)
       .fontSize(this.fontSizeOverride !== -1 ?  this.fontSizeOverride : this.fontSettings.interfaceFontSize)
+      .hoverEffect(HoverEffect.Highlight)
   }
   
   @Builder

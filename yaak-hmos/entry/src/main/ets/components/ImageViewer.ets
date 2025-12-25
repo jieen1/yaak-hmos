@@ -65,7 +65,7 @@ export struct ImageViewer {
   buildEmptyState() {
     Column() {
       ThemedText({
-        content: 'No image to display',
+        content: '没有可展示图片',
         fontColor: $r('app.color.text_secondary')
       })
     }

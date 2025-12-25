@@ -105,7 +105,7 @@ export struct WorkspaceManagementDialog {
       if (this.workspaces.length === 0) {
         Column() {
           ThemedText({
-            content: 'No workspaces yet',
+            content: '没有工作台',
             fontColor: $r('app.color.text_secondary')
           })
         }

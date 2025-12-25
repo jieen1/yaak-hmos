@@ -8,8 +8,6 @@ import { Environment } from '../model/Environment';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { ThemedButton } from '.';
 import { ThemedText } from './ThemedText';
-import { NetworkService } from '../services/NetworkService';
-import type { NetworkStatus } from '../services/NetworkService';
 
 @ComponentV2
 export struct WorkspaceHeader {
@@ -26,30 +24,6 @@ export struct WorkspaceHeader {
   @Param onToggleResponseViewer: () => void = () => {};
   @Param onExport: () => void = () => {};
   @Param onToggleCommandPalette: () => void = () => {};
-
-  @Local isOnline: boolean = true;
-  @Local networkType: string = 'unknown';
-
-  private networkCallback = (status: NetworkStatus): void => {
-    this.isOnline = status.isOnline;
-    this.networkType = status.networkType;
-  };
-
-  aboutToAppear(): void {
-    // Initialize network status
-    const networkService = NetworkService.getInstance();
-    const status = networkService.getStatus();
-    this.isOnline = status.isOnline;
-    this.networkType = status.networkType;
-
-    // Register for network status changes
-    networkService.onStatusChanged(this.networkCallback);
-  }
-
-  aboutToDisappear(): void {
-    // Unregister network callback
-    NetworkService.getInstance().offStatusChanged(this.networkCallback);
-  }
 
   build() {
     Row() {
@@ -115,31 +89,6 @@ export struct WorkspaceHeader {
       }
 
       Blank()
-
-      // Offline indicator
-      if (!this.isOnline) {
-        Row() {
-          Circle()
-            .width(8)
-            .height(8)
-            .fill('#EF4444')
-            .margin({ right: 6 })
-
-          ThemedText({
-            content: '离线模式',
-            fontColor: '#EF4444'
-          })
-        }
-        .padding({
-          left: 12,
-          right: 12,
-          top: 6,
-          bottom: 6
-        })
-        .backgroundColor('rgba(239, 68, 68, 0.1)')
-        .borderRadius(16)
-        .margin({ right: $r('app.float.spacing_md') })
-      }
 
       // Import Button
       ThemedButton({

@@ -27,7 +27,7 @@ export struct ResponseInfoTab {
   buildEmptyState() {
     Column() {
       ThemedText({
-        content: 'No response information',
+        content: '没有响应信息',
         fontColor: $r('app.color.text_secondary')
       })
     }

@@ -24,7 +24,7 @@ export struct VideoViewer {
             console.error('[VideoViewer] Video error:', JSON.stringify(error));
           })
       } else {
-        this.buildEmptyState('No video to display');
+        this.buildEmptyState('没有可展示视频');
       }
     }
     .width('100%')
@@ -105,7 +105,7 @@ export struct AudioViewer {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else {
-        this.buildEmptyState('No audio to display');
+        this.buildEmptyState('没有可展示音频');
       }
     }
     .width('100%')

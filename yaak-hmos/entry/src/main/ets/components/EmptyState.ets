@@ -36,7 +36,6 @@ export struct EmptyState {
         fontWeight: FontWeight.Bold,
         maxLines: 2,
       })
-        .width('80%')
         .margin({ bottom: $r('app.float.spacing_2xl') })
 
       // Action Buttons

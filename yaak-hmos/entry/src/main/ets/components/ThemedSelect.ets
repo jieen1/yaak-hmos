@@ -34,6 +34,7 @@ export struct ThemedSelect {
       .font({ size: this.fontSettings.editorFontSize, family: this.fontSettings.editorFont })
       .height(this.getHeight())
       .borderRadius($r('app.float.border_radius_md'))
+      .hoverEffect(HoverEffect.Highlight)
       .border({
         width: $r('app.float.border_width_thin'),
         color: $r('app.color.input_border')

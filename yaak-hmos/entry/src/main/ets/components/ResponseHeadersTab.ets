@@ -52,7 +52,7 @@ export struct ResponseHeadersTab {
   @Builder
   buildEmptyState() {
     Column() {
-      Text('No headers')
+      Text('没有响应头信息')
         .fontSize($r('app.float.font_size_md'))
         .fontColor($r('app.color.text_secondary'))
     }
