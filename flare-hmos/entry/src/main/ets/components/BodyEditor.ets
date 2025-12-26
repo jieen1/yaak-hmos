@@ -6,6 +6,7 @@
 import { BodyType } from '../model/Types';
 import { ThemedSelect, SelectOption } from './ThemedSelect';
 import { FontSettings } from '../services/FontService';
+import { JsonEditor } from './JsonEditor';
 
 @ComponentV2
 export struct BodyEditor {
@@ -90,17 +91,19 @@ export struct BodyEditor {
 
   @Builder
   buildJsonEditor() {
-    TextArea({ text: this.body, placeholder: '{\n  "key": "value"\n}' })
-      .width('100%')
-      .layoutWeight(1)
-      .backgroundColor($r('app.color.code_background'))
-      .fontColor($r('app.color.code_text'))
-      .fontSize(this.fontSettings.editorFontSize)
-      .fontFamily(this.fontSettings.editorFont)
-      .padding($r('app.float.spacing_md'))
-      .onChange((value: string) => {
-        this.onBodyChange(value);
+    Column() {
+      JsonEditor({
+        content: this.body,
+        readonly: false,
+        placeholder: '{\n  "key": "value"\n}',
+        onContentChange: (value: string) => {
+          this.onBodyChange(value);
+        }
       })
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .padding({ left: $r('app.float.spacing_md'), right: $r('app.float.spacing_md'), bottom: $r('app.float.spacing_md') })
   }
 
   @Builder

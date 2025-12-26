@@ -4,6 +4,7 @@ import { ResponseInfoTab } from './ResponseInfoTab';
 import { ContentTypeDetector, ContentTypeInfo } from '../services/ContentTypeDetector';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 import { TextViewer } from './TextViewer';
+import { JsonEditor } from './JsonEditor';
 import { ImageViewer } from './ImageViewer';
 import { VideoViewer, AudioViewer } from './MediaViewer';
 import { ThemedText } from './ThemedText';
@@ -481,15 +482,29 @@ export struct ResponseViewerComponent {
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
     } else if (this.contentTypeInfo.category === 'text') {
-      Column() {
-        TextViewer({
-          text: this.responseBody,
-          language: this.getTextLanguage(),
-          pretty: this.viewMode === 'pretty'
-        })
+      // Use JsonEditor for JSON content, TextViewer for others
+      if (this.contentTypeInfo.language === 'json') {
+        Column() {
+          JsonEditor({
+            content: this.responseBody,
+            readonly: true,
+            placeholder: ''
+          })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .padding($r('app.float.spacing_sm'))
+      } else {
+        Column() {
+          TextViewer({
+            text: this.responseBody,
+            language: this.getTextLanguage(),
+            pretty: this.viewMode === 'pretty'
+          })
+        }
+        .width('100%')
+        .layoutWeight(1)
       }
-      .width('100%')
-      .layoutWeight(1)
     } else if (this.contentTypeInfo.category === 'image') {
       Column() {
         ImageViewer({

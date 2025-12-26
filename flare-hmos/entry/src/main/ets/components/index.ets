@@ -28,3 +28,4 @@ export { CommandPalette, CommandAction, CommandActionType } from './CommandPalet
 export { FolderSettingsDialog } from './FolderSettingsDialog';
 export { WorkspaceSettingsDialog } from './WorkspaceSettingsDialog';
 export { HuaweiLoginButton, HuaweiLoginSuccessCallback, HuaweiLoginErrorCallback, HuaweiLoginErrorCode, HuaweiLoginResult } from './HuaweiLoginButton';
+export { JsonEditor } from './JsonEditor';
