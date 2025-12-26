@@ -292,7 +292,8 @@ export struct RequestEditorComponent {
 
     // Check if pasted content is a cURL command
     if (isPaste && CurlImporter.isCurlCommand(value)) {
-      this.showCurlImportConfirmation(value);
+      // 直接导入 cURL，不显示确认对话框
+      this.importCurlCommand(value);
       return;
     }
 
@@ -300,39 +301,6 @@ export struct RequestEditorComponent {
     console.info(`[RequestEditor] URL changed: ${value}`);
     this.request.url = value;
     this.onChange(this.request);
-  }
-
-  /**
-   * Show confirmation dialog for cURL import
-   */
-  private showCurlImportConfirmation(curlCommand: string): void {
-    try {
-      this.getUIContext().getPromptAction().showDialog({
-        title: '检测到 cURL',
-        message: '检测到 cURL 命令，是否导入？',
-        buttons: [
-          { text: '取消', color: '#666666' },
-          { text: '导入', color: '#007AFF' }
-        ]
-      }).then((result: promptAction.ShowDialogSuccessResponse) => {
-        if (result.index === 1) {
-          this.importCurlCommand(curlCommand);
-        } else {
-          // User cancelled, just set the URL as-is
-          this.request.url = curlCommand;
-          this.onChange(this.request);
-        }
-      }).catch((error: Error) => {
-        console.error('[RequestEditor] cURL import confirmation error:', error);
-        // On error, just set the URL
-        this.request.url = curlCommand;
-        this.onChange(this.request);
-      });
-    } catch (error) {
-      console.error('[RequestEditor] Failed to show cURL import confirmation:', error);
-      this.request.url = curlCommand;
-      this.onChange(this.request);
-    }
   }
 
   /**
