@@ -84,7 +84,6 @@ export struct FolderItemComponent {
         TextInput({ text: this.getEditingName() })
           .fontSize($r('app.float.font_size_md'))
           .flexGrow(1)
-          .backgroundColor($r('app.color.surface'))
           .borderRadius($r('app.float.border_radius_sm'))
           .padding({
             left: $r('app.float.spacing_xs'),
@@ -97,15 +96,11 @@ export struct FolderItemComponent {
             this.saveRename();
           })
           .onBlur(() => {
-            // Use setTimeout to allow click events to process first
-            setTimeout(() => {
-              this.saveRename();
-            }, 100);
+            this.saveRename();
           })
-          .focusable(true)
-          .defaultFocus(true)
           .selectAll(true)
           .id('folder_rename_input_' + this.folder.id)
+          .onAppear(() => this.getUIContext().getFocusController().requestFocus('folder_rename_input_' + this.folder.id));
       } else {
         Text(this.folder.name)
           .fontSize($r('app.float.font_size_md'))
@@ -121,6 +116,9 @@ export struct FolderItemComponent {
       left: $r('app.float.spacing_sm'),
       right: $r('app.float.spacing_sm')
     })
+    .outlineWidth(this.isEditing ? 2 : 0)
+    .outlineRadius($r('app.float.border_radius_md'))
+    .outlineColor($r('app.color.input_border'))
     .backgroundColor($r('app.color.sidebar_background'))
     .borderRadius($r('app.float.border_radius_sm'))
     .onClick(() => {
@@ -172,10 +170,6 @@ export struct FolderItemComponent {
    * Save the rename (called on Enter or blur)
    */
   private saveRename(): void {
-    if (!this.isEditing) {
-      return;
-    }
-
     const trimmedName: string = this.editingName.trim();
     if (trimmedName.length > 0 && trimmedName !== this.folder.name) {
       this.onRename(trimmedName);

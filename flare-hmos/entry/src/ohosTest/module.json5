@@ -3,7 +3,8 @@
     "name": "entry_test",
     "type": "feature",
     "deviceTypes": [
-      "2in1"
+      "2in1",
+      "phone"
     ],
     "deliveryWithInstall": true,
     "installationFree": false

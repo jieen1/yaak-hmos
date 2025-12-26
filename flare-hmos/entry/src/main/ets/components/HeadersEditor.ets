@@ -22,6 +22,7 @@ interface FlatHeaderItem {
 @ComponentV2
 export struct HeadersEditor {
   @Param headers: HttpHeader[] = [];
+  @Param requestId: string = '';  // 新增：请求 ID，用于监听请求切换
   @Param inheritedHeaders: InheritedHeaderWithSource[] = [];
   @Event onChange: (headers: HttpHeader[]) => void = () => {};
   @Event onNavigateToSource: (sourceType: string, sourceId: string) => void = () => {};
@@ -34,9 +35,11 @@ export struct HeadersEditor {
     this.rebuildFlatList();
   }
 
-  // Monitor headers changes and rebuild flat list
-  @Monitor('headers')
+  // Monitor headers and requestId changes and rebuild flat list
+  // 监听 requestId 确保切换请求时强制刷新
+  @Monitor('headers', 'requestId')
   onHeadersChange(): void {
+    console.info(`[HeadersEditor] Data changed, requestId: ${this.requestId}, headers count: ${this.headers.length}`);
     this.rebuildFlatList();
   }
 
@@ -231,9 +234,12 @@ export struct HeadersEditor {
         .onChange((value: boolean) => {
           // Update original data
           if (flatItem.index < this.headers.length) {
-            this.headers[flatItem.index].enabled = value;
-            this.onChange(this.headers);
-            this.rebuildFlatList();
+            const header: HttpHeader | undefined = this.headers[flatItem.index];
+            if (header) {
+              header.enabled = value;
+              this.onChange(this.headers);
+              this.rebuildFlatList();
+            }
           }
         })
         .width(24)
@@ -248,8 +254,11 @@ export struct HeadersEditor {
         onValueChange: (value: string) => {
           // Update original data
           if (flatItem.index < this.headers.length) {
-            this.headers[flatItem.index].name = value;
-            this.onChange(this.headers);
+            const header: HttpHeader | undefined = this.headers[flatItem.index];
+            if (header) {
+              header.name = value;
+              this.onChange(this.headers);
+            }
             // Don't rebuild on every keystroke for performance
           }
         },
@@ -266,8 +275,11 @@ export struct HeadersEditor {
         onValueChange: (value: string) => {
           // Update original data
           if (flatItem.index < this.headers.length) {
-            this.headers[flatItem.index].value = value;
-            this.onChange(this.headers);
+            const header: HttpHeader | undefined = this.headers[flatItem.index];
+            if (header) {
+              header.value = value;
+              this.onChange(this.headers);
+            }
             // Don't rebuild on every keystroke for performance
           }
         },

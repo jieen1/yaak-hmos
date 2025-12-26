@@ -54,6 +54,35 @@ export struct RequestEditorComponent {
 
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
+  
+  // 存储每个请求的 activeTab，key 是 requestId
+  private static requestTabCache: Map<string, number> = new Map();
+
+  aboutToAppear(): void {
+    // 恢复该请求上次的 activeTab
+    this.restoreActiveTab();
+  }
+
+  // 监听 request 变化，恢复对应的 activeTab
+  @Monitor('request')
+  onRequestChange(): void {
+    console.info(`[RequestEditor] Request changed to: ${this.request.id}`);
+    this.restoreActiveTab();
+  }
+
+  /**
+   * 恢复该请求的 activeTab
+   */
+  private restoreActiveTab(): void {
+    const cachedTab: number | undefined = RequestEditorComponent.requestTabCache.get(this.request.id);
+    if (cachedTab !== undefined) {
+      console.info(`[RequestEditor] Restored activeTab ${cachedTab} for request ${this.request.id}`);
+      this.activeTab = cachedTab;
+    } else {
+      console.info(`[RequestEditor] No cached tab for request ${this.request.id}, using default 0`);
+      this.activeTab = 0;
+    }
+  }
 
   /**
    * Get current method color
@@ -130,6 +159,7 @@ export struct RequestEditorComponent {
         TabContent() {
           QueryParamsEditor({
             queryParams: this.request.query_params,
+            requestId: this.request.id,  // 传递请求 ID
             onChange: (params) => {
               this.request.query_params = params;
               this.onChange(this.request);
@@ -141,6 +171,7 @@ export struct RequestEditorComponent {
         TabContent() {
           HeadersEditor({
             headers: this.request.headers,
+            requestId: this.request.id,  // 传递请求 ID
             inheritedHeaders: this.inheritedHeaders,
             onChange: (headers) => {
               this.request.headers = headers;
@@ -167,7 +198,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('请求体')
+        .tabBar(this.buildBodyTabBar())
 
         TabContent() {
           AuthEditor({
@@ -182,7 +213,7 @@ export struct RequestEditorComponent {
             }
           })
         }
-        .tabBar('认证')
+        .tabBar(this.buildAuthTabBar())
       }
       .width('100%')
       .layoutWeight(1)
@@ -190,6 +221,9 @@ export struct RequestEditorComponent {
       .barPosition(BarPosition.Start)
       .onChange((index: number) => {
         this.activeTab = index;
+        // 缓存当前请求的 activeTab
+        RequestEditorComponent.requestTabCache.set(this.request.id, index);
+        console.info(`[RequestEditor] Saved activeTab ${index} for request ${this.request.id}`);
       })
     }
     .width('100%')
@@ -354,24 +388,7 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildParamsTabBar() {
-    Row() {
-      Text('参数')
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_primary'))
-      
-      if (this.request.query_params) {
-        Text(`${this.getQueryParamsCount()}`)
-          .fontSize(10)
-          .fontColor($r('app.color.text_secondary'))
-          .borderRadius($r('app.float.border_radius_sm'))
-          .borderColor($r('app.color.text_tertiary'))
-          .borderWidth(1)
-          .padding({ left: 5, right: 5, top: 1, bottom: 1 })
-          .margin({ left: 4, bottom: 5 })
-      }
-    }
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
+    this.buildCustomTabBar('参数', 0, this.getQueryParamsCount())
   }
 
   /**
@@ -379,24 +396,61 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildHeadersTabBar() {
-    Row() {
-      Text('请求头')
-        .fontSize($r('app.float.font_size_md'))
-        .fontColor($r('app.color.text_primary'))
-      
-      if (this.request.headers) {
-        Text(`${this.getHeadersCount()}`)
-          .fontSize(10)
-          .fontColor($r('app.color.text_secondary'))
-          .borderRadius($r('app.float.border_radius_sm'))
-          .borderColor($r('app.color.text_tertiary'))
-          .borderWidth(1)
-          .padding({ left: 5, right: 5, top: 1, bottom: 1 })
-          .margin({ left: 4, bottom: 5 })
+    this.buildCustomTabBar('请求头', 1, this.getHeadersCount())
+  }
+
+  /**
+   * Build body tab bar
+   */
+  @Builder
+  buildBodyTabBar() {
+    this.buildCustomTabBar('请求体', 2, 0)
+  }
+
+  /**
+   * Build auth tab bar
+   */
+  @Builder
+  buildAuthTabBar() {
+    this.buildCustomTabBar('认证', 3, 0)
+  }
+
+  /**
+   * Build custom tab bar with selection indicator
+   */
+  @Builder
+  buildCustomTabBar(title: string, index: number, count: number) {
+    Column() {
+      Row() {
+        Text(title)
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === index ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === index ? FontWeight.Medium : FontWeight.Normal)
+        
+        if (count > 0) {
+          Text(`${count}`)
+            .fontSize(10)
+            .fontColor(this.activeTab === index ? $r('app.color.primary') : $r('app.color.text_secondary'))
+            .borderRadius($r('app.float.border_radius_sm'))
+            .borderColor(this.activeTab === index ? $r('app.color.primary') : $r('app.color.text_tertiary'))
+            .borderWidth(1)
+            .padding({ left: 5, right: 5, top: 1, bottom: 1 })
+            .margin({ left: 4 })
+        }
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === index) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
       }
     }
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
+    .width('100%')
   }
 
   /**

@@ -21,6 +21,7 @@ interface FlatQueryParamItem {
 @ComponentV2
 export struct QueryParamsEditor {
   @Param @Require queryParams: QueryParam[];
+  @Param requestId: string = '';  // 新增：请求 ID，用于监听请求切换
   @Event onChange: (queryParams: QueryParam[]) => void = () => {
   };
 
@@ -31,9 +32,11 @@ export struct QueryParamsEditor {
     this.rebuildFlatList();
   }
 
-  // Monitor queryParams changes and rebuild flat list
-  @Monitor('queryParams')
+  // Monitor queryParams and requestId changes and rebuild flat list
+  // 监听 requestId 确保切换请求时强制刷新
+  @Monitor('queryParams', 'requestId')
   onQueryParamsChange(): void {
+    console.info(`[QueryParamsEditor] Data changed, requestId: ${this.requestId}, params count: ${this.queryParams.length}`);
     this.rebuildFlatList();
   }
 
@@ -116,9 +119,12 @@ export struct QueryParamsEditor {
         .onChange((value: boolean) => {
           // Update original data
           if (flatItem.index < this.queryParams.length) {
-            this.queryParams[flatItem.index].enabled = value;
-            this.onChange(this.queryParams);
-            this.rebuildFlatList();
+            const param: QueryParam | undefined = this.queryParams[flatItem.index];
+            if (param) {
+              param.enabled = value;
+              this.onChange(this.queryParams);
+              this.rebuildFlatList();
+            }
           }
         })
         .width(24)
@@ -133,8 +139,11 @@ export struct QueryParamsEditor {
         onValueChange: (value: string) => {
           // Update original data
           if (flatItem.index < this.queryParams.length) {
-            this.queryParams[flatItem.index].name = value;
-            this.onChange(this.queryParams);
+            const param: QueryParam | undefined = this.queryParams[flatItem.index];
+            if (param) {
+              param.name = value;
+              this.onChange(this.queryParams);
+            }
             // Don't rebuild on every keystroke for performance
           }
         },
@@ -151,8 +160,11 @@ export struct QueryParamsEditor {
         onValueChange: (value: string) => {
           // Update original data
           if (flatItem.index < this.queryParams.length) {
-            this.queryParams[flatItem.index].value = value;
-            this.onChange(this.queryParams);
+            const param: QueryParam | undefined = this.queryParams[flatItem.index];
+            if (param) {
+              param.value = value;
+              this.onChange(this.queryParams);
+            }
             // Don't rebuild on every keystroke for performance
           }
         },

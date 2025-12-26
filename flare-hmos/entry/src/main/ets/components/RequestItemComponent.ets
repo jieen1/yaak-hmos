@@ -87,7 +87,6 @@ export struct RequestItemComponent {
         TextInput({ text: this.getEditingName() })
           .fontSize($r('app.float.font_size_md'))
           .flexGrow(1)
-          .backgroundColor($r('app.color.surface'))
           .borderRadius($r('app.float.border_radius_sm'))
           .padding({
             left: $r('app.float.spacing_xs'),
@@ -100,14 +99,13 @@ export struct RequestItemComponent {
             this.saveRename();
           })
           .onBlur(() => {
-            // Use setTimeout to allow click events to process first
-            setTimeout(() => {
-              this.saveRename();
-            }, 100);
+            this.saveRename();
           })
-          .focusable(true)
+          .selectAll(true)
+          .focusOnTouch(true)
           .defaultFocus(true)
           .id('request_rename_input_' + this.request.id)
+          .onAppear(() => this.getUIContext().getFocusController().requestFocus('request_rename_input_' + this.request.id));
       } else {
         Text(this.request.name)
           .fontSize($r('app.float.font_size_md'))
@@ -123,6 +121,9 @@ export struct RequestItemComponent {
       left: $r('app.float.spacing_sm'),
       right: $r('app.float.spacing_sm')
     })
+    .outlineWidth(this.isEditing ? 2 : 0)
+    .outlineRadius($r('app.float.border_radius_md'))
+    .outlineColor($r('app.color.input_border'))
     .backgroundColor(this.isSelected ? $r('app.color.sidebar_item_selected') : $r('app.color.sidebar_background'))
     .borderRadius($r('app.float.border_radius_sm'))
     .onClick(() => {
@@ -174,10 +175,6 @@ export struct RequestItemComponent {
    * Save the rename (called on Enter or blur)
    */
   private saveRename(): void {
-    if (!this.isEditing) {
-      return;
-    }
-
     const trimmedName: string = this.editingName.trim();
     if (trimmedName.length > 0 && trimmedName !== this.request.name) {
       this.onRename(trimmedName);

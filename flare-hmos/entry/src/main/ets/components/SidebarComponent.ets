@@ -224,6 +224,7 @@ export struct SidebarComponent {
               this.buildRequestItem(flatItem.data, flatItem.level)
             }
           }
+          .margin(2)
         }, (flatItem: FlatListItem) => flatItem.id + '_' + flatItem.type + '_' + flatItem.level + '_' + this.expandedFolders.has(flatItem.id))
 
         // Root level drop zone at the end of the list
