@@ -48,7 +48,7 @@ function getTokenColor(type: JsonTokenType): string {
   } else if (type === 'null') {
     return '#569CD6';      // Blue for null
   } else if (type === 'bracket') {
-    return '#77D777';      // Gold for brackets
+    return '#444444';      // black for brackets
   } else if (type === 'colon') {
     return '#CCCCCC';      // Gray for colons
   } else if (type === 'comma') {
