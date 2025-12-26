@@ -24,6 +24,7 @@ export class HttpRequest {
   @Trace auth: AuthConfig = new AuthConfig();
   @Trace sort_priority: number = 0;
 
+  @Computed
   get queryParamsCount(): number {
     if (!this.query_params) {
       return 0;
@@ -31,6 +32,7 @@ export class HttpRequest {
     return this.query_params.filter(p => p.enabled && (p.name || p.value)).length;
   }
 
+  @Computed
   get headersCount(): number {
     if (!this.headers) {
       return 0;

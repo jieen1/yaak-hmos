@@ -14,7 +14,8 @@ export struct ThemedTextInput {
   @Param disabled: boolean = false;
   @Param inputSize: 'sm' | 'md' | 'lg' = 'md';
   @Param maxLength: number = -1;
-  
+  @Param inputPadding: Length = $r('app.float.spacing_md');
+
   // 使用全局字体设置（响应式）
   @Local fontSettings: FontSettings = FontSettings.getInstance();
 
@@ -34,8 +35,8 @@ export struct ThemedTextInput {
         color: $r('app.color.input_border')
       })
       .padding({
-        left: $r('app.float.spacing_md'),
-        right: $r('app.float.spacing_md')
+        left: this.inputPadding,
+        right: this.inputPadding
       })
       .enabled(!this.disabled)
       .opacity(this.disabled ? $r('app.float.opacity_disabled') : 1)

@@ -52,8 +52,6 @@ export struct RequestEditorComponent {
 
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
-  @Local paramsCount: number = this.request.queryParamsCount;
-  @Local headerCount: number = this.request.headersCount;
 
   // 存储每个请求的 activeTab，key 是 requestId
   private static requestTabCache: Map<string, number> = new Map();
@@ -68,8 +66,6 @@ export struct RequestEditorComponent {
   onRequestChange(): void {
     console.info(`[RequestEditor] Request changed to: ${this.request.id}`);
     this.restoreActiveTab();
-    this.paramsCount = this.request.queryParamsCount;
-    this.headerCount = this.request.headersCount;
   }
 
   /**
@@ -154,7 +150,6 @@ export struct RequestEditorComponent {
       }
       .width('100%')
       .padding($r('app.float.spacing_md'))
-      .backgroundColor($r('app.color.surface'))
 
       // Tabs
       Tabs({ index: this.activeTab }) {
@@ -358,7 +353,35 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildParamsTabBar() {
-    this.buildCustomTabBar('参数', 0, this.paramsCount)
+    Column() {
+      Row() {
+        Text('参数')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === 0 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 0 ? FontWeight.Medium : FontWeight.Normal)
+
+        Text(`${this.request.queryParamsCount}`)
+          .fontSize(10)
+          .fontColor(this.activeTab === 0 ? $r('app.color.primary') : $r('app.color.text_secondary'))
+          .borderRadius($r('app.float.border_radius_sm'))
+          .borderColor(this.activeTab === 0 ? $r('app.color.primary') : $r('app.color.text_tertiary'))
+          .borderWidth(1)
+          .padding({ left: 5, right: 5, top: 1, bottom: 1 })
+          .margin({ left: 4 })
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === 0) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
+      }
+    }
+    .width('100%')
   }
 
   /**
@@ -366,7 +389,35 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildHeadersTabBar() {
-    this.buildCustomTabBar('请求头', 1, this.headerCount)
+    Column() {
+      Row() {
+        Text('请求头')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === 1 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 1 ? FontWeight.Medium : FontWeight.Normal)
+
+        Text(`${this.request.headersCount}`)
+          .fontSize(10)
+          .fontColor(this.activeTab === 1 ? $r('app.color.primary') : $r('app.color.text_secondary'))
+          .borderRadius($r('app.float.border_radius_sm'))
+          .borderColor(this.activeTab === 1 ? $r('app.color.primary') : $r('app.color.text_tertiary'))
+          .borderWidth(1)
+          .padding({ left: 5, right: 5, top: 1, bottom: 1 })
+          .margin({ left: 4 })
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === 1) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
+      }
+    }
+    .width('100%')
   }
 
   /**
@@ -374,7 +425,26 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildBodyTabBar() {
-    this.buildCustomTabBar('请求体', 2, 0)
+    Column() {
+      Row() {
+        Text('请求体')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === 2 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 2 ? FontWeight.Medium : FontWeight.Normal)
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === 2) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
+      }
+    }
+    .width('100%')
   }
 
   /**
@@ -382,38 +452,19 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildAuthTabBar() {
-    this.buildCustomTabBar('认证', 3, 0)
-  }
-
-  /**
-   * Build custom tab bar with selection indicator
-   */
-  @Builder
-  buildCustomTabBar(title: string, index: number, count: number) {
     Column() {
       Row() {
-        Text(title)
+        Text('认证')
           .fontSize($r('app.float.font_size_md'))
-          .fontColor(this.activeTab === index ? $r('app.color.primary') : $r('app.color.text_primary'))
-          .fontWeight(this.activeTab === index ? FontWeight.Medium : FontWeight.Normal)
-        
-        if (count > 0) {
-          Text(`${count}`)
-            .fontSize(10)
-            .fontColor(this.activeTab === index ? $r('app.color.primary') : $r('app.color.text_secondary'))
-            .borderRadius($r('app.float.border_radius_sm'))
-            .borderColor(this.activeTab === index ? $r('app.color.primary') : $r('app.color.text_tertiary'))
-            .borderWidth(1)
-            .padding({ left: 5, right: 5, top: 1, bottom: 1 })
-            .margin({ left: 4 })
-        }
+          .fontColor(this.activeTab === 3 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 3 ? FontWeight.Medium : FontWeight.Normal)
       }
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
       .padding({ top: 8, bottom: 8 })
 
       // 选中指示器
-      if (this.activeTab === index) {
+      if (this.activeTab === 3) {
         Row()
           .width('100%')
           .height(2)
