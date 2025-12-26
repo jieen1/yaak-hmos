@@ -20,6 +20,7 @@ export struct ResizeHandle {
   @Param side: 'left' | 'right' = 'right';
 
   @Local private isDragging: boolean = false;
+  @Local private isHover: boolean = false;
   @Local private startX: number = 0;
   @Local private startY: number = 0;
 
@@ -28,12 +29,15 @@ export struct ResizeHandle {
       // Visual handle indicator
       Column()
         .width(4)
-        .height(40)
-        .backgroundColor(this.isDragging ? '#1890ff' : '#d9d9d9')
+        .height(this.isDragging || this.isHover ? "100%" : 40)
+        .backgroundColor(this.isDragging || this.isHover ? '#1890ff' : '#d9d9d9')
         .borderRadius(2)
         .opacity(this.isDragging ? 1.0 : 0.6)
+        .onHover((isHover) => {
+          this.isHover = isHover;
+        })
     }
-    .width(8)
+    .width(12)
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .backgroundColor('transparent')

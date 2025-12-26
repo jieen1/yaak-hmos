@@ -2,7 +2,7 @@
  * Sidebar Component
  * Main sidebar with search, action buttons, and tree view
  * Enhanced with drag and drop reordering support
- * 
+ *
  * 使用扁平化列表 + @Monitor + ForEach 模式实现列表刷新
  */
 
@@ -42,37 +42,48 @@ interface FlatListItem {
 export struct SidebarComponent {
   @Param items: SidebarItem[] = [];
   @Param selectedRequestId: string = '';
-  @Param onRequestCreate: () => void = () => {};
-  @Param onFolderCreate: () => void = () => {};
-  @Param onRequestSelect: (requestId: string) => void = () => {};
-  @Param onFolderToggle: (folderId: string) => void = () => {};
-  @Param onRequestRename: (requestId: string, newName: string) => void = () => {};
-  @Param onRequestDelete: (requestId: string) => void = () => {};
-  @Param onRequestDuplicate: (requestId: string) => void = () => {};
-  @Param onRequestSend: (requestId: string) => void = () => {};
-  @Param onRequestCopyAsCurl: (requestId: string) => void = () => {};
-  @Param onRequestShare: (requestId: string) => void = () => {};
-  @Param onFolderRename: (folderId: string, newName: string) => void = () => {};
-  @Param onFolderDelete: (folderId: string) => void = () => {};
-  @Param onFolderDuplicate: (folderId: string) => void = () => {};
-  @Param onFolderSettings: (folderId: string) => void = () => {};
-  @Param onItemMove: (itemId: string, itemType: string, newFolderId: string | null, newSortPriority: number) => void = () => {};
-
+  @Param onRequestCreate: () => void = () => {
+  };
+  @Param onFolderCreate: () => void = () => {
+  };
+  @Param onRequestSelect: (requestId: string) => void = () => {
+  };
+  @Param onFolderToggle: (folderId: string) => void = () => {
+  };
+  @Param onRequestRename: (requestId: string, newName: string) => void = () => {
+  };
+  @Param onRequestDelete: (requestId: string) => void = () => {
+  };
+  @Param onRequestDuplicate: (requestId: string) => void = () => {
+  };
+  @Param onRequestSend: (requestId: string) => void = () => {
+  };
+  @Param onRequestCopyAsCurl: (requestId: string) => void = () => {
+  };
+  @Param onRequestShare: (requestId: string) => void = () => {
+  };
+  @Param onFolderRename: (folderId: string, newName: string) => void = () => {
+  };
+  @Param onFolderDelete: (folderId: string) => void = () => {
+  };
+  @Param onFolderDuplicate: (folderId: string) => void = () => {
+  };
+  @Param onFolderSettings: (folderId: string) => void = () => {
+  };
+  @Param onItemMove: (itemId: string, itemType: string, newFolderId: string | null, newSortPriority: number) => void =
+    () => {
+    };
   @Local filterText: string = '';
-  
   // 展开的文件夹集合
   @Local expandedFolders: Set<string> = new Set();
-  
   // 扁平化列表 - 核心数据源
   @Local flatList: FlatListItem[] = [];
-
   // Drag and drop state
   @Local isDragging: boolean = false;
   @Local draggedItemId: string = '';
   @Local draggedItemType: string = '';
   @Local dropTargetId: string = '';
   @Local dropPosition: DropPosition = 'after';
-
   // Edit state - track which item is being edited
   @Local editingItemId: string = '';
   @Local editingItemType: string = '';
@@ -82,7 +93,7 @@ export struct SidebarComponent {
   }
 
   // 监听 items 和 filterText 变化，自动重建扁平列表
-  @Monitor('items', 'filterText')
+  @Monitor('items','filterText')
   onDataChange(): void {
     console.info('[SidebarComponent] Data changed, rebuilding flat list');
     this.rebuildFlatList();
@@ -91,15 +102,15 @@ export struct SidebarComponent {
   // 重建扁平化列表
   private rebuildFlatList(): void {
     const newFlatList: FlatListItem[] = [];
-    
+
     // 过滤后的根级项目
     const filteredRootItems: SidebarItem[] = this.getFilteredItems();
-    
+
     // 递归扁平化，根级项目从 level 0 开始
     filteredRootItems.forEach((item: SidebarItem) => {
       this.flattenItem(item, 0, newFlatList);
     });
-    
+
     this.flatList = newFlatList;
     console.info('[SidebarComponent] Flat list rebuilt with', this.flatList.length, 'items');
   }
@@ -225,7 +236,8 @@ export struct SidebarComponent {
             }
           }
           .margin(2)
-        }, (flatItem: FlatListItem) => flatItem.id + '_' + flatItem.type + '_' + flatItem.level + '_' + this.expandedFolders.has(flatItem.id))
+        }, (flatItem: FlatListItem) => flatItem.id + '_' + flatItem.type + '_' + flatItem.level + '_' +
+        this.expandedFolders.has(flatItem.id))
 
         // Root level drop zone at the end of the list
         ListItem() {
@@ -297,6 +309,8 @@ export struct SidebarComponent {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.sidebar_background'))
+    .borderWidth({ right: 1 })
+    .borderColor($r('app.color.border_light'))
   }
 
   // 构建文件夹项
@@ -657,5 +671,4 @@ export struct SidebarComponent {
     this.dropTargetId = '';
     this.dropPosition = 'after';
   }
-
 }

@@ -194,6 +194,7 @@ export struct RequestEditorComponent {
               this.onChange(this.request);
             }
           })
+            .margin({bottom: $r('app.float.spacing_md')})
         }
         .tabBar(this.buildBodyTabBar())
 
@@ -215,6 +216,7 @@ export struct RequestEditorComponent {
       .width('100%')
       .layoutWeight(1)
       .barMode(BarMode.Fixed)
+      .scrollable(false)
       .barPosition(BarPosition.Start)
       .onChange((index: number) => {
         this.activeTab = index;

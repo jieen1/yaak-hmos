@@ -33,6 +33,7 @@ export struct TextViewer {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.code_background'))
+    .borderRadius($r('app.float.border_radius_md'))
     .scrollBar(BarState.Auto)
     .align(Alignment.Top)
   }

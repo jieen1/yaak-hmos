@@ -210,6 +210,7 @@ export struct ResponseViewerComponent {
       .layoutWeight(1)
       .barMode(BarMode.Fixed)
       .barPosition(BarPosition.Start)
+      .scrollable(false)
       .onChange((index: number) => {
         this.activeTab = index;
         this.savePreferences();
@@ -269,7 +270,6 @@ export struct ResponseViewerComponent {
       left: $r('app.float.spacing_md'),
       right: $r('app.float.spacing_md')
     })
-    .backgroundColor($r('app.color.surface'))
     .border({
       width: { bottom: 1 },
       color: $r('app.color.divider')
@@ -410,7 +410,6 @@ export struct ResponseViewerComponent {
         }
         .width('100%')
         .padding($r('app.float.spacing_md'))
-        .backgroundColor($r('app.color.surface'))
       }
 
       // Content viewer based on content type
