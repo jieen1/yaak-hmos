@@ -35,8 +35,6 @@ export struct HeadersEditor {
     this.rebuildFlatList();
   }
 
-  // Monitor headers and requestId changes and rebuild flat list
-  // 监听 requestId 确保切换请求时强制刷新
   @Monitor('headers', 'requestId')
   onHeadersChange(): void {
     console.info(`[HeadersEditor] Data changed, requestId: ${this.requestId}, headers count: ${this.headers.length}`);

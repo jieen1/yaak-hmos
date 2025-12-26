@@ -13,6 +13,7 @@
 
 import { HttpRequest, HttpHeader, QueryParam, AuthConfig } from '../model/HttpRequest';
 import { UUID } from '../common/UUID';
+import { HttpMethod } from '../model';
 
 /**
  * Parsed cURL flags and values
@@ -293,7 +294,7 @@ export class CurlImporter {
     request.query_params = urlParts.queryParams;
 
     // Set method
-    request.method = flags.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
+    request.method = flags.method as HttpMethod;
 
     // Set name from URL path
     request.name = CurlImporter.generateNameFromUrl(flags.url);

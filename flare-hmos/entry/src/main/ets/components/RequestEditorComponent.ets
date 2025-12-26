@@ -13,8 +13,6 @@ import { HeadersEditor } from './HeadersEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthEditor } from './AuthEditor';
 import { CurlImporter } from '../services/CurlImporter';
-import { promptAction } from '@kit.ArkUI';
-import type { DeviceInfo } from '../services/ContinuationService';
 
 /**
  * Get color for HTTP method
@@ -54,7 +52,9 @@ export struct RequestEditorComponent {
 
   @Local activeTab: number = 0;
   @Local previousUrlLength: number = 0;
-  
+  @Local paramsCount: number = this.request.queryParamsCount;
+  @Local headerCount: number = this.request.headersCount;
+
   // 存储每个请求的 activeTab，key 是 requestId
   private static requestTabCache: Map<string, number> = new Map();
 
@@ -68,6 +68,8 @@ export struct RequestEditorComponent {
   onRequestChange(): void {
     console.info(`[RequestEditor] Request changed to: ${this.request.id}`);
     this.restoreActiveTab();
+    this.paramsCount = this.request.queryParamsCount;
+    this.headerCount = this.request.headersCount;
   }
 
   /**
@@ -356,7 +358,7 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildParamsTabBar() {
-    this.buildCustomTabBar('参数', 0, this.getQueryParamsCount())
+    this.buildCustomTabBar('参数', 0, this.paramsCount)
   }
 
   /**
@@ -364,7 +366,7 @@ export struct RequestEditorComponent {
    */
   @Builder
   buildHeadersTabBar() {
-    this.buildCustomTabBar('请求头', 1, this.getHeadersCount())
+    this.buildCustomTabBar('请求头', 1, this.headerCount)
   }
 
   /**
@@ -419,26 +421,5 @@ export struct RequestEditorComponent {
       }
     }
     .width('100%')
-  }
-
-  /**
-   * Get count of enabled query params
-   */
-  private getQueryParamsCount(): number {
-    if (!this.request.query_params) {
-      return 0;
-    }
-    return this.request.query_params.filter(p => p.enabled && (p.name || p.value)).length;
-  }
-
-  /**
-   * Get count of enabled headers
-   */
-
-  private getHeadersCount(): number {
-    if (!this.request.headers) {
-      return 0;
-    }
-    return this.request.headers.filter(h => h.enabled && (h.name || h.value)).length;
   }
 }

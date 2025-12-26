@@ -118,7 +118,6 @@ export class BaseRepository {
    * Create RdbPredicates for this table
    */
   protected createPredicates(): relationalStore.RdbPredicates {
-    const store = this.getStore();
     return new relationalStore.RdbPredicates(this.tableName);
   }
 
@@ -155,7 +154,7 @@ export class BaseRepository {
    */
   protected stringifyJson(obj: Object): string {
     try {
-      return JSON.stringify(obj);
+      return JSON.stringify(obj).replace(/__ob_/g, '');
     } catch (error) {
       console.error(`Failed to stringify JSON: ${error}`);
       return '{}';
