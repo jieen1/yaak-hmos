@@ -38,7 +38,7 @@ interface JsonLine {
  */
 function getTokenColor(type: JsonTokenType): string {
   if (type === 'key') {
-    return '#5C8C9E';      // Light blue for keys
+    return '#FF6D4D';      // Light blue for keys
   } else if (type === 'string') {
     return '#CE9178';      // Orange for strings
   } else if (type === 'number') {
@@ -351,26 +351,43 @@ export struct JsonEditor {
     const startLine: JsonLine = this.parsedLines[startLineIndex];
     const lastToken: JsonToken | undefined = startLine.tokens[startLine.tokens.length - 1];
     const bracketType: string = lastToken ? lastToken.value : '{';
+    const isObject: boolean = bracketType === '{';
 
     // Count items in the block
     let itemCount: number = 0;
     let depth: number = 1;
+    
     for (let i = startLineIndex + 1; i < this.parsedLines.length && depth > 0; i++) {
       const line: JsonLine = this.parsedLines[i];
+      
+      // Track depth changes
       if (line.isBlockStart) {
+        // Count this as an item at depth 1 (for arrays containing objects/arrays)
+        if (depth === 1) {
+          itemCount++;
+        }
         depth++;
-      }
-      if (line.isBlockEnd) {
+      } else if (line.isBlockEnd) {
         depth--;
-      }
-      if (depth === 1 && line.tokens.some((t: JsonToken) => t.type === 'key' || t.type === 'string' || t.type === 'number')) {
-        itemCount++;
+      } else if (depth === 1) {
+        // At depth 1, count items
+        if (isObject) {
+          // For objects, count lines with keys
+          if (line.tokens.some((t: JsonToken) => t.type === 'key')) {
+            itemCount++;
+          }
+        } else {
+          // For arrays, count lines with values (string, number, boolean, null)
+          if (line.tokens.some((t: JsonToken) => 
+            t.type === 'string' || t.type === 'number' || t.type === 'boolean' || t.type === 'null')) {
+            itemCount++;
+          }
+        }
       }
     }
 
-    const closeBracket: string = bracketType === '{' ? '}' : ']';
-    const itemText: string = bracketType === '{' ? `${itemCount} 个属性` : `${itemCount} 个元素`;
-    return ` ${itemText} ${closeBracket}`;
+    const itemText: string = isObject ? `${itemCount} 个属性` : `${itemCount} 个元素`;
+    return ` ${itemText}`;
   }
 
   /**
@@ -499,12 +516,19 @@ export struct JsonEditor {
   @Builder
   buildLineNumber(line: JsonLine) {
     Row() {
-      // Collapse/expand arrow for collapsible lines
+      Text(`${line.lineNumber}`)
+        .fontSize(this.fontSettings.editorFontSize)
+        .fontFamily(this.fontSettings.editorFont)
+        .fontColor('#858585')
+        .textAlign(TextAlign.End)
+        .width(25)
+
+      // Collapse/expand arrow for collapsible lines (right side of line number)
       if (line.isCollapsible) {
         Text() {
           SymbolSpan(this.collapsedBlocks.has(line.blockId) ? $r('sys.symbol.chevron_right') : $r('sys.symbol.chevron_down'))
         }
-          .fontSize(10)
+          .fontSize(14)
           .fontColor('#858585')
           .width(14)
           .textAlign(TextAlign.Center)
@@ -515,12 +539,6 @@ export struct JsonEditor {
         Text('')
           .width(14)
       }
-
-      Text(`${line.lineNumber}`)
-        .fontSize(this.fontSettings.editorFontSize)
-        .fontFamily(this.fontSettings.editorFont)
-        .fontColor('#858585')
-        .textAlign(TextAlign.End)
     }
     .height(this.fontSettings.editorFontSize + 6)
     .justifyContent(FlexAlign.End)
