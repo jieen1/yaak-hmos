@@ -130,6 +130,7 @@ export struct QueryParamsEditor {
         .width(24)
         .height(24)
         .flexShrink(0)
+        .selectedColor($r('app.color.button_background'))
         .margin({ right: $r('app.float.spacing_sm') })
 
       // Name input - fixed width

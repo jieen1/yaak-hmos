@@ -96,6 +96,7 @@ export struct BodyEditor {
         content: this.body,
         readonly: false,
         placeholder: '{\n  "key": "value"\n}',
+        showFormatButton: true,
         onContentChange: (value: string) => {
           this.onBodyChange(value);
         }
@@ -103,7 +104,7 @@ export struct BodyEditor {
     }
     .width('100%')
     .layoutWeight(1)
-    .padding({ left: $r('app.float.spacing_md'), right: $r('app.float.spacing_md'), bottom: $r('app.float.spacing_md') })
+    .padding({ left: $r('app.float.spacing_sm'), right: $r('app.float.spacing_sm'), bottom: $r('app.float.spacing_sm') })
   }
 
   @Builder

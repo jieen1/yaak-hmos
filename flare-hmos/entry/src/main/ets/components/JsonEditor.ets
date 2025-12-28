@@ -1,7 +1,7 @@
 /**
  * JsonEditor Component
- * A full-featured JSON editor/viewer with syntax highlighting,
- * line numbers, and collapsible blocks
+ * A JSON editor with syntax highlighting for viewing,
+ * and TextArea for editing. Supports format button and collapsible blocks.
  */
 
 import { FontSettings } from '../services/FontService';
@@ -38,21 +38,21 @@ interface JsonLine {
  */
 function getTokenColor(type: JsonTokenType): string {
   if (type === 'key') {
-    return '#FF6D4D';      // Light blue for keys
+    return '#FF6D4D';
   } else if (type === 'string') {
-    return '#CE9178';      // Orange for strings
+    return '#CE9178';
   } else if (type === 'number') {
-    return '#ff45aa';      // Light green for numbers
+    return '#ff45aa';
   } else if (type === 'boolean') {
-    return '#569CD6';      // Blue for booleans
+    return '#569CD6';
   } else if (type === 'null') {
-    return '#569CD6';      // Blue for null
+    return '#569CD6';
   } else if (type === 'bracket') {
-    return '#444444';      // black for brackets
+    return '#444444';
   } else if (type === 'colon') {
-    return '#CCCCCC';      // Gray for colons
+    return '#CCCCCC';
   } else if (type === 'comma') {
-    return '#CCCCCC';      // Gray for commas
+    return '#CCCCCC';
   }
   return '#CCCCCC';
 }
@@ -62,22 +62,26 @@ export struct JsonEditor {
   @Param content: string = '';
   @Param readonly: boolean = false;
   @Param placeholder: string = '{\n  "key": "value"\n}';
+  @Param showFormatButton: boolean = true;
   @Event onContentChange: (content: string) => void = () => {};
 
   @Local private fontSettings: FontSettings = FontSettings.getInstance();
   @Local private parsedLines: JsonLine[] = [];
   @Local private collapsedBlocks: Set<string> = new Set();
-  @Local private parseError: string = '';
+  @Local private errorLine: number = -1; // 错误所在行号，-1表示无错误
   @Local private isEditing: boolean = false;
   @Local private editText: string = '';
 
   aboutToAppear(): void {
+    this.editText = this.content;
     this.parseJson();
   }
 
   @Monitor('content')
   onContentChanged(): void {
+    // 只有在非编辑模式下才更新
     if (!this.isEditing) {
+      this.editText = this.content;
       this.parseJson();
     }
   }
@@ -86,23 +90,57 @@ export struct JsonEditor {
    * Parse JSON content into lines with tokens
    */
   private parseJson(): void {
-    if (!this.content || this.content.trim() === '') {
+    const textToParse: string = this.isEditing ? this.editText : this.content;
+    
+    if (!textToParse || textToParse.trim() === '') {
       this.parsedLines = [];
-      this.parseError = '';
+      this.errorLine = -1;
       return;
     }
 
     try {
-      // Validate and format JSON
-      const parsed: ESObject = JSON.parse(this.content) as ESObject;
+      const parsed: ESObject = JSON.parse(textToParse) as ESObject;
       const formatted: string = JSON.stringify(parsed, null, 2);
       this.buildLines(formatted);
-      this.parseError = '';
+      this.errorLine = -1;
     } catch (e) {
-      // Show raw content with error
-      this.parseError = `JSON 解析错误: ${(e as Error).message}`;
-      this.buildLinesFromRaw(this.content);
+      const errorMsg: string = (e as Error).message;
+      // 尝试从错误信息中提取行号
+      this.errorLine = this.extractErrorLine(errorMsg, textToParse);
+      this.buildLinesFromRaw(textToParse);
     }
+  }
+
+  /**
+   * Extract error line number from error message
+   */
+  private extractErrorLine(errorMsg: string, content: string): number {
+    // 尝试从错误信息中提取位置
+    // 常见格式: "at position X" 或 "at line X"
+    const posMatch: RegExpMatchArray | null = errorMsg.match(/position\s+(\d+)/i);
+    if (posMatch) {
+      const position: number = parseInt(posMatch[1]);
+      // 计算位置对应的行号
+      let lineNum: number = 1;
+      let charCount: number = 0;
+      const lines: string[] = content.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1; // +1 for newline
+        if (charCount > position) {
+          lineNum = i + 1;
+          break;
+        }
+      }
+      return lineNum;
+    }
+    
+    const lineMatch: RegExpMatchArray | null = errorMsg.match(/line\s+(\d+)/i);
+    if (lineMatch) {
+      return parseInt(lineMatch[1]);
+    }
+    
+    // 默认返回第一行
+    return 1;
   }
 
   /**
@@ -120,7 +158,6 @@ export struct JsonEditor {
       const trimmedLine: string = line.trim();
       const tokens: JsonToken[] = this.tokenizeLine(trimmedLine);
 
-      // Determine if this line starts or ends a block
       const isBlockStart: boolean = trimmedLine.endsWith('{') || trimmedLine.endsWith('[');
       const isBlockEnd: boolean = trimmedLine.startsWith('}') || trimmedLine.startsWith(']');
 
@@ -205,13 +242,11 @@ export struct JsonEditor {
     while (i < line.length) {
       const char: string = line[i];
 
-      // Skip whitespace
       if (char === ' ') {
         i++;
         continue;
       }
 
-      // Brackets
       if (char === '{' || char === '}' || char === '[' || char === ']') {
         const token: JsonToken = { type: 'bracket', value: char };
         tokens.push(token);
@@ -219,7 +254,6 @@ export struct JsonEditor {
         continue;
       }
 
-      // Colon
       if (char === ':') {
         const token: JsonToken = { type: 'colon', value: ': ' };
         tokens.push(token);
@@ -227,7 +261,6 @@ export struct JsonEditor {
         continue;
       }
 
-      // Comma
       if (char === ',') {
         const token: JsonToken = { type: 'comma', value: ',' };
         tokens.push(token);
@@ -235,17 +268,15 @@ export struct JsonEditor {
         continue;
       }
 
-      // String (key or value)
       if (char === '"') {
         const startIndex: number = i;
-        i++; // Skip opening quote
+        i++;
         while (i < line.length && !(line[i] === '"' && line[i - 1] !== '\\')) {
           i++;
         }
-        i++; // Skip closing quote
+        i++;
         const stringValue: string = line.substring(startIndex, i);
 
-        // Check if this is a key (followed by colon)
         let isKey: boolean = false;
         let j: number = i;
         while (j < line.length && line[j] === ' ') {
@@ -260,7 +291,6 @@ export struct JsonEditor {
         continue;
       }
 
-      // Number
       if (char === '-' || (char >= '0' && char <= '9')) {
         const startIndex: number = i;
         while (i < line.length && (line[i] === '-' || line[i] === '.' || line[i] === 'e' || line[i] === 'E' ||
@@ -272,7 +302,6 @@ export struct JsonEditor {
         continue;
       }
 
-      // Boolean or null
       if (line.substring(i, i + 4) === 'true') {
         const token: JsonToken = { type: 'boolean', value: 'true' };
         tokens.push(token);
@@ -292,7 +321,6 @@ export struct JsonEditor {
         continue;
       }
 
-      // Unknown character, skip
       i++;
     }
 
@@ -320,18 +348,14 @@ export struct JsonEditor {
       return true;
     }
 
-    // Check if any parent block is collapsed
     let currentBlockId: string = line.parentBlockId;
     while (currentBlockId !== '') {
       if (this.collapsedBlocks.has(currentBlockId)) {
-        // This line is inside a collapsed block
-        // But show the closing bracket of the collapsed block
         if (line.isBlockEnd && line.blockId === currentBlockId) {
-          return false; // Hide closing bracket too
+          return false;
         }
         return false;
       }
-      // Find parent of current block
       const parentLine: JsonLine | undefined = this.parsedLines.find((l: JsonLine) => l.blockId === currentBlockId);
       currentBlockId = parentLine ? parentLine.parentBlockId : '';
     }
@@ -353,16 +377,13 @@ export struct JsonEditor {
     const bracketType: string = lastToken ? lastToken.value : '{';
     const isObject: boolean = bracketType === '{';
 
-    // Count items in the block
     let itemCount: number = 0;
     let depth: number = 1;
     
     for (let i = startLineIndex + 1; i < this.parsedLines.length && depth > 0; i++) {
       const line: JsonLine = this.parsedLines[i];
       
-      // Track depth changes
       if (line.isBlockStart) {
-        // Count this as an item at depth 1 (for arrays containing objects/arrays)
         if (depth === 1) {
           itemCount++;
         }
@@ -370,14 +391,11 @@ export struct JsonEditor {
       } else if (line.isBlockEnd) {
         depth--;
       } else if (depth === 1) {
-        // At depth 1, count items
         if (isObject) {
-          // For objects, count lines with keys
           if (line.tokens.some((t: JsonToken) => t.type === 'key')) {
             itemCount++;
           }
         } else {
-          // For arrays, count lines with values (string, number, boolean, null)
           if (line.tokens.some((t: JsonToken) => 
             t.type === 'string' || t.type === 'number' || t.type === 'boolean' || t.type === 'null')) {
             itemCount++;
@@ -391,7 +409,41 @@ export struct JsonEditor {
   }
 
   /**
-   * Switch to edit mode
+   * Format JSON content
+   */
+  private formatJson(): void {
+    const textToFormat: string = this.isEditing ? this.editText : this.content;
+    if (!textToFormat || textToFormat.trim() === '') {
+      return;
+    }
+    try {
+      const parsed: ESObject = JSON.parse(textToFormat) as ESObject;
+      const formatted: string = JSON.stringify(parsed, null, 2);
+      this.editText = formatted;
+      this.onContentChange(formatted);
+      this.parseJson();
+      this.showToast('JSON 格式化成功');
+    } catch (e) {
+      this.showToast('JSON 格式化失败: 无效的 JSON');
+    }
+  }
+
+  /**
+   * Show toast message
+   */
+  private showToast(message: string): void {
+    try {
+      this.getUIContext().getPromptAction().showToast({
+        message: message,
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('[JsonEditor] Toast error:', error);
+    }
+  }
+
+  /**
+   * Start editing mode
    */
   private startEditing(): void {
     if (this.readonly) {
@@ -402,7 +454,7 @@ export struct JsonEditor {
   }
 
   /**
-   * Finish editing and parse
+   * Finish editing and update content
    */
   private finishEditing(): void {
     this.isEditing = false;
@@ -412,91 +464,45 @@ export struct JsonEditor {
     this.parseJson();
   }
 
+  /**
+   * Get visible lines (filtered by collapsed state)
+   */
+  private getVisibleLines(): JsonLine[] {
+    return this.parsedLines.filter((line: JsonLine) => this.isLineVisible(line));
+  }
+
   build() {
     Column() {
-      // Error banner
-      if (this.parseError !== '') {
+      // Toolbar with format button
+      if (!this.readonly && this.showFormatButton) {
         Row() {
-          Text(this.parseError)
-            .fontSize(12)
-            .fontColor('#FF6B6B')
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Blank()
+            .layoutWeight(1)
+          
+          Button('格式化')
+            .fontSize($r('app.float.font_size_sm'))
+            .fontColor($r('app.color.button_text'))
+            .backgroundColor($r('app.color.primary'))
+            .height(28)
+            .onClick(() => {
+              this.formatJson();
+            })
         }
         .width('100%')
-        .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-        .backgroundColor('#2D1F1F')
+        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+        .backgroundColor($r('app.color.code_background'))
       }
 
-      if (this.isEditing) {
-        // Edit mode - simple TextArea
-        TextArea({ text: this.editText, placeholder: this.placeholder })
-          .width('100%')
-          .layoutWeight(1)
-          .backgroundColor($r('app.color.code_background'))
-          .fontColor($r('app.color.code_text'))
-          .fontSize(this.fontSettings.editorFontSize)
-          .fontFamily(this.fontSettings.editorFont)
-          .padding(12)
-          .onChange((value: string) => {
-            this.editText = value;
-          })
-          .onBlur(() => {
-            this.finishEditing();
-          })
+      // Editor content
+      if (this.readonly) {
+        // Readonly mode: syntax highlighted view
+        this.buildReadonlyView()
+      } else if (this.isEditing) {
+        // Edit mode: TextArea with line numbers
+        this.buildTextAreaView()
       } else {
-        // View mode - syntax highlighted
-        if (this.parsedLines.length === 0 && this.content.trim() === '') {
-          // Empty state
-          Column() {
-            Text(this.readonly ? '没有内容' : '点击编辑 JSON')
-              .fontSize($r('app.float.font_size_md'))
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
-          .onClick(() => {
-            if (!this.readonly) {
-              this.startEditing();
-            }
-          })
-        } else {
-          // JSON viewer with line numbers
-          Scroll() {
-            Row() {
-              // Line numbers column
-              Column() {
-                ForEach(this.getVisibleLines(), (line: JsonLine) => {
-                  this.buildLineNumber(line)
-                }, (line: JsonLine) => `ln_${line.lineNumber}`)
-              }
-              .width(45)
-              .alignItems(HorizontalAlign.End)
-              .padding({ right: 8 })
-
-              // Code content column
-              Column() {
-                ForEach(this.getVisibleLines(), (line: JsonLine) => {
-                  this.buildCodeLine(line)
-                }, (line: JsonLine) => `code_${line.lineNumber}_${this.collapsedBlocks.has(line.blockId)}`)
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .scrollBar(BarState.Auto)
-          .backgroundColor($r('app.color.code_background'))
-          .onClick(() => {
-            if (!this.readonly) {
-              this.startEditing();
-            }
-          })
-          .align(Alignment.Top)
-        }
+        // Preview mode: syntax highlighted view (clickable to edit)
+        this.buildPreviewView()
       }
     }
     .width('100%')
@@ -506,16 +512,215 @@ export struct JsonEditor {
     .clip(true)
   }
 
-  /**
-   * Get visible lines (filtered by collapsed state)
-   */
-  private getVisibleLines(): JsonLine[] {
-    return this.parsedLines.filter((line: JsonLine) => this.isLineVisible(line));
+  @Builder
+  buildReadonlyView() {
+    if (this.parsedLines.length === 0) {
+      Column() {
+        Text('没有内容')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+    } else {
+      Scroll() {
+        Row() {
+          // Line numbers column with fold buttons
+          Column() {
+            ForEach(this.getVisibleLines(), (line: JsonLine) => {
+              this.buildLineNumber(line, true)
+            }, (line: JsonLine) => `ln_${line.lineNumber}_${this.collapsedBlocks.has(line.blockId)}_${this.errorLine === line.lineNumber}`)
+          }
+          .width(55)
+          .alignItems(HorizontalAlign.End)
+          .padding({ right: 8 })
+
+          // Code content column with horizontal scroll
+          Scroll() {
+            Column() {
+              ForEach(this.getVisibleLines(), (line: JsonLine) => {
+                this.buildCodeLine(line)
+              }, (line: JsonLine) => `code_${line.lineNumber}_${this.collapsedBlocks.has(line.blockId)}`)
+            }
+            .alignItems(HorizontalAlign.Start)
+          }
+          .layoutWeight(1)
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .align(Alignment.TopStart)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .backgroundColor($r('app.color.code_background'))
+      .align(Alignment.Top)
+    }
   }
 
   @Builder
-  buildLineNumber(line: JsonLine) {
+  buildPreviewView() {
+    if (this.parsedLines.length === 0) {
+      Column() {
+        Text(this.placeholder)
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor($r('app.color.text_tertiary'))
+          .opacity(0.6)
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .onClick(() => {
+        this.startEditing();
+      })
+    } else {
+      Scroll() {
+        Row() {
+          // Line numbers column with fold buttons
+          Column() {
+            ForEach(this.getVisibleLines(), (line: JsonLine) => {
+              this.buildLineNumber(line, true)
+            }, (line: JsonLine) => `ln_${line.lineNumber}_${this.collapsedBlocks.has(line.blockId)}_${this.errorLine === line.lineNumber}`)
+          }
+          .width(55)
+          .alignItems(HorizontalAlign.End)
+          .padding({ right: 8 })
+
+          // Code content column with horizontal scroll
+          Scroll() {
+            Column() {
+              ForEach(this.getVisibleLines(), (line: JsonLine) => {
+                this.buildCodeLine(line)
+              }, (line: JsonLine) => `code_${line.lineNumber}_${this.collapsedBlocks.has(line.blockId)}`)
+            }
+            .alignItems(HorizontalAlign.Start)
+          }
+          .layoutWeight(1)
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .align(Alignment.TopStart)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .backgroundColor($r('app.color.code_background'))
+      .align(Alignment.Top)
+      .onClick(() => {
+        this.startEditing();
+      })
+    }
+  }
+
+  @Builder
+  buildTextAreaView() {
+    // 编辑模式：左侧行号 + 右侧 TextArea
     Row() {
+      // 行号列
+      Column() {
+        ForEach(this.getEditableLineNumbers(), (lineNum: number) => {
+          Row() {
+            // 错误指示器
+            if (this.errorLine === lineNum) {
+              Text('●')
+                .fontSize(10)
+                .fontColor('#FF6B6B')
+                .width(10)
+            } else {
+              Text('')
+                .width(10)
+            }
+            
+            Text(`${lineNum}`)
+              .fontSize(this.fontSettings.editorFontSize)
+              .fontFamily(this.fontSettings.editorFont)
+              .fontColor('#858585')
+              .textAlign(TextAlign.End)
+              .width(25)
+            
+            // 占位符，保持与预览模式一致的宽度
+            Text('')
+              .width(14)
+          }
+          .height(this.fontSettings.editorFontSize + 6)
+          .justifyContent(FlexAlign.End)
+        }, (lineNum: number) => `edit_ln_${lineNum}_${this.errorLine === lineNum}`)
+      }
+      .width(55)
+      .alignItems(HorizontalAlign.End)
+      .padding({ right: 8, top: 12 })
+
+      // TextArea 编辑区
+      TextArea({ text: this.editText, placeholder: this.placeholder })
+        .layoutWeight(1)
+        .height('100%')
+        .backgroundColor(Color.Transparent)
+        .fontColor($r('app.color.code_text'))
+        .fontSize(this.fontSettings.editorFontSize)
+        .fontFamily(this.fontSettings.editorFont)
+        .padding({ left: 0, right: 12, top: 12, bottom: 12 })
+        .onChange((value: string) => {
+          this.editText = value;
+          this.onContentChange(value);
+          // 实时解析检查错误
+          this.checkJsonError();
+        })
+        .onBlur(() => {
+          this.finishEditing();
+        })
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .backgroundColor($r('app.color.code_background'))
+  }
+
+  /**
+   * Get line numbers for editable view
+   */
+  private getEditableLineNumbers(): number[] {
+    const result: number[] = [];
+    const text: string = this.editText || '';
+    const lineCount: number = Math.max(text.split('\n').length, 1);
+    for (let i = 1; i <= lineCount; i++) {
+      result.push(i);
+    }
+    return result;
+  }
+
+  /**
+   * Check JSON error without updating parsedLines
+   */
+  private checkJsonError(): void {
+    if (!this.editText || this.editText.trim() === '') {
+      this.errorLine = -1;
+      return;
+    }
+    try {
+      JSON.parse(this.editText);
+      this.errorLine = -1;
+    } catch (e) {
+      const errorMsg: string = (e as Error).message;
+      this.errorLine = this.extractErrorLine(errorMsg, this.editText);
+    }
+  }
+
+  @Builder
+  buildLineNumber(line: JsonLine, showFoldButton: boolean) {
+    Row() {
+      // 错误指示器
+      if (this.errorLine === line.lineNumber) {
+        Text('●')
+          .fontSize(10)
+          .fontColor('#FF6B6B')
+          .width(10)
+      } else {
+        Text('')
+          .width(10)
+      }
+
       Text(`${line.lineNumber}`)
         .fontSize(this.fontSettings.editorFontSize)
         .fontFamily(this.fontSettings.editorFont)
@@ -523,8 +728,7 @@ export struct JsonEditor {
         .textAlign(TextAlign.End)
         .width(25)
 
-      // Collapse/expand arrow for collapsible lines (right side of line number)
-      if (line.isCollapsible) {
+      if (showFoldButton && line.isCollapsible) {
         Text() {
           SymbolSpan(this.collapsedBlocks.has(line.blockId) ? $r('sys.symbol.chevron_right') : $r('sys.symbol.chevron_down'))
         }
@@ -535,7 +739,7 @@ export struct JsonEditor {
           .onClick((event: ClickEvent) => {
             this.toggleBlock(line.blockId);
           })
-      } else {
+      } else if (showFoldButton) {
         Text('')
           .width(14)
       }
@@ -547,26 +751,25 @@ export struct JsonEditor {
   @Builder
   buildCodeLine(line: JsonLine) {
     Row() {
-      // Indentation
       Text('  '.repeat(line.indent))
         .fontSize(this.fontSettings.editorFontSize)
         .fontFamily(this.fontSettings.editorFont)
 
-      // Tokens
       ForEach(line.tokens, (token: JsonToken, index: number) => {
         Text(token.value)
           .fontSize(this.fontSettings.editorFontSize)
           .fontFamily(this.fontSettings.editorFont)
           .fontColor(getTokenColor(token.type))
+          .maxLines(1)
       }, (token: JsonToken, index: number) => `token_${line.lineNumber}_${index}_${token.value}`)
 
-      // Collapsed preview
       if (line.isCollapsible && this.collapsedBlocks.has(line.blockId)) {
         Text(this.getCollapsedPreview(line.blockId))
           .fontSize(this.fontSettings.editorFontSize)
           .fontFamily(this.fontSettings.editorFont)
           .fontColor('#858585')
           .fontStyle(FontStyle.Italic)
+          .maxLines(1)
       }
     }
     .height(this.fontSettings.editorFontSize + 6)

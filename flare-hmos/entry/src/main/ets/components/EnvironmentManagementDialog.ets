@@ -341,6 +341,7 @@ export struct EnvironmentManagementDialog {
         })
         .width(24)
         .height(24)
+        .selectedColor($r('app.color.button_background'))
         .flexShrink(0)
         .margin({ right: $r('app.float.spacing_sm') })
 

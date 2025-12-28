@@ -186,6 +186,7 @@ export struct HeadersEditor {
         .width(24)
         .height(24)
         .flexShrink(0)
+        .selectedColor($r('app.color.button_background'))
         .margin({ right: $r('app.float.spacing_sm') })
 
       // Name (read-only)
@@ -240,6 +241,7 @@ export struct HeadersEditor {
             }
           }
         })
+        .selectedColor($r('app.color.button_background'))
         .width(24)
         .height(24)
         .flexShrink(0)

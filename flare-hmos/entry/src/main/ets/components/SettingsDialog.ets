@@ -359,6 +359,7 @@ export struct SettingsDialog {
           .select(this.softWrap)
           .selectedColor($r('app.color.primary'))
           .shape(CheckBoxShape.ROUNDED_SQUARE)
+          .selectedColor($r('app.color.button_background'))
           .width(18)
           .height(18)
           .onChange((value: boolean) => {

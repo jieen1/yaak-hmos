@@ -31,6 +31,8 @@ export struct ThemedSelect {
       .value(this.getSelectedLabel())
       .backgroundColor($r('app.color.input_background'))
       .fontColor($r('app.color.text_primary'))
+      .selectedOptionBgColor($r('app.color.button_background'))
+      .selectedOptionFontColor($r('app.color.button_text'))
       .font({ size: this.fontSettings.editorFontSize, family: this.fontSettings.editorFont })
       .height(this.getHeight())
       .borderRadius($r('app.float.border_radius_md'))

@@ -191,6 +191,7 @@ export struct ExportDialog {
         Row() {
           Checkbox()
             .select(this.includePrivateEnvs)
+            .selectedColor($r('app.color.button_background'))
             .onChange((value: boolean) => {
               this.includePrivateEnvs = value;
             })
@@ -206,6 +207,7 @@ export struct ExportDialog {
         Row() {
           Checkbox()
             .select(this.prettifyJson)
+            .selectedColor($r('app.color.button_background'))
             .onChange((value: boolean) => {
               this.prettifyJson = value;
             })
@@ -237,6 +239,7 @@ export struct ExportDialog {
     Row() {
       Checkbox()
         .select(item.selected)
+        .selectedColor($r('app.color.button_background'))
         .onChange((value: boolean) => {
           this.toggleWorkspaceSelection(index, value);
         })

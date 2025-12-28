@@ -195,17 +195,17 @@ export struct ResponseViewerComponent {
         TabContent() {
           this.buildBodyTab()
         }
-        .tabBar('响应体')
+        .tabBar(this.buildBodyTabBar())
 
         TabContent() {
           ResponseHeadersTab({ headers: this.response?.headers || [] })
         }
-        .tabBar('响应头')
+        .tabBar(this.buildHeadersTabBar())
 
         TabContent() {
           ResponseInfoTab({ response: this.response })
         }
-        .tabBar('信息')
+        .tabBar(this.buildInfoTabBar())
       }
       .width('100%')
       .layoutWeight(1)
@@ -485,11 +485,22 @@ export struct ResponseViewerComponent {
       // Use JsonEditor for JSON content, TextViewer for others
       if (this.contentTypeInfo.language === 'json') {
         Column() {
-          JsonEditor({
-            content: this.responseBody,
-            readonly: true,
-            placeholder: ''
-          })
+          if (this.viewMode === 'raw') {
+            // Raw mode - show plain text
+            TextViewer({
+              text: this.responseBody,
+              language: 'text',
+              pretty: false
+            })
+          } else {
+            // Pretty mode - show formatted JSON with syntax highlighting
+            JsonEditor({
+              content: this.responseBody,
+              readonly: true,
+              placeholder: '',
+              showFormatButton: false
+            })
+          }
         }
         .width('100%')
         .layoutWeight(1)
@@ -647,5 +658,86 @@ export struct ResponseViewerComponent {
     } catch (error) {
       console.error('[ResponseViewer] Toast error:', error);
     }
+  }
+
+  /**
+   * Build body tab bar
+   */
+  @Builder
+  buildBodyTabBar() {
+    Column() {
+      Row() {
+        Text('响应体')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === 0 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 0 ? FontWeight.Medium : FontWeight.Normal)
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === 0) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
+      }
+    }
+    .width('100%')
+  }
+
+  /**
+   * Build headers tab bar
+   */
+  @Builder
+  buildHeadersTabBar() {
+    Column() {
+      Row() {
+        Text('响应头')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === 1 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 1 ? FontWeight.Medium : FontWeight.Normal)
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === 1) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
+      }
+    }
+    .width('100%')
+  }
+
+  /**
+   * Build info tab bar
+   */
+  @Builder
+  buildInfoTabBar() {
+    Column() {
+      Row() {
+        Text('信息')
+          .fontSize($r('app.float.font_size_md'))
+          .fontColor(this.activeTab === 2 ? $r('app.color.primary') : $r('app.color.text_primary'))
+          .fontWeight(this.activeTab === 2 ? FontWeight.Medium : FontWeight.Normal)
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 8, bottom: 8 })
+
+      // 选中指示器
+      if (this.activeTab === 2) {
+        Row()
+          .width('100%')
+          .height(2)
+          .backgroundColor($r('app.color.primary'))
+      }
+    }
+    .width('100%')
   }
 }
