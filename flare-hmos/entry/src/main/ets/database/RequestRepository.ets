@@ -114,6 +114,7 @@ export class RequestRepository extends BaseRepository {
       updated_at: request.updated_at,
       deleted_at: request.deleted_at,
       name: request.name,
+      name_manually_set: request.name_manually_set ? 1 : 0, // Convert boolean to INTEGER
       url: request.url,
       method: request.method,
       headers: this.stringifyJson(request.headers),
@@ -141,6 +142,7 @@ export class RequestRepository extends BaseRepository {
       updated_at: request.updated_at,
       folder_id: request.folder_id,
       name: request.name,
+      name_manually_set: request.name_manually_set ? 1 : 0, // Convert boolean to INTEGER
       url: request.url,
       method: request.method,
       headers: this.stringifyJson(request.headers),
@@ -216,6 +218,13 @@ export class RequestRepository extends BaseRepository {
     request.deleted_at = resultSet.isColumnNull(deletedAtIndex) ? null : resultSet.getLong(deletedAtIndex);
     
     request.name = resultSet.getString(resultSet.getColumnIndex('name'));
+    
+    // Read name_manually_set (stored as INTEGER 0/1, convert to boolean)
+    const nameManuallySetIndex = resultSet.getColumnIndex('name_manually_set');
+    request.name_manually_set = resultSet.isColumnNull(nameManuallySetIndex) 
+      ? false 
+      : resultSet.getLong(nameManuallySetIndex) === 1;
+    
     request.url = resultSet.getString(resultSet.getColumnIndex('url'));
     request.method = resultSet.getString(resultSet.getColumnIndex('method')) as HttpMethod;
     
@@ -319,6 +328,7 @@ export class RequestRepository extends BaseRepository {
             updated_at: request.updated_at,
             deleted_at: request.deleted_at,
             name: request.name,
+            name_manually_set: request.name_manually_set ? 1 : 0, // Convert boolean to INTEGER
             url: request.url,
             method: request.method,
             headers: this.stringifyJson(request.headers),
@@ -357,6 +367,7 @@ export class RequestRepository extends BaseRepository {
             updated_at: request.updated_at,
             folder_id: request.folder_id,
             name: request.name,
+            name_manually_set: request.name_manually_set ? 1 : 0, // Convert boolean to INTEGER
             url: request.url,
             method: request.method,
             headers: this.stringifyJson(request.headers),

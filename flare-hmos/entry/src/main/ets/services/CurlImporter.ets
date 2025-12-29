@@ -393,6 +393,8 @@ export class CurlImporter {
 
   /**
    * Generate a request name from URL
+   * 从 URL 中提取完整的主机名+端口+路径作为请求名称
+   * 例如：https://jieen.site:9021/fusion/v1/datasheets → jieen.site:9021/fusion/v1/datasheets
    */
   private static generateNameFromUrl(url: string): string {
     if (!url) {
@@ -400,30 +402,28 @@ export class CurlImporter {
     }
 
     try {
-      // Remove protocol
-      let path = url.replace(/^https?:\/\//, '');
+      // Remove protocol (http:// or https://)
+      let nameWithoutProtocol = url.replace(/^https?:\/\//, '');
 
-      // Remove query string
-      const questionIndex = path.indexOf('?');
+      // Remove query string and hash
+      const questionIndex = nameWithoutProtocol.indexOf('?');
       if (questionIndex > 0) {
-        path = path.substring(0, questionIndex);
+        nameWithoutProtocol = nameWithoutProtocol.substring(0, questionIndex);
+      }
+      
+      const hashIndex = nameWithoutProtocol.indexOf('#');
+      if (hashIndex > 0) {
+        nameWithoutProtocol = nameWithoutProtocol.substring(0, hashIndex);
       }
 
-      // Get last path segment
-      const segments = path.split('/').filter((s: string) => s.length > 0);
-      if (segments.length > 1) {
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment) {
-          return lastSegment;
-        }
+      // Remove trailing slash
+      if (nameWithoutProtocol.endsWith('/')) {
+        nameWithoutProtocol = nameWithoutProtocol.substring(0, nameWithoutProtocol.length - 1);
       }
 
-      // Use hostname if no path
-      if (segments.length > 0) {
-        const firstSegment = segments[0];
-        if (firstSegment) {
-          return firstSegment;
-        }
+      // Return the full host:port/path
+      if (nameWithoutProtocol) {
+        return nameWithoutProtocol;
       }
 
       return '导入的请求';

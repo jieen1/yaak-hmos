@@ -3,7 +3,7 @@
  * Represents an HTTP request configuration with full metadata
  */
 
-import { HttpMethod, BodyType, AuthType, ApiKeyLocation } from './Types';
+import type { HttpMethod, BodyType, AuthType, ApiKeyLocation } from './Types';
 
 @ObservedV2
 export class HttpRequest {
@@ -15,6 +15,7 @@ export class HttpRequest {
   @Trace updated_at: number = 0;
   @Trace deleted_at: number | null = null;
   @Trace name: string = '';
+  @Trace name_manually_set: boolean = false; // 用户是否手动设置了名称
   @Trace url: string = '';
   @Trace method: HttpMethod = 'GET';
   @Trace headers: HttpHeader[] = [];

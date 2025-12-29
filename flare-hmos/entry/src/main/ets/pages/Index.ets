@@ -464,6 +464,7 @@ struct Index {
     duplicatedRequest.workspace_id = request.workspace_id;
     duplicatedRequest.folder_id = request.folder_id;
     duplicatedRequest.name = `${request.name} Copy`;
+    duplicatedRequest.name_manually_set = true; // 复制的请求名称是手动设置的
     duplicatedRequest.url = request.url;
     duplicatedRequest.method = request.method;
     duplicatedRequest.body = request.body;
@@ -640,6 +641,7 @@ struct Index {
     duplicatedRequest.workspace_id = request.workspace_id;
     duplicatedRequest.folder_id = newFolderId;
     duplicatedRequest.name = request.name;
+    duplicatedRequest.name_manually_set = request.name_manually_set; // 保留原请求的标记
     duplicatedRequest.url = request.url;
     duplicatedRequest.method = request.method;
     duplicatedRequest.body = request.body;
@@ -844,6 +846,19 @@ struct Index {
 
   async handleRequestChange(request: HttpRequest): Promise<void> {
     if (this.selectedRequest && request.id === this.selectedRequest.id) {
+      // 检查 URL 是否变化，且用户未手动设置名称
+      const oldRequest: HttpRequest | undefined = this.requests.find((r: HttpRequest) => r.id === request.id);
+      const urlChanged: boolean = oldRequest !== undefined && oldRequest.url !== request.url;
+      
+      if (urlChanged && !request.name_manually_set && request.url.trim().length > 0) {
+        // 自动从 URL 生成名称
+        const generatedName: string = this.generateNameFromUrl(request.url);
+        if (generatedName.length > 0) {
+          request.name = generatedName;
+          console.info(`[Index] Auto-updated request name from URL: ${generatedName}`);
+        }
+      }
+
       this.selectedRequest = request;
 
       // 同步更新 requests 数组中的对应项，确保数据一致性
@@ -859,6 +874,50 @@ struct Index {
       } catch (error) {
         console.error(`[Index] Failed to update request:`, error);
       }
+    }
+  }
+
+  /**
+   * Generate request name from URL
+   * Returns full host:port/path format
+   */
+  private generateNameFromUrl(url: string): string {
+    try {
+      // Remove leading/trailing whitespace
+      const trimmedUrl: string = url.trim();
+      if (trimmedUrl.length === 0) {
+        return '';
+      }
+
+      // Parse URL
+      let urlToParse: string = trimmedUrl;
+      
+      // Add protocol if missing
+      if (!urlToParse.match(/^https?:\/\//i)) {
+        urlToParse = 'http://' + urlToParse;
+      }
+
+      // Remove query params and hash
+      const urlWithoutQuery: string = urlToParse.split('?')[0] || '';
+      const urlWithoutHash: string = urlWithoutQuery.split('#')[0] || '';
+
+      // Extract host and path
+      const protocolMatch: RegExpMatchArray | null = urlWithoutHash.match(/^https?:\/\//i);
+      if (!protocolMatch) {
+        return trimmedUrl;
+      }
+
+      const withoutProtocol: string = urlWithoutHash.substring(protocolMatch[0].length);
+      
+      // Remove trailing slash
+      const cleanUrl: string = withoutProtocol.endsWith('/') 
+        ? withoutProtocol.substring(0, withoutProtocol.length - 1)
+        : withoutProtocol;
+
+      return cleanUrl.length > 0 ? cleanUrl : trimmedUrl;
+    } catch (error) {
+      console.error('[Index] Failed to generate name from URL:', error);
+      return url;
     }
   }
 
@@ -1298,9 +1357,10 @@ struct Index {
     // 保留原请求的一些重要属性
     const originalRequest: HttpRequest | null = this.selectedRequest;
     if (originalRequest) {
-      // 保留原请求的名称（如果用户已经命名过）
-      if (originalRequest.name && originalRequest.name !== '新建请求' && originalRequest.name !== '导入的请求') {
+      // 保留原请求的名称和标记（如果用户已经手动命名过）
+      if (originalRequest.name_manually_set) {
         importedRequest.name = originalRequest.name;
+        importedRequest.name_manually_set = true;
       }
       // 保留排序优先级和创建时间
       importedRequest.sort_priority = originalRequest.sort_priority;
@@ -1421,6 +1481,7 @@ struct Index {
       }
 
       request.name = newName;
+      request.name_manually_set = true; // 标记为用户手动设置
       request.updated_at = Date.now();
 
       await this.requestRepo.updateRequest(request);

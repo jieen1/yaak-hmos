@@ -26,7 +26,7 @@ export class DatabaseManager {
   private rdbStore: relationalStore.RdbStore | null = null;
   private initPromise: Promise<void> | null = null;
   private context: common.UIAbilityContext | null = null;
-  private static readonly CURRENT_VERSION = 1;
+  private static readonly CURRENT_VERSION = 2;
   
   // Default retry configuration
   private static readonly DEFAULT_RETRY_CONFIG: RetryConfig = {
@@ -160,6 +160,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL,
         deleted_at INTEGER,
         name TEXT NOT NULL,
+        name_manually_set INTEGER NOT NULL DEFAULT 0,
         url TEXT NOT NULL,
         method TEXT NOT NULL,
         headers TEXT NOT NULL DEFAULT '[]',
@@ -309,11 +310,11 @@ export class DatabaseManager {
   private async migrateDatabase(store: relationalStore.RdbStore, fromVersion: number): Promise<void> {
     console.info(`Migrating database from version ${fromVersion} to ${DatabaseManager.CURRENT_VERSION}`);
     
-    // Future migrations will be handled here
-    // Example:
-    // if (fromVersion === 1) {
-    //   await store.executeSql('ALTER TABLE http_requests ADD COLUMN new_field TEXT');
-    // }
+    // Migration from version 1 to 2: Add name_manually_set column
+    if (fromVersion === 1) {
+      console.info('Migrating from version 1 to 2: Adding name_manually_set column');
+      await store.executeSql('ALTER TABLE http_requests ADD COLUMN name_manually_set INTEGER NOT NULL DEFAULT 0');
+    }
   }
 
   /**
