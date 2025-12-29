@@ -497,7 +497,6 @@ export struct ResponseViewerComponent {
             JsonEditor({
               content: this.responseBody,
               readonly: true,
-              placeholder: '',
               showFormatButton: false
             })
           }

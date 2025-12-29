@@ -95,7 +95,6 @@ export struct BodyEditor {
       JsonEditor({
         content: this.body,
         readonly: false,
-        placeholder: '{\n  "key": "value"\n}',
         showFormatButton: true,
         onContentChange: (value: string) => {
           this.onBodyChange(value);
