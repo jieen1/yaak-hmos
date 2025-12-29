@@ -70,6 +70,7 @@ export struct JsonEditor {
   @Local private errorLine: number = -1; // 错误所在行号，-1表示无错误
   @Local private isEditing: boolean = !this.readonly;
   @Local private editText: string = '';
+  @Local private lineNumberOffsetY: number = 0; // 行号列的垂直偏移量（vp）
 
   aboutToAppear(): void {
     this.editText = this.content;
@@ -117,14 +118,18 @@ export struct JsonEditor {
     // 尝试从错误信息中提取位置
     // 常见格式: "at position X" 或 "at line X"
     const posMatch: RegExpMatchArray | null = errorMsg.match(/position\s+(\d+)/i);
-    if (posMatch) {
+    if (posMatch && posMatch[1]) {
       const position: number = parseInt(posMatch[1]);
       // 计算位置对应的行号
       let lineNum: number = 1;
       let charCount: number = 0;
       const lines: string[] = content.split('\n');
       for (let i = 0; i < lines.length; i++) {
-        charCount += lines[i].length + 1; // +1 for newline
+        const currentLine: string | undefined = lines[i];
+        if (!currentLine) {
+          continue;
+        }
+        charCount += currentLine.length + 1; // +1 for newline
         if (charCount > position) {
           lineNum = i + 1;
           break;
@@ -134,7 +139,7 @@ export struct JsonEditor {
     }
     
     const lineMatch: RegExpMatchArray | null = errorMsg.match(/line\s+(\d+)/i);
-    if (lineMatch) {
+    if (lineMatch && lineMatch[1]) {
       return parseInt(lineMatch[1]);
     }
     
@@ -161,11 +166,13 @@ export struct JsonEditor {
       const isBlockEnd: boolean = trimmedLine.startsWith('}') || trimmedLine.startsWith(']');
 
       let blockId: string = '';
-      let parentBlockId: string = blockStack.length > 0 ? blockStack[blockStack.length - 1] : '';
+      const topBlock: string | undefined = blockStack[blockStack.length - 1];
+      let parentBlockId: string = blockStack.length > 0 && topBlock ? topBlock : '';
 
       if (isBlockEnd && blockStack.length > 0) {
         blockId = blockStack.pop() || '';
-        parentBlockId = blockStack.length > 0 ? blockStack[blockStack.length - 1] : '';
+        const newTopBlock: string | undefined = blockStack[blockStack.length - 1];
+        parentBlockId = blockStack.length > 0 && newTopBlock ? newTopBlock : '';
       }
 
       if (isBlockStart) {
@@ -239,7 +246,12 @@ export struct JsonEditor {
     let i: number = 0;
 
     while (i < line.length) {
-      const char: string = line[i];
+      const charAtIndex: string | undefined = line[i];
+      if (!charAtIndex) {
+        i++;
+        continue;
+      }
+      const char: string = charAtIndex;
 
       if (char === ' ') {
         i++;
@@ -270,7 +282,15 @@ export struct JsonEditor {
       if (char === '"') {
         const startIndex: number = i;
         i++;
-        while (i < line.length && !(line[i] === '"' && line[i - 1] !== '\\')) {
+        while (i < line.length) {
+          const currentChar: string | undefined = line[i];
+          const prevChar: string | undefined = line[i - 1];
+          if (!currentChar) {
+            break;
+          }
+          if (currentChar === '"' && prevChar !== '\\') {
+            break;
+          }
           i++;
         }
         i++;
@@ -278,10 +298,15 @@ export struct JsonEditor {
 
         let isKey: boolean = false;
         let j: number = i;
-        while (j < line.length && line[j] === ' ') {
+        while (j < line.length) {
+          const spaceChar: string | undefined = line[j];
+          if (!spaceChar || spaceChar !== ' ') {
+            break;
+          }
           j++;
         }
-        if (j < line.length && line[j] === ':') {
+        const colonChar: string | undefined = line[j];
+        if (j < line.length && colonChar === ':') {
           isKey = true;
         }
 
@@ -292,8 +317,16 @@ export struct JsonEditor {
 
       if (char === '-' || (char >= '0' && char <= '9')) {
         const startIndex: number = i;
-        while (i < line.length && (line[i] === '-' || line[i] === '.' || line[i] === 'e' || line[i] === 'E' ||
-          line[i] === '+' || (line[i] >= '0' && line[i] <= '9'))) {
+        while (i < line.length) {
+          const numCharAtIndex: string | undefined = line[i];
+          if (!numCharAtIndex) {
+            break;
+          }
+          const numChar: string = numCharAtIndex;
+          if (!(numChar === '-' || numChar === '.' || numChar === 'e' || numChar === 'E' ||
+            numChar === '+' || (numChar >= '0' && numChar <= '9'))) {
+            break;
+          }
           i++;
         }
         const token: JsonToken = { type: 'number', value: line.substring(startIndex, i) };
@@ -356,7 +389,10 @@ export struct JsonEditor {
         return false;
       }
       const parentLine: JsonLine | undefined = this.parsedLines.find((l: JsonLine) => l.blockId === currentBlockId);
-      currentBlockId = parentLine ? parentLine.parentBlockId : '';
+      if (!parentLine) {
+        break;
+      }
+      currentBlockId = parentLine.parentBlockId;
     }
 
     return true;
@@ -371,7 +407,11 @@ export struct JsonEditor {
       return '...';
     }
 
-    const startLine: JsonLine = this.parsedLines[startLineIndex];
+    const startLine: JsonLine | undefined = this.parsedLines[startLineIndex];
+    if (!startLine) {
+      return '...';
+    }
+    
     const lastToken: JsonToken | undefined = startLine.tokens[startLine.tokens.length - 1];
     const bracketType: string = lastToken ? lastToken.value : '{';
     const isObject: boolean = bracketType === '{';
@@ -380,7 +420,10 @@ export struct JsonEditor {
     let depth: number = 1;
     
     for (let i = startLineIndex + 1; i < this.parsedLines.length && depth > 0; i++) {
-      const line: JsonLine = this.parsedLines[i];
+      const line: JsonLine | undefined = this.parsedLines[i];
+      if (!line) {
+        continue;
+      }
       
       if (line.isBlockStart) {
         if (depth === 1) {
@@ -602,15 +645,19 @@ export struct JsonEditor {
   buildTextAreaView() {
     // 编辑模式：左侧行号 + 右侧 TextArea
     Row() {
-      // 行号列
+      // 行号列 - 使用 offset 来同步滚动位置，并限制在 TextArea 的高度范围内
       Column() {
-        ForEach(this.getEditableLineNumbers(), (lineNum: number) => this.buildLineNum(lineNum),
-          (lineNum: number) => `edit_ln_${lineNum}_${this.errorLine === lineNum}`)
+        Column() {
+          ForEach(this.getEditableLineNumbers(), (lineNum: number) => this.buildLineNum(lineNum),
+            (lineNum: number) => `edit_ln_${lineNum}_${this.errorLine === lineNum}`)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .offset({ x: 0, y: this.lineNumberOffsetY })
       }
       .width(55)
-      .alignItems(HorizontalAlign.Start)
-      .alignSelf(ItemAlign.Start)
+      .height('100%')
       .padding({ right: 8, top: 1 })
+      .clip(true)  // 裁剪超出边界的内容
 
       // TextArea 编辑区
       TextArea({ text: this.editText })
@@ -631,13 +678,17 @@ export struct JsonEditor {
         .onBlur(() => {
           this.finishEditing();
         })
-        .onContentScroll((totalOffsetX, totalOffsetY) => {
-
+        .onContentScroll((_totalOffsetX: number, totalOffsetY: number) => {
+          // 同步行号列的滚动位置
+          // totalOffsetY 单位是 px，需要转换为 vp
+          const offsetVp: number = this.getUIContext().px2vp(totalOffsetY);
+          this.lineNumberOffsetY = offsetVp;
         })
     }
     .width('100%')
     .layoutWeight(1)
     .backgroundColor($r('app.color.code_background'))
+    .alignItems(VerticalAlign.Top)
   }
 
   /**
@@ -724,7 +775,7 @@ export struct JsonEditor {
           .fontColor('#858585')
           .width(14)
           .textAlign(TextAlign.Center)
-          .onClick((event: ClickEvent) => {
+          .onClick(() => {
             this.toggleBlock(line.blockId);
           })
       } else if (showFoldButton) {
@@ -743,7 +794,7 @@ export struct JsonEditor {
         .fontSize(this.fontSettings.editorFontSize)
         .fontFamily(this.fontSettings.editorFont)
 
-      ForEach(line.tokens, (token: JsonToken, index: number) => {
+      ForEach(line.tokens, (token: JsonToken) => {
         Text(token.value)
           .fontSize(this.fontSettings.editorFontSize)
           .fontFamily(this.fontSettings.editorFont)
