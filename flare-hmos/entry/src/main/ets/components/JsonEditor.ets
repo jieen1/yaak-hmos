@@ -5,6 +5,7 @@
  */
 
 import { FontSettings } from '../services/FontService';
+import { JsonValidator, JsonValidationResult } from '../utils/JsonValidator';
 
 /**
  * JSON Token types for syntax highlighting
@@ -71,6 +72,8 @@ export struct JsonEditor {
   @Local private isEditing: boolean = !this.readonly;
   @Local private editText: string = '';
   @Local private lineNumberOffsetY: number = 0; // 行号列的垂直偏移量（vp）
+  private jsonValidator: JsonValidator = new JsonValidator(); // JSON 验证器
+  private validationTimer: number = -1; // 验证防抖定时器
 
   aboutToAppear(): void {
     this.editText = this.content;
@@ -98,53 +101,67 @@ export struct JsonEditor {
       return;
     }
 
-    try {
-      const parsed: ESObject = JSON.parse(textToParse) as ESObject;
-      const formatted: string = JSON.stringify(parsed, null, 2);
-      this.buildLines(formatted);
-      this.errorLine = -1;
-    } catch (e) {
-      const errorMsg: string = (e as Error).message;
-      // 尝试从错误信息中提取行号
-      this.errorLine = this.extractErrorLine(errorMsg, textToParse);
-      this.buildLinesFromRaw(textToParse);
-    }
-  }
+    // 对于大 JSON（超过 50KB），跳过自定义验证，直接使用 JSON.parse
+    // 这样可以提高性能，但会失去精确的错误定位
+    const textSize: number = textToParse.length;
+    const useFastPath: boolean = textSize > 50000;
 
-  /**
-   * Extract error line number from error message
-   */
-  private extractErrorLine(errorMsg: string, content: string): number {
-    // 尝试从错误信息中提取位置
-    // 常见格式: "at position X" 或 "at line X"
-    const posMatch: RegExpMatchArray | null = errorMsg.match(/position\s+(\d+)/i);
-    if (posMatch && posMatch[1]) {
-      const position: number = parseInt(posMatch[1]);
-      // 计算位置对应的行号
-      let lineNum: number = 1;
-      let charCount: number = 0;
-      const lines: string[] = content.split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        const currentLine: string | undefined = lines[i];
-        if (!currentLine) {
-          continue;
-        }
-        charCount += currentLine.length + 1; // +1 for newline
-        if (charCount > position) {
-          lineNum = i + 1;
-          break;
-        }
+    if (useFastPath) {
+      // 快速路径：直接使用 JSON.parse
+      try {
+        const parsed: ESObject = JSON.parse(textToParse) as ESObject;
+        const formatted: string = JSON.stringify(parsed, null, 2);
+        this.buildLines(formatted);
+        this.errorLine = -1;
+      } catch (e) {
+        console.warn('[JsonEditor] Large JSON parse failed, showing raw content');
+        this.errorLine = -1; // 大 JSON 不显示错误行号
+        this.buildLinesFromRaw(textToParse);
       }
-      return lineNum;
+      return;
     }
-    
-    const lineMatch: RegExpMatchArray | null = errorMsg.match(/line\s+(\d+)/i);
-    if (lineMatch && lineMatch[1]) {
-      return parseInt(lineMatch[1]);
+
+    // 正常路径：使用自定义验证器检查 JSON 格式
+    try {
+      const validationResult: JsonValidationResult = this.jsonValidator.validate(textToParse);
+      
+      if (validationResult.valid) {
+        // JSON 有效，格式化并构建行
+        try {
+          const parsed: ESObject = JSON.parse(textToParse) as ESObject;
+          const formatted: string = JSON.stringify(parsed, null, 2);
+          this.buildLines(formatted);
+          this.errorLine = -1;
+        } catch (e) {
+          // 理论上不应该到这里，因为验证器已经通过了
+          console.error('[JsonEditor] Unexpected parse error after validation:', e);
+          this.errorLine = -1;
+          this.buildLinesFromRaw(textToParse);
+        }
+      } else {
+        // JSON 无效，显示错误
+        console.info('[JsonEditor] JSON validation failed:', validationResult.errorMessage);
+        if (validationResult.errorLine) {
+          console.info('[JsonEditor] Error at line:', validationResult.errorLine, 'column:', validationResult.errorColumn);
+          this.errorLine = validationResult.errorLine;
+        } else {
+          this.errorLine = -1;
+        }
+        this.buildLinesFromRaw(textToParse);
+      }
+    } catch (e) {
+      // 验证过程中出错，回退到原生 JSON.parse
+      console.error('[JsonEditor] Validation error, falling back to JSON.parse:', e);
+      try {
+        const parsed: ESObject = JSON.parse(textToParse) as ESObject;
+        const formatted: string = JSON.stringify(parsed, null, 2);
+        this.buildLines(formatted);
+        this.errorLine = -1;
+      } catch (parseError) {
+        this.errorLine = -1;
+        this.buildLinesFromRaw(textToParse);
+      }
     }
-    
-    // 默认返回第一行
-    return 1;
   }
 
   /**
@@ -705,19 +722,55 @@ export struct JsonEditor {
   }
 
   /**
-   * Check JSON error without updating parsedLines
+   * Check JSON error without updating parsedLines (with debounce for performance)
    */
   private checkJsonError(): void {
+    // 清除之前的定时器
+    if (this.validationTimer !== -1) {
+      clearTimeout(this.validationTimer);
+    }
+
+    // 空内容直接返回
     if (!this.editText || this.editText.trim() === '') {
       this.errorLine = -1;
       return;
     }
-    try {
-      JSON.parse(this.editText);
+
+    // 对于大 JSON（超过 10KB），使用防抖延迟验证
+    const textSize: number = this.editText.length;
+    if (textSize > 10000) {
+      // 延迟 500ms 验证
+      this.validationTimer = setTimeout(() => {
+        this.performValidation();
+      }, 500);
+    } else {
+      // 小 JSON 立即验证
+      this.performValidation();
+    }
+  }
+
+  /**
+   * 执行实际的验证
+   */
+  private performValidation(): void {
+    if (!this.editText || this.editText.trim() === '') {
       this.errorLine = -1;
+      return;
+    }
+
+    try {
+      // 使用自定义验证器检查错误
+      const validationResult: JsonValidationResult = this.jsonValidator.validate(this.editText);
+      
+      if (validationResult.valid) {
+        this.errorLine = -1;
+      } else {
+        this.errorLine = validationResult.errorLine || -1;
+      }
     } catch (e) {
-      const errorMsg: string = (e as Error).message;
-      this.errorLine = this.extractErrorLine(errorMsg, this.editText);
+      // 验证过程中出错，不显示错误指示器
+      console.error('[JsonEditor] Validation error:', e);
+      this.errorLine = -1;
     }
   }
 
