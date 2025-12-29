@@ -34,11 +34,8 @@ import { ResizeHandle, ResizeEvent } from '../components/ResizeHandle';
 import { PreferencesService, PreferenceKeys } from '../services/PreferencesService';
 import { ExportDialog, WorkspaceDataResult } from '../components/ExportDialog';
 import { ExportResult } from '../services/ExportService';
-import { CommandPalette, CommandAction } from '../components/CommandPalette';
 import { InheritanceService } from '../services/InheritanceService';
 import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
-import { AuthService } from '../services/AuthService';
-import { UserStorageService } from '../services/UserStorageService';
 import { FontSettings } from '../services/FontService';
 import EntryAbility from '../entryability/EntryAbility';
 import common from '@ohos.app.ability.common';
@@ -69,7 +66,6 @@ struct Index {
   @Local showWorkspaceManagementDialog: boolean = false;
   @Local showEnvironmentManagementDialog: boolean = false;
   @Local showExportDialog: boolean = false;
-  @Local showCommandPalette: boolean = false;
   @Local showFolderSettingsDialog: boolean = false;
   @Local showWorkspaceSettingsDialog: boolean = false;
   @Local selectedFolderForSettings: Folder | null = null;
@@ -953,9 +949,6 @@ struct Index {
         onExport: () => {
           this.showExportDialog = true;
         },
-        onToggleCommandPalette: () => {
-          this.showCommandPalette = !this.showCommandPalette;
-        }
       })
 
       // Main Content
@@ -1064,23 +1057,6 @@ struct Index {
             console.info('[Index] Export completed:', result.workspacesExported, 'workspaces');
           },
           getWorkspaceData: this.getWorkspaceDataForExport
-        })
-      }
-
-      // Command Palette
-      if (this.showCommandPalette) {
-        CommandPalette({
-          isVisible: this.showCommandPalette,
-          workspaces: this.workspaces,
-          requests: this.requests,
-          environments: this.environments,
-          currentWorkspaceId: this.selectedWorkspace?.id || '',
-          onClose: () => {
-            this.showCommandPalette = false;
-          },
-          onAction: (action: CommandAction) => {
-            this.handleCommandAction(action);
-          }
         })
       }
 
@@ -1317,37 +1293,6 @@ struct Index {
     } catch (error) {
       console.error('[Index] Toast error:', error);
     }
-  }
-
-  // Login handler - called when user clicks login button in settings
-  private async handleLogin(): Promise<void> {
-    console.info('[Index] Starting Huawei ID login');
-    try {
-      const result = await AuthService.loginWithHuaweiID();
-
-      if (result.success && result.user !== null) {
-        // Save user info to storage
-        const userStorage = UserStorageService.getInstance();
-        await userStorage.initialize(this.context);
-        await userStorage.saveUserInfo(result.user);
-
-        this.showToast('登录成功');
-        console.info('[Index] Login successful:', result.user.displayName);
-      } else {
-        const errorMsg = result.error || '登录失败';
-        this.showToast(errorMsg);
-        console.error('[Index] Login failed:', errorMsg);
-      }
-    } catch (error) {
-      console.error('[Index] Login error:', error);
-      this.showToast('登录失败，请重试');
-    }
-  }
-
-  // Logout complete handler - called after logout in settings
-  private handleLogoutComplete(): void {
-    console.info('[Index] Logout completed');
-    this.showToast('已退出登录');
   }
 
   handleRequestChangeCallback = async (req: HttpRequest): Promise<void> => {
@@ -1884,63 +1829,5 @@ struct Index {
       environments: []
     };
     return emptyResult;
-  }
-  // Command Palette Action Handler
-  handleCommandAction = (action: CommandAction): void => {
-    console.info('[Index] Command action:', action.type, action.id);
-
-    switch (action.type) {
-      case 'new-request':
-        this.createRequest();
-        break;
-      case 'new-folder':
-        this.createFolder();
-        break;
-      case 'new-workspace':
-        this.showWorkspaceManagementDialog = true;
-        break;
-      case 'export':
-        this.showExportDialog = true;
-        break;
-      case 'settings':
-        this.showSettingsDialog = true;
-        break;
-      case 'workspace-settings':
-        this.showWorkspaceSettingsDialog = true;
-        break;
-      case 'send-request':
-        this.executeRequest();
-        break;
-      case 'duplicate-request':
-        if (this.selectedRequest) {
-          this.duplicateRequest(this.selectedRequest);
-        }
-        break;
-      case 'toggle-sidebar':
-        this.sidebarHidden = !this.sidebarHidden;
-        this.saveSidebarHidden(this.sidebarHidden);
-        break;
-      case 'toggle-response':
-        this.responseViewerHidden = !this.responseViewerHidden;
-        this.saveResponseViewerHidden(this.responseViewerHidden);
-        break;
-      case 'select-request':
-        this.handleRequestSelectById(action.id);
-        break;
-      case 'select-workspace':
-        const workspace: Workspace | undefined = this.workspaces.find((ws: Workspace) => ws.id === action.id);
-        if (workspace) {
-          this.handleWorkspaceSelect(workspace);
-        }
-        break;
-      case 'select-environment':
-        const env: Environment | undefined = this.environments.find((e: Environment) => e.id === action.id);
-        if (env) {
-          this.handleEnvironmentSelect(env);
-        }
-        break;
-      default:
-        console.warn('[Index] Unknown command action:', action.type);
-    }
   }
 }

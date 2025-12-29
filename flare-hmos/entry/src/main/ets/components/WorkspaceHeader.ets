@@ -23,7 +23,6 @@ export struct WorkspaceHeader {
   @Param onManageEnvironments: () => void = () => {};
   @Param onToggleResponseViewer: () => void = () => {};
   @Param onExport: () => void = () => {};
-  @Param onToggleCommandPalette: () => void = () => {};
 
   build() {
     Row() {
@@ -107,18 +106,6 @@ export struct WorkspaceHeader {
         symbolIcon: $r('sys.symbol.upload'),
         onButtonClick: () => {
           this.onExport();
-        },
-        buttonType: 'ghost',
-        buttonSize: 'md',
-        isCircle: true
-      })
-        .margin({ right: $r('app.float.spacing_sm') })
-
-      // Command Palette Button
-      ThemedButton({
-        symbolIcon: $r('sys.symbol.search_things'),
-        onButtonClick: () => {
-          this.onToggleCommandPalette();
         },
         buttonType: 'ghost',
         buttonSize: 'md',
