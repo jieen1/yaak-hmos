@@ -4,8 +4,10 @@
  */
 
 import { HttpRequest } from '../model/HttpRequest';
+import { EnvironmentVariable } from '../model/Environment';
 import type { InheritedHeaderWithSource, InheritedAuthInfo } from '../services/InheritanceService';
 import { ThemedTextInput } from './ThemedTextInput';
+import { EnvironmentAwareInput } from './EnvironmentAwareInput'; // Import the new component
 import { ThemedButton } from './ThemedButton';
 import { ThemedText } from './ThemedText';
 import { QueryParamsEditor } from './QueryParamsEditor';
@@ -42,6 +44,7 @@ export struct RequestEditorComponent {
   @Param @Require request: HttpRequest;
   @Param @Require inheritedHeaders: InheritedHeaderWithSource[];
   @Param @Require inheritedAuth: InheritedAuthInfo | null;
+  @Param variables: EnvironmentVariable[] = []; // New param for variables
   @Event onExecute: () => void = () => {};
   @Event onCancel: () => void = () => {};
   @Event onCopyAsCurl: () => void = () => {};
@@ -113,15 +116,18 @@ export struct RequestEditorComponent {
         .margin({ right: $r('app.float.spacing_sm') })
         .bindMenu(this.buildMethodMenu())
 
-        // URL input
-        ThemedTextInput({
-          value: this.request.url,
-          placeholder: '输入请求 URL 或粘贴 cURL',
-          onValueChange: (value: string) => {
-            this.handleUrlChange(value);
-          },
-          inputSize: 'md'
-        })
+        // URL input - Replaced with EnvironmentAwareInput
+        Box() {
+            EnvironmentAwareInput({
+              value: this.request.url,
+              placeholder: '输入请求 URL 或粘贴 cURL',
+              variables: this.variables,
+              onValueChange: (value: string) => {
+                this.handleUrlChange(value);
+              },
+              inputSize: 'md'
+            })
+        }
           .layoutWeight(1)
           .margin({ right: $r('app.float.spacing_sm') })
 

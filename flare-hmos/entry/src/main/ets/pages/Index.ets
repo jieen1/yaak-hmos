@@ -6,7 +6,7 @@
 import { HttpRequest, HttpHeader, QueryParam, AuthConfig } from '../model/HttpRequest';
 import { HttpResponse } from '../model/HttpResponse';
 import { Workspace } from '../model/Workspace';
-import { Environment } from '../model/Environment';
+import { Environment, EnvironmentVariable } from '../model/Environment';
 import { Folder } from '../model/Folder';
 import { SidebarItem } from '../viewmodel/SidebarItem';
 import { DatabaseManager } from '../database/DatabaseManager';
@@ -1183,6 +1183,7 @@ struct Index {
             request: this.selectedRequest,
             inheritedHeaders: this.getInheritedHeadersForSelectedRequest(),
             inheritedAuth: this.getInheritedAuthForSelectedRequest(),
+            variables: this.getEffectiveVariables(),
             isLoading: this.isRequestLoading,
             onExecute: this.handleExecuteRequest,
             onCancel: this.handleCancelRequest,
@@ -1664,6 +1665,14 @@ struct Index {
       this.folders,
       this.selectedWorkspace
     );
+  }
+
+  // Get effective environment variables
+  private getEffectiveVariables(): EnvironmentVariable[] {
+    if (!this.selectedEnvironment) {
+      return [];
+    }
+    return this.selectedEnvironment.variables.filter(v => v.enabled);
   }
 
   // Drag and Drop Handler
