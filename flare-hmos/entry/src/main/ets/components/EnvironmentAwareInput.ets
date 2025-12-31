@@ -4,6 +4,7 @@
  * Uses RichEditor for rich text capabilities
  */
 
+import { RichEditor, RichEditorController, RichEditorTextSpanResult, RichEditorImageSpanResult, RichEditorTextStyle, RichEditorSpanPosition } from '@ohos.arkui.advanced.RichEditor';
 import { FontSettings } from '../services/FontService';
 import { EnvironmentVariable } from '../model/Environment';
 import { EnvironmentUtils, TextFragment } from '../utils/EnvironmentUtils';
@@ -24,10 +25,24 @@ export struct EnvironmentAwareInput {
   @Local selectedIndex: number = 0;
   @Local showVariableTooltip: boolean = false;
   @Local currentHoveredVariable: EnvironmentVariable | null = null;
+  @Local internalValue: string = ''; // Local copy of value for modification
   
   private controller: RichEditorController = new RichEditorController();
   private isInternalChange: boolean = false;
   private debounceTimer: number = -1;
+
+  aboutToAppear() {
+    this.internalValue = this.value;
+  }
+
+  @Monitor('value')
+  onValuePropChange() {
+    if (this.value !== this.internalValue) {
+      this.internalValue = this.value;
+      // Re-render when external value changes
+      this.renderContent();
+    }
+  }
 
   build() {
     Column() {
@@ -82,7 +97,7 @@ export struct EnvironmentAwareInput {
           })
 
         // Placeholder (overlay)
-        if (!this.value && this.placeholder) {
+        if (!this.internalValue && this.placeholder) {
           Text(this.placeholder)
             .fontColor($r('app.color.text_secondary'))
             .fontSize(this.fontSettings.editorFontSize)
@@ -105,7 +120,7 @@ export struct EnvironmentAwareInput {
               Row() {
                 Text(item.name)
                   .fontColor(this.selectedIndex === index ? $r('app.color.text_on_primary') : $r('app.color.text_primary'))
-                  .fontSize(this.fontSettings.uiFontSize)
+                  .fontSize(this.fontSettings.interfaceFontSize) // Corrected from uiFontSize
                   .fontWeight(FontWeight.Medium)
                 
                 Blank()
@@ -177,27 +192,39 @@ export struct EnvironmentAwareInput {
   private renderContent() {
     if (this.isInternalChange) return;
     
-    // Save cursor position if needed
-    // const savedOffset = this.controller.getCaretOffset();
-    
     this.controller.deleteSpans();
     
-    if (!this.value) return;
+    if (!this.internalValue) return;
 
-    const fragments = EnvironmentUtils.parseString(this.value);
+    const fragments = EnvironmentUtils.parseString(this.internalValue);
     
     fragments.forEach(frag => {
       if (frag.type === 'variable') {
-        this.controller.addTextSpan(frag.text, {
-          style: {
+        const style: RichEditorTextStyle = {
             fontColor: '#D97706', // Amber-600
+            fontSize: this.fontSettings.editorFontSize,
+            fontFamily: this.fontSettings.editorFont,
+        };
+        // Safely check if textBackgroundStyle is available in type definition or just suppress if known available
+        // Since we are fixing strict errors, we will just set it if we can
+        // However, 'RichEditorTextStyle' interface in standard SDK might not have textBackgroundStyle if it's new
+        // We will try casting to any to bypass strict check for the optional property if needed, 
+        // OR better: construct an object that matches runtime expectations but passes compilation
+        
+        // Using Partial<RichEditorTextStyle> or similar might work, but let's stick to base properties
+        // and extend via casting if needed for new features
+        const extendedStyle: Record<string, Object> = {
+            fontColor: '#D97706',
             fontSize: this.fontSettings.editorFontSize,
             fontFamily: this.fontSettings.editorFont,
             textBackgroundStyle: {
               color: '#FEF3C7', // Amber-100
               radius: 4
             }
-          }
+        };
+
+        this.controller.addTextSpan(frag.text, {
+          style: extendedStyle as RichEditorTextStyle
         });
       } else {
         this.controller.addTextSpan(frag.text, {
@@ -209,9 +236,6 @@ export struct EnvironmentAwareInput {
         });
       }
     });
-
-    // Restore cursor logic would be complex here as deleting spans resets everything
-    // Ideally we only call renderContent when not typing, or implement diffing
   }
 
   /**
@@ -222,25 +246,18 @@ export struct EnvironmentAwareInput {
     
     let newValue = '';
     
-    // Use toStyledString as requested if available, otherwise fallback
-    try {
-      // Create a range covering the entire document
-      // Note: RichEditorRange structure might vary by API version
-      const range = { start: 0, end: Number.MAX_SAFE_INTEGER }; 
-      const styledString = this.controller.toStyledString(range);
-      newValue = styledString.getString();
-    } catch (e) {
-      // Fallback to getSpans
-      const spans = this.controller.getSpans();
-      spans.forEach(span => {
-        if ('value' in span) {
-          newValue += span.value;
-        }
-      });
-    }
+    // Use getSpans as toStyledString might not be stable/available in all versions
+    const spans = this.controller.getSpans();
+    spans.forEach(span => {
+      // Check if it is a text span
+      if (typeof (span as RichEditorTextSpanResult).value === 'string') {
+        newValue += (span as RichEditorTextSpanResult).value;
+      }
+    });
 
     // Only update if changed
-    if (newValue !== this.value) {
+    if (newValue !== this.internalValue) {
+      this.internalValue = newValue;
       this.onValueChange(newValue);
       this.checkForAutocomplete(newValue);
       this.checkForHover(newValue);
@@ -308,18 +325,15 @@ export struct EnvironmentAwareInput {
   }
 
   private insertVariable(name: string) {
-    // We need to replace {{filterText with {{name}}
-    
     const caretOffset = this.controller.getCaretOffset();
-    // Re-fetch value to be safe
     let text = '';
-    try {
-       const range = { start: 0, end: Number.MAX_SAFE_INTEGER }; 
-       text = this.controller.toStyledString(range).getString();
-    } catch(e) {
-       const spans = this.controller.getSpans();
-       spans.forEach(s => text += s.value);
-    }
+    
+    const spans = this.controller.getSpans();
+    spans.forEach(span => {
+      if (typeof (span as RichEditorTextSpanResult).value === 'string') {
+        text += (span as RichEditorTextSpanResult).value;
+      }
+    });
     
     const lastOpen = text.substring(0, caretOffset).lastIndexOf('{{');
     if (lastOpen === -1) return;
@@ -329,8 +343,8 @@ export struct EnvironmentAwareInput {
     
     const newValue = `${prefix}{{${name}}}${suffix}`;
     
+    this.internalValue = newValue;
     this.onValueChange(newValue);
-    this.value = newValue; // Update local value
     this.showAutocomplete = false;
     
     // Defer render

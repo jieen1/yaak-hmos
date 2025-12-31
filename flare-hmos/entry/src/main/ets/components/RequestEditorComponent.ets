@@ -117,7 +117,7 @@ export struct RequestEditorComponent {
         .bindMenu(this.buildMethodMenu())
 
         // URL input - Replaced with EnvironmentAwareInput
-        Box() {
+        Row() {
             EnvironmentAwareInput({
               value: this.request.url,
               placeholder: '输入请求 URL 或粘贴 cURL',
@@ -129,7 +129,7 @@ export struct RequestEditorComponent {
             })
         }
           .layoutWeight(1)
-          .margin({ right: $r('app.float.spacing_sm') })
+          .margin({ right: $r('app.float.spacing_md') })
 
         // Send/Cancel button
         if (this.isLoading) {
